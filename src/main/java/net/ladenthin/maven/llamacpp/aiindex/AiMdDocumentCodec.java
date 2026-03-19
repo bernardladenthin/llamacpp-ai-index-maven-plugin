@@ -39,7 +39,7 @@ public class AiMdDocumentCodec {
 
         for (String line : lines) {
             if (!headerFinished) {
-                if (line.startsWith("### ") || line.startsWith("- ")) {
+                if (line.startsWith(AiMdHeaderCodec.HEADER_TITLE_PREFIX) || line.startsWith(AiMdHeaderCodec.HEADER_FIELD_PREFIX)) {
                     continue;
                 }
 

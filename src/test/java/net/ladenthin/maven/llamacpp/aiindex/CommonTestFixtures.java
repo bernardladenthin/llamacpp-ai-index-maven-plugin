@@ -90,27 +90,10 @@ public class CommonTestFixtures {
      * @return list of two field generation configs for summary and keywords
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
-        final AiGenerationConfig summaryGeneration = new AiGenerationConfig();
-        summaryGeneration.setMaxInputChars(120000);
-        summaryGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig summaryField = new AiFieldGenerationConfig();
-        summaryField.setFieldName("summary");
-        summaryField.setPromptKey(PROMPT_KEY_FILE_SUMMARY);
-        summaryField.setTarget("header.s");
-        summaryField.setGeneration(summaryGeneration);
-
-        final AiGenerationConfig keywordsGeneration = new AiGenerationConfig();
-        keywordsGeneration.setMaxInputChars(120000);
-        keywordsGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig keywordsField = new AiFieldGenerationConfig();
-        keywordsField.setFieldName("keywords");
-        keywordsField.setPromptKey(PROMPT_KEY_FILE_KEYWORDS);
-        keywordsField.setTarget("header.k");
-        keywordsField.setGeneration(keywordsGeneration);
-
-        return List.of(summaryField, keywordsField);
+        return List.of(
+                createFieldConfig("summary", PROMPT_KEY_FILE_SUMMARY, AiFieldGenerationConfig.TARGET_HEADER_SUMMARY),
+                createFieldConfig("keywords", PROMPT_KEY_FILE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
+        );
     }
 
     /**
@@ -154,27 +137,31 @@ public class CommonTestFixtures {
      * @return list of two field generation configs for summary and keywords
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
-        final AiGenerationConfig summaryGeneration = new AiGenerationConfig();
-        summaryGeneration.setMaxInputChars(120000);
-        summaryGeneration.setWarnOnTrim(true);
+        return List.of(
+                createFieldConfig("summary", PROMPT_KEY_PACKAGE_SUMMARY, AiFieldGenerationConfig.TARGET_HEADER_SUMMARY),
+                createFieldConfig("keywords", PROMPT_KEY_PACKAGE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
+        );
+    }
 
-        final AiFieldGenerationConfig summaryField = new AiFieldGenerationConfig();
-        summaryField.setFieldName("summary");
-        summaryField.setPromptKey(PROMPT_KEY_PACKAGE_SUMMARY);
-        summaryField.setTarget("header.s");
-        summaryField.setGeneration(summaryGeneration);
-
-        final AiGenerationConfig keywordsGeneration = new AiGenerationConfig();
-        keywordsGeneration.setMaxInputChars(120000);
-        keywordsGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig keywordsField = new AiFieldGenerationConfig();
-        keywordsField.setFieldName("keywords");
-        keywordsField.setPromptKey(PROMPT_KEY_PACKAGE_KEYWORDS);
-        keywordsField.setTarget("header.k");
-        keywordsField.setGeneration(keywordsGeneration);
-
-        return List.of(summaryField, keywordsField);
+    /**
+     * Creates a single {@link AiFieldGenerationConfig} with the given field name, prompt key, and target.
+     * The {@link AiGenerationConfig} uses its default values ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
+     * characters max input and {@link AiGenerationConfig#DEFAULT_WARN_ON_TRIM} for trim warnings).
+     *
+     * @param fieldName human-readable label for the field (e.g. {@code "summary"})
+     * @param promptKey key that identifies the prompt template in the prompt support
+     * @param target    routing target string (e.g. {@link AiFieldGenerationConfig#TARGET_HEADER_SUMMARY})
+     * @return a fully configured {@link AiFieldGenerationConfig}
+     */
+    private static AiFieldGenerationConfig createFieldConfig(
+            final String fieldName,
+            final String promptKey,
+            final String target) {
+        final AiFieldGenerationConfig field = new AiFieldGenerationConfig();
+        field.setFieldName(fieldName);
+        field.setPromptKey(promptKey);
+        field.setTarget(target);
+        return field;
     }
 
     private CommonTestFixtures() {

@@ -24,6 +24,12 @@ import java.nio.file.Path;
 
 public class AiMdHeaderSupport {
 
+    /**
+     * Separator character used between fields in a checksum line produced by
+     * {@link #buildChecksumLine(String, AiMdHeader)}.
+     */
+    private static final char CHECKSUM_LINE_SEPARATOR = '|';
+
     public boolean shouldWrite(
             final boolean force,
             final Path targetFile,
@@ -44,35 +50,13 @@ public class AiMdHeaderSupport {
             return true;
         }
 
-        if (!expectedHeader.h().equals(actualHeader.h())) {
-            return true;
-        }
-
-        if (!expectedHeader.x().equals(actualHeader.x())) {
-            return true;
-        }
-
-        if (!expectedHeader.title().equals(actualHeader.title())) {
-            return true;
-        }
-
-        if (!expectedHeader.c().equals(actualHeader.c())) {
-            return true;
-        }
-
-        if (!expectedHeader.d().equals(actualHeader.d())) {
-            return true;
-        }
-
-        if (!expectedHeader.g().equals(actualHeader.g())) {
-            return true;
-        }
-
-        if (!expectedHeader.a().equals(actualHeader.a())) {
-            return true;
-        }
-
-        return false;
+        return !expectedHeader.h().equals(actualHeader.h())
+                || !expectedHeader.x().equals(actualHeader.x())
+                || !expectedHeader.title().equals(actualHeader.title())
+                || !expectedHeader.c().equals(actualHeader.c())
+                || !expectedHeader.d().equals(actualHeader.d())
+                || !expectedHeader.g().equals(actualHeader.g())
+                || !expectedHeader.a().equals(actualHeader.a());
     }
 
     public String buildChecksumLine(
@@ -80,11 +64,11 @@ public class AiMdHeaderSupport {
             final AiMdHeader childHeader
     ) {
         return name
-                + '|'
+                + CHECKSUM_LINE_SEPARATOR
                 + childHeader.c()
-                + '|'
+                + CHECKSUM_LINE_SEPARATOR
                 + childHeader.d()
-                + '|'
+                + CHECKSUM_LINE_SEPARATOR
                 + childHeader.x()
                 + '\n';
     }
