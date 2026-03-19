@@ -18,71 +18,25 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.apache.maven.plugin.logging.SystemStreamLog;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class SourceFileIndexerTest {
 
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
 
-    private List<AiPromptDefinition> createPromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey("file-summary");
-        summaryPrompt.setTemplate("""
-                Summarize this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey("file-keywords");
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(summaryPrompt, keywordsPrompt);
-    }
-
-    private List<AiFieldGenerationConfig> createFieldGenerations() {
-        final AiGenerationConfig summaryGeneration = new AiGenerationConfig();
-        summaryGeneration.setMaxInputChars(120000);
-        summaryGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig summaryField = new AiFieldGenerationConfig();
-        summaryField.setFieldName("summary");
-        summaryField.setPromptKey("file-summary");
-        summaryField.setTarget("header.s");
-        summaryField.setGeneration(summaryGeneration);
-
-        final AiGenerationConfig keywordsGeneration = new AiGenerationConfig();
-        keywordsGeneration.setMaxInputChars(120000);
-        keywordsGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig keywordsField = new AiFieldGenerationConfig();
-        keywordsField.setFieldName("keywords");
-        keywordsField.setPromptKey("file-keywords");
-        keywordsField.setTarget("header.k");
-        keywordsField.setGeneration(keywordsGeneration);
-
-        return List.of(summaryField, keywordsField);
-    }
-
+    // <editor-fold defaultstate="collapsed" desc="indexSourceRoot">
     @Test
-    public void shouldCreateAiFileDirectlyWithGeneratedHeaderValues() throws Exception {
+    public void indexSourceRoot_singleJavaFile_createsAiMdFile() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("src/site/ai");
@@ -101,38 +55,39 @@ public class SourceFileIndexerTest {
                 }
                 """, StandardCharsets.UTF_8);
 
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final SourceFileIndexer indexer = new SourceFileIndexer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                List.of(".java"),
-                "1.0.0",
-                "0.0.0",
-                List.of(),
-                false,
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                List.of(".java"), "1.0.0", "0.0.0", List.of(), false,
                 new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
 
+        // act
         final int indexed = indexer.indexSourceRoot(sourceRoot);
 
-        Assert.assertEquals(1, indexed);
-        Assert.assertTrue(Files.exists(aiFile));
+        // pre-assert
+        assertThat(Files.exists(aiFile), is(true));
+
+        // assert
+        assertThat(indexed, is(equalTo(1)));
 
         final AiMdDocument document = documentCodec.read(aiFile);
 
-        Assert.assertEquals("Test.java", document.header().title());
-        Assert.assertEquals(AiMdHeaderCodec.HEADER_VERSION_1_0, document.header().h());
-        Assert.assertEquals(AiMdHeaderCodec.NODE_TYPE_FILE, document.header().x());
-        Assert.assertEquals("1.0.0", document.header().g());
-        Assert.assertEquals("0.0.0", document.header().a());
-        Assert.assertEquals("Mock summary for Test.java", document.header().s());
-        Assert.assertEquals("mock,keywords,Test.java", document.header().k());
-        Assert.assertFalse(document.header().c().isBlank());
-        Assert.assertFalse(document.header().d().isBlank());
-        Assert.assertFalse(document.header().t().isBlank());
+        // pre-assert
+        assertThat(document, is(notNullValue()));
+
+        // assert
+        assertThat(document.header().title(), is(equalTo("Test.java")));
+        assertThat(document.header().h(), is(equalTo(AiMdHeaderCodec.HEADER_VERSION_1_0)));
+        assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_FILE)));
+        assertThat(document.header().g(), is(equalTo("1.0.0")));
+        assertThat(document.header().a(), is(equalTo("0.0.0")));
+        assertThat(document.header().s(), is(equalTo("Mock summary for Test.java")));
+        assertThat(document.header().k(), is(equalTo("mock,keywords,Test.java")));
+        assertThat(document.header().c().isBlank(), is(false));
+        assertThat(document.header().d().isBlank(), is(false));
+        assertThat(document.header().t().isBlank(), is(false));
     }
+    // </editor-fold>
 }

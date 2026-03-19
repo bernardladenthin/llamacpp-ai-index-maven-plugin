@@ -18,13 +18,14 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.nio.file.Paths;
+import org.junit.Assume;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.is;
 
 public class LlamaCppJniAiSummaryProviderTest {
 
@@ -33,99 +34,55 @@ public class LlamaCppJniAiSummaryProviderTest {
                     .toAbsolutePath()
                     .toString();
 
-    private List<AiPromptDefinition> createPromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey("file-summary");
-        summaryPrompt.setTemplate("""
-                Summarize this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey("file-keywords");
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(summaryPrompt, keywordsPrompt);
-    }
-
+    // <editor-fold defaultstate="collapsed" desc="generate">
     @Test
-    public void shouldGenerateSummaryAndKeywordsForSimpleJavaFile() throws Exception {
+    public void generate_realProvider_returnsNonEmptyResponse() throws Exception {
+        // arrange — skip if native lib is unavailable or model is missing
         Assume.assumeTrue("Native llama test disabled. Enable with -DrunNativeLlamaTests=true",
                 Boolean.getBoolean("runNativeLlamaTests"));
         Assume.assumeTrue("Model file missing: " + MODEL_PATH,
-                Files.exists(Path.of(MODEL_PATH)));
+                Files.exists(Paths.get(MODEL_PATH)));
 
         final LlamaCppJniConfig config = new LlamaCppJniConfig(
-                null,
-                MODEL_PATH,
-                32768,
-                128,
-                0.15f,
-                8
+                null, MODEL_PATH, 32768, 128, 0.15f, 8
+        );
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
+
+        final AiMdHeader header = new AiMdHeader(
+                "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "00000000",
+                "2026-03-18T00:00:00Z", "2026-03-18T00:00:00Z",
+                "0.1.0-SNAPSHOT", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE, "", ""
+        );
+        final String source = """
+                package com.example;
+
+                public class Test {
+
+                    public String hello(final String name) {
+                        return "Hello " + name;
+                    }
+                }
+                """;
+
+        final AiGenerationRequest summaryRequest = new AiGenerationRequest(
+                CommonTestFixtures.PROMPT_KEY_FILE_SUMMARY, Path.of("Test.java"), source, header
+        );
+        final AiGenerationRequest keywordsRequest = new AiGenerationRequest(
+                CommonTestFixtures.PROMPT_KEY_FILE_KEYWORDS, Path.of("Test.java"), source, header
         );
 
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        // act
         try (LlamaCppJniAiSummaryProvider provider = new LlamaCppJniAiSummaryProvider(config, promptSupport)) {
-            final AiMdHeader header = new AiMdHeader(
-                    "Test.java",
-                    AiMdHeaderCodec.HEADER_VERSION_1_0,
-                    "00000000",
-                    "2026-03-18T00:00:00Z",
-                    "2026-03-18T00:00:00Z",
-                    "0.1.0-SNAPSHOT",
-                    "0.0.0",
-                    AiMdHeaderCodec.NODE_TYPE_FILE,
-                    "",
-                    ""
-            );
-
-            final String source = """
-                    package com.example;
-
-                    public class Test {
-
-                        public String hello(final String name) {
-                            return "Hello " + name;
-                        }
-                    }
-                    """;
-
-            final AiGenerationRequest summaryRequest = new AiGenerationRequest(
-                    "file-summary",
-                    Path.of("Test.java"),
-                    source,
-                    header
-            );
-
-            final AiGenerationRequest keywordsRequest = new AiGenerationRequest(
-                    "file-keywords",
-                    Path.of("Test.java"),
-                    source,
-                    header
-            );
-
             final String summary = provider.generate(summaryRequest);
             final String keywords = provider.generate(keywordsRequest);
 
-            Assert.assertNotNull(summary);
-            Assert.assertNotNull(keywords);
-            Assert.assertFalse(summary.isBlank());
-            Assert.assertFalse(keywords.isBlank());
-
-            System.out.println("S: " + summary);
-            System.out.println("K: " + keywords);
+            // assert
+            assertThat(summary, is(notNullValue()));
+            assertThat(keywords, is(notNullValue()));
+            assertThat(summary.isBlank(), is(false));
+            assertThat(keywords.isBlank(), is(false));
         }
     }
+    // </editor-fold>
 }

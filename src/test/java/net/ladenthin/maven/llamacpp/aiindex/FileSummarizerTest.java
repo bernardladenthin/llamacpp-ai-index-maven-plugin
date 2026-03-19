@@ -18,71 +18,36 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.apache.maven.plugin.logging.SystemStreamLog;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class FileSummarizerTest {
 
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
 
-    private List<AiPromptDefinition> createPromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey("file-summary");
-        summaryPrompt.setTemplate("""
-                Summarize this Java file.
+    /** Checksum written into .ai.md fixture files used in summarizeFiles tests. */
+    private static final String FIXED_CHECKSUM = "AAAAAAAA";
 
-                File: %s
+    /** Source content of the test Java file used across multiple summarizeFiles tests. */
+    private static final String FIXED_SOURCE_CONTENT = """
+            package com.example;
 
-                Source:
-                %s
-                """);
+            public class Test {
+            }
+            """;
 
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey("file-keywords");
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(summaryPrompt, keywordsPrompt);
-    }
-
-    private List<AiFieldGenerationConfig> createFieldGenerations() {
-        final AiGenerationConfig summaryGeneration = new AiGenerationConfig();
-        summaryGeneration.setMaxInputChars(120000);
-        summaryGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig summaryField = new AiFieldGenerationConfig();
-        summaryField.setFieldName("summary");
-        summaryField.setPromptKey("file-summary");
-        summaryField.setTarget("header.s");
-        summaryField.setGeneration(summaryGeneration);
-
-        final AiGenerationConfig keywordsGeneration = new AiGenerationConfig();
-        keywordsGeneration.setMaxInputChars(120000);
-        keywordsGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig keywordsField = new AiFieldGenerationConfig();
-        keywordsField.setFieldName("keywords");
-        keywordsField.setPromptKey("file-keywords");
-        keywordsField.setTarget("header.k");
-        keywordsField.setGeneration(keywordsGeneration);
-
-        return List.of(summaryField, keywordsField);
-    }
-
+    // <editor-fold defaultstate="collapsed" desc="summarizeFiles">
     @Test
-    public void shouldSummarizeFileHeaderWithMockProvider() throws Exception {
+    public void summarizeFiles_emptySummaryAndForceIsFalse_writesSummary() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("src/site/ai");
@@ -91,62 +56,51 @@ public class FileSummarizerTest {
 
         Files.createDirectories(sourceFile.getParent());
         Files.createDirectories(aiFile.getParent());
-
-        Files.writeString(sourceFile, """
-                package com.example;
-
-                public class Test {
-                }
-                """, StandardCharsets.UTF_8);
+        Files.writeString(sourceFile, FIXED_SOURCE_CONTENT, StandardCharsets.UTF_8);
 
         final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "",
-                ""
+                "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE, "", ""
         );
+        documentCodec.write(aiFile, new AiMdDocument(header, ""));
 
-        final AiMdDocument document = new AiMdDocument(header, "");
-        documentCodec.write(aiFile, document);
-
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final FileSummarizer summarizer = new FileSummarizer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                List.of(),
-                false,
-                new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                List.of(), false, new MockAiGenerationProvider(),
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
 
+        // pre-assert — verify the initial document has no summary yet
+        assertThat(documentCodec.read(aiFile).header().s(), is(equalTo("")));
+
+        // act
         final int summarized = summarizer.summarizeFiles();
 
-        Assert.assertEquals(1, summarized);
+        // assert
+        assertThat(summarized, is(equalTo(1)));
 
         final AiMdDocument updated = documentCodec.read(aiFile);
 
-        Assert.assertEquals("Mock summary for Test.java", updated.header().s());
-        Assert.assertEquals("mock,keywords,Test.java", updated.header().k());
-        Assert.assertEquals("Test.java", updated.header().title());
-        Assert.assertEquals("AAAAAAAA", updated.header().c());
-        Assert.assertEquals("2026-03-16T00:00:00Z", updated.header().d());
-        Assert.assertEquals("2026-03-16T00:00:10Z", updated.header().t());
-        Assert.assertEquals("1.0.0", updated.header().g());
-        Assert.assertEquals("0.0.0", updated.header().a());
-        Assert.assertEquals(AiMdHeaderCodec.NODE_TYPE_FILE, updated.header().x());
+        // pre-assert
+        assertThat(updated, is(notNullValue()));
+
+        // assert
+        assertThat(updated.header().s(), is(equalTo("Mock summary for Test.java")));
+        assertThat(updated.header().k(), is(equalTo("mock,keywords,Test.java")));
+        assertThat(updated.header().title(), is(equalTo("Test.java")));
+        assertThat(updated.header().c(), is(equalTo(FIXED_CHECKSUM)));
+        assertThat(updated.header().d(), is(equalTo("2026-03-16T00:00:00Z")));
+        assertThat(updated.header().t(), is(equalTo("2026-03-16T00:00:10Z")));
+        assertThat(updated.header().g(), is(equalTo("1.0.0")));
+        assertThat(updated.header().a(), is(equalTo("0.0.0")));
+        assertThat(updated.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_FILE)));
     }
 
     @Test
-    public void shouldNotSummarizeFileIfSummaryAlreadyExistsAndForceIsFalse() throws Exception {
+    public void summarizeFiles_existingSummaryAndForceIsFalse_skipsFile() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("src/site/ai");
@@ -155,54 +109,36 @@ public class FileSummarizerTest {
 
         Files.createDirectories(sourceFile.getParent());
         Files.createDirectories(aiFile.getParent());
-
-        Files.writeString(sourceFile, """
-                package com.example;
-
-                public class Test {
-                }
-                """, StandardCharsets.UTF_8);
+        Files.writeString(sourceFile, FIXED_SOURCE_CONTENT, StandardCharsets.UTF_8);
 
         final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "Existing summary",
-                "existing,keywords"
+                "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE, "Existing summary", "existing,keywords"
         );
+        documentCodec.write(aiFile, new AiMdDocument(header, ""));
 
-        final AiMdDocument document = new AiMdDocument(header, "");
-        documentCodec.write(aiFile, document);
-
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final FileSummarizer summarizer = new FileSummarizer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                List.of(),
-                false,
-                new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                List.of(), false, new MockAiGenerationProvider(),
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
 
+        // act
         final int summarized = summarizer.summarizeFiles();
 
-        Assert.assertEquals(0, summarized);
+        // assert
+        assertThat(summarized, is(equalTo(0)));
 
         final AiMdDocument updated = documentCodec.read(aiFile);
-        Assert.assertEquals("Existing summary", updated.header().s());
-        Assert.assertEquals("existing,keywords", updated.header().k());
+        assertThat(updated.header().s(), is(equalTo("Existing summary")));
+        assertThat(updated.header().k(), is(equalTo("existing,keywords")));
     }
 
     @Test
-    public void shouldSummarizeFileIfForceIsTrue() throws Exception {
+    public void summarizeFiles_existingSummaryAndForceIsTrue_overwritesSummary() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("src/site/ai");
@@ -211,54 +147,36 @@ public class FileSummarizerTest {
 
         Files.createDirectories(sourceFile.getParent());
         Files.createDirectories(aiFile.getParent());
-
-        Files.writeString(sourceFile, """
-                package com.example;
-
-                public class Test {
-                }
-                """, StandardCharsets.UTF_8);
+        Files.writeString(sourceFile, FIXED_SOURCE_CONTENT, StandardCharsets.UTF_8);
 
         final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "Existing summary",
-                "existing,keywords"
+                "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE, "Existing summary", "existing,keywords"
         );
+        documentCodec.write(aiFile, new AiMdDocument(header, ""));
 
-        final AiMdDocument document = new AiMdDocument(header, "");
-        documentCodec.write(aiFile, document);
-
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final FileSummarizer summarizer = new FileSummarizer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                List.of(),
-                true,
-                new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                List.of(), true, new MockAiGenerationProvider(),
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
 
+        // act
         final int summarized = summarizer.summarizeFiles();
 
-        Assert.assertEquals(1, summarized);
+        // assert
+        assertThat(summarized, is(equalTo(1)));
 
         final AiMdDocument updated = documentCodec.read(aiFile);
-        Assert.assertEquals("Mock summary for Test.java", updated.header().s());
-        Assert.assertEquals("mock,keywords,Test.java", updated.header().k());
+        assertThat(updated.header().s(), is(equalTo("Mock summary for Test.java")));
+        assertThat(updated.header().k(), is(equalTo("mock,keywords,Test.java")));
     }
 
     @Test
-    public void shouldSkipPackageAiFiles() throws Exception {
+    public void summarizeFiles_packageAiFile_skipsPackageFile() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("src/site/ai");
@@ -267,40 +185,28 @@ public class FileSummarizerTest {
         Files.createDirectories(aiFile.getParent());
 
         final AiMdHeader header = new AiMdHeader(
-                "main/java/com/example",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_PACKAGE,
-                "",
-                ""
+                "main/java/com/example", AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_PACKAGE, "", ""
         );
+        documentCodec.write(aiFile, new AiMdDocument(header, "#### Contents\n- Test.java.ai.md\n"));
 
-        final AiMdDocument document = new AiMdDocument(header, "#### Contents\n- Test.java.ai.md\n");
-        documentCodec.write(aiFile, document);
-
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final FileSummarizer summarizer = new FileSummarizer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                List.of(),
-                false,
-                new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                List.of(), false, new MockAiGenerationProvider(),
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
 
+        // act
         final int summarized = summarizer.summarizeFiles();
 
-        Assert.assertEquals(0, summarized);
+        // assert
+        assertThat(summarized, is(equalTo(0)));
 
         final AiMdDocument updated = documentCodec.read(aiFile);
-        Assert.assertEquals("", updated.header().s());
-        Assert.assertEquals("", updated.header().k());
+        assertThat(updated.header().s(), is(equalTo("")));
+        assertThat(updated.header().k(), is(equalTo("")));
     }
+    // </editor-fold>
 }

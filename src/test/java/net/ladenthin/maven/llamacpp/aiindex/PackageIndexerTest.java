@@ -18,70 +18,24 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.apache.maven.plugin.logging.SystemStreamLog;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class PackageIndexerTest {
 
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
 
-    private List<AiPromptDefinition> createPromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey("package-summary");
-        summaryPrompt.setTemplate("""
-                Summarize this Java package.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey("package-keywords");
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java package.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(summaryPrompt, keywordsPrompt);
-    }
-
-    private List<AiFieldGenerationConfig> createFieldGenerations() {
-        final AiGenerationConfig summaryGeneration = new AiGenerationConfig();
-        summaryGeneration.setMaxInputChars(120000);
-        summaryGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig summaryField = new AiFieldGenerationConfig();
-        summaryField.setFieldName("summary");
-        summaryField.setPromptKey("package-summary");
-        summaryField.setTarget("header.s");
-        summaryField.setGeneration(summaryGeneration);
-
-        final AiGenerationConfig keywordsGeneration = new AiGenerationConfig();
-        keywordsGeneration.setMaxInputChars(120000);
-        keywordsGeneration.setWarnOnTrim(true);
-
-        final AiFieldGenerationConfig keywordsField = new AiFieldGenerationConfig();
-        keywordsField.setFieldName("keywords");
-        keywordsField.setPromptKey("package-keywords");
-        keywordsField.setTarget("header.k");
-        keywordsField.setGeneration(keywordsGeneration);
-
-        return List.of(summaryField, keywordsField);
-    }
-
+    // <editor-fold defaultstate="collapsed" desc="aggregate">
     @Test
-    public void shouldCreatePackageAiFileDirectlyWithGeneratedHeaderValues() throws Exception {
+    public void aggregate_singleChildFile_createsPackageAiMdFile() throws Exception {
+        // arrange
         final Path temp = Files.createTempDirectory("ai-index-test");
         final Path baseDirectory = temp;
         final Path outputRoot = temp.resolve("ai");
@@ -92,53 +46,46 @@ public class PackageIndexerTest {
         Files.createDirectories(packageDirectory);
 
         final AiMdHeader childHeader = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "Child summary",
-                "child,keywords"
+                "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "AAAAAAAA",
+                "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE, "Child summary", "child,keywords"
         );
-
         documentCodec.write(childAiFile, new AiMdDocument(childHeader, ""));
 
-        final AiPromptSupport promptSupport = new AiPromptSupport(createPromptDefinitions());
-
+        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createPackagePromptDefinitions());
         final PackageIndexer indexer = new PackageIndexer(
-                new SystemStreamLog(),
-                baseDirectory,
-                outputRoot,
-                "1.0.0",
-                "0.0.0",
-                List.of(),
-                false,
-                new MockAiGenerationProvider(),
-                createFieldGenerations(),
-                promptSupport
+                new SystemStreamLog(), baseDirectory, outputRoot,
+                "1.0.0", "0.0.0", List.of(), false, new MockAiGenerationProvider(),
+                CommonTestFixtures.createPackageFieldGenerations(), promptSupport
         );
 
+        // act
         final int aggregated = indexer.aggregate(outputRoot);
 
-        Assert.assertEquals(5, aggregated);
-        Assert.assertTrue(Files.exists(packageAiFile));
+        // pre-assert
+        assertThat(Files.exists(packageAiFile), is(true));
+
+        // assert
+        assertThat(aggregated, is(equalTo(5)));
 
         final AiMdDocument document = documentCodec.read(packageAiFile);
 
-        Assert.assertEquals("main/java/com/example", document.header().title());
-        Assert.assertEquals(AiMdHeaderCodec.HEADER_VERSION_1_0, document.header().h());
-        Assert.assertEquals(AiMdHeaderCodec.NODE_TYPE_PACKAGE, document.header().x());
-        Assert.assertEquals("1.0.0", document.header().g());
-        Assert.assertEquals("0.0.0", document.header().a());
-        Assert.assertEquals("Mock summary for package.ai.md", document.header().s());
-        Assert.assertEquals("mock,keywords,package.ai.md", document.header().k());
-        Assert.assertFalse(document.header().c().isBlank());
-        Assert.assertFalse(document.header().d().isBlank());
-        Assert.assertFalse(document.header().t().isBlank());
-        Assert.assertTrue(document.body().contains("#### Contents"));
-        Assert.assertTrue(document.body().contains("- Test.java.ai.md"));
+        // pre-assert
+        assertThat(document, is(notNullValue()));
+
+        // assert
+        assertThat(document.header().title(), is(equalTo("main/java/com/example")));
+        assertThat(document.header().h(), is(equalTo(AiMdHeaderCodec.HEADER_VERSION_1_0)));
+        assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_PACKAGE)));
+        assertThat(document.header().g(), is(equalTo("1.0.0")));
+        assertThat(document.header().a(), is(equalTo("0.0.0")));
+        assertThat(document.header().s(), is(equalTo("Mock summary for package.ai.md")));
+        assertThat(document.header().k(), is(equalTo("mock,keywords,package.ai.md")));
+        assertThat(document.header().c().isBlank(), is(false));
+        assertThat(document.header().d().isBlank(), is(false));
+        assertThat(document.header().t().isBlank(), is(false));
+        assertThat(document.body().contains("#### Contents"), is(true));
+        assertThat(document.body().contains("- Test.java.ai.md"), is(true));
     }
+    // </editor-fold>
 }

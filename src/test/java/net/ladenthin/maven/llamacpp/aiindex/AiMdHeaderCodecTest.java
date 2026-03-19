@@ -18,17 +18,20 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.List;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 
 public class AiMdHeaderCodecTest {
-    
+
     private final AiMdHeaderCodec headerCodec = new AiMdHeaderCodec();
 
+    // <editor-fold defaultstate="collapsed" desc="write">
     @Test
-    public void shouldRoundtripHeader() {
+    public void write_fileNodeHeader_roundtripsToEqualHeader() {
+        // arrange
         final AiMdHeader original = new AiMdHeader(
                 "GenerateMojo.java",
                 AiMdHeaderCodec.HEADER_VERSION_1_0,
@@ -42,14 +45,17 @@ public class AiMdHeaderCodecTest {
                 "mock,file"
         );
 
+        // act
         final String encoded = headerCodec.write(original);
         final AiMdHeader decoded = headerCodec.read(List.of(encoded.split("\\R")));
 
-        Assert.assertEquals(original, decoded);
+        // assert
+        assertThat(decoded, is(equalTo(original)));
     }
 
     @Test
-    public void shouldReadWrittenHeaderFromLines() {
+    public void write_packageNodeHeader_decodedFieldsMatchOriginal() {
+        // arrange
         final AiMdHeader original = new AiMdHeader(
                 "main/java/net/ladenthin/maven/llamacpp/aiindex",
                 AiMdHeaderCodec.HEADER_VERSION_1_0,
@@ -63,20 +69,22 @@ public class AiMdHeaderCodecTest {
                 AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
 
+        // act
         final String encoded = headerCodec.write(original);
         final List<String> lines = List.of(encoded.split("\\R"));
-
         final AiMdHeader decoded = headerCodec.read(lines);
 
-        Assert.assertEquals("main/java/net/ladenthin/maven/llamacpp/aiindex", decoded.title());
-        Assert.assertEquals(AiMdHeaderCodec.HEADER_VERSION_1_0, decoded.h());
-        Assert.assertEquals("9863444A", decoded.c());
-        Assert.assertEquals("2026-03-15T18:33:50Z", decoded.d());
-        Assert.assertEquals("2026-03-15T18:34:26Z", decoded.t());
-        Assert.assertEquals("0.1.0-SNAPSHOT", decoded.g());
-        Assert.assertEquals("0.0.0", decoded.a());
-        Assert.assertEquals(AiMdHeaderCodec.NODE_TYPE_PACKAGE, decoded.x());
-        Assert.assertEquals(AiMdHeaderCodec.DEFAULT_SUMMARY, decoded.s());
-        Assert.assertEquals(AiMdHeaderCodec.DEFAULT_KEYWORDS, decoded.k());
+        // assert
+        assertThat(decoded.title(), is(equalTo("main/java/net/ladenthin/maven/llamacpp/aiindex")));
+        assertThat(decoded.h(), is(equalTo(AiMdHeaderCodec.HEADER_VERSION_1_0)));
+        assertThat(decoded.c(), is(equalTo("9863444A")));
+        assertThat(decoded.d(), is(equalTo("2026-03-15T18:33:50Z")));
+        assertThat(decoded.t(), is(equalTo("2026-03-15T18:34:26Z")));
+        assertThat(decoded.g(), is(equalTo("0.1.0-SNAPSHOT")));
+        assertThat(decoded.a(), is(equalTo("0.0.0")));
+        assertThat(decoded.x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_PACKAGE)));
+        assertThat(decoded.s(), is(equalTo(AiMdHeaderCodec.DEFAULT_SUMMARY)));
+        assertThat(decoded.k(), is(equalTo(AiMdHeaderCodec.DEFAULT_KEYWORDS)));
     }
+    // </editor-fold>
 }

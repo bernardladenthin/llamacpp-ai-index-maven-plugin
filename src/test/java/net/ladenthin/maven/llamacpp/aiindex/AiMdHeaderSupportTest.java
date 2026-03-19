@@ -18,170 +18,148 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
 
 public class AiMdHeaderSupportTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdHeaderCodec headerCodec = new AiMdHeaderCodec();
 
+    /** Fixed title used across all shouldWrite tests to reduce duplication. */
+    private static final String FIXED_TITLE = "Test.java";
+
+    /** Fixed creation timestamp used across all shouldWrite tests. */
+    private static final String FIXED_D = "2026-03-16T00:00:00Z";
+
+    /** Fixed generation timestamp used across all shouldWrite tests. */
+    private static final String FIXED_T = "2026-03-16T00:00:10Z";
+
+    /** Fixed generator version used in tests that do not exercise the generator-version change. */
+    private static final String FIXED_G = "1.0.0";
+
+    /** Fixed AI version used across all shouldWrite tests. */
+    private static final String FIXED_A = "0.0.0";
+
+    /** Fixed checksum used in tests that do not exercise checksum-change detection. */
+    private static final String FIXED_CHECKSUM = "12345678";
+
+    // <editor-fold defaultstate="collapsed" desc="shouldWrite">
     @Test
-    public void shouldWriteIfFileDoesNotExist() throws IOException {
-
-        final Path temp = Files.createTempDirectory("ai-md-test");
-        final Path target = temp.resolve("test.ai.md");
-
+    public void shouldWrite_fileDoesNotExist_returnsTrue() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "12345678",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
                 AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
 
+        // act
         final boolean result = headerSupport.shouldWrite(false, target, header);
 
-        Assert.assertTrue(result);
+        // assert
+        assertThat(result, is(true));
     }
 
     @Test
-    public void shouldNotWriteIfHeaderMatches() throws IOException {
-
-        final Path temp = Files.createTempDirectory("ai-md-test");
-        final Path target = temp.resolve("test.ai.md");
-
+    public void shouldWrite_matchingExistingHeader_returnsFalse() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "ABCDEF12",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "ABCDEF12",
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
                 AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
-
-        final String content = headerCodec.write(header);
-        Files.writeString(target, content);
-
-        final boolean result = headerSupport.shouldWrite(false, target, header);
-
-        Assert.assertFalse(result);
-    }
-
-    @Test
-    public void shouldWriteIfChecksumChanges() throws IOException {
-
-        final Path temp = Files.createTempDirectory("ai-md-test");
-        final Path target = temp.resolve("test.ai.md");
-
-        final AiMdHeader original = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "AAAAAAAA",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
-        );
-
-        Files.writeString(target, headerCodec.write(original));
-
-        final AiMdHeader changed = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "BBBBBBBB",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
-        );
-
-        final boolean result = headerSupport.shouldWrite(false, target, changed);
-
-        Assert.assertTrue(result);
-    }
-
-    @Test
-    public void shouldWriteIfGeneratorVersionChanges() throws IOException {
-
-        final Path temp = Files.createTempDirectory("ai-md-test");
-        final Path target = temp.resolve("test.ai.md");
-
-        final AiMdHeader original = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "12345678",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
-        );
-
-        Files.writeString(target, headerCodec.write(original));
-
-        final AiMdHeader changed = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "12345678",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "2.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
-        );
-
-        final boolean result = headerSupport.shouldWrite(false, target, changed);
-
-        Assert.assertTrue(result);
-    }
-
-    @Test
-    public void shouldAlwaysWriteWhenForceEnabled() throws IOException {
-
-        final Path temp = Files.createTempDirectory("ai-md-test");
-        final Path target = temp.resolve("test.ai.md");
-
-        final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "12345678",
-                "2026-03-16T00:00:00Z",
-                "2026-03-16T00:00:10Z",
-                "1.0.0",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                "TODO",
-                "TODO"
-        );
-
         Files.writeString(target, headerCodec.write(header));
 
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, header);
+
+        // assert
+        assertThat(result, is(false));
+    }
+
+    @Test
+    public void shouldWrite_checksumChanged_returnsTrue() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
+        final AiMdHeader original = new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "AAAAAAAA",
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+        Files.writeString(target, headerCodec.write(original));
+
+        final AiMdHeader changed = new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "BBBBBBBB",
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, changed);
+
+        // assert
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void shouldWrite_generatorVersionChanged_returnsTrue() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
+        final AiMdHeader original = new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+        Files.writeString(target, headerCodec.write(original));
+
+        final AiMdHeader changed = new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                FIXED_D, FIXED_T, "2.0.0", FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, changed);
+
+        // assert
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void shouldWrite_forceEnabled_returnsTrue() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
+        final AiMdHeader header = new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
+                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+        Files.writeString(target, headerCodec.write(header));
+
+        // act
         final boolean result = headerSupport.shouldWrite(true, target, header);
 
-        Assert.assertTrue(result);
+        // assert
+        assertThat(result, is(true));
     }
+    // </editor-fold>
 }
