@@ -23,7 +23,6 @@ import de.kherud.llama.LlamaModel;
 import de.kherud.llama.ModelParameters;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.Objects;
 
 public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoCloseable {
@@ -40,9 +39,9 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
         this.promptSupport = Objects.requireNonNull(promptSupport, "promptSupport");
 
         final ModelParameters modelParameters = new ModelParameters()
-                .setModel(config.modelPath());
-
-        applyOptionalModelParameters(modelParameters);
+                .setModel(config.modelPath())
+                .setCtxSize(config.contextSize())
+                .setThreads(config.threads());
 
         this.model = new LlamaModel(modelParameters);
     }
@@ -52,9 +51,8 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
         final String prompt = promptSupport.buildPrompt(request);
 
         final InferenceParameters inferenceParameters = new InferenceParameters(prompt)
-                .setTemperature(config.temperature());
-
-        applyOptionalInferenceParameters(inferenceParameters);
+                .setTemperature(config.temperature())
+                .setNPredict(config.maxTokens());
 
         final String response = model.complete(inferenceParameters);
 
@@ -66,25 +64,6 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
             return "";
         }
         return response.trim();
-    }
-
-    private void applyOptionalModelParameters(final ModelParameters modelParameters) {
-        invokeIfPresent(modelParameters, "setCtxSize", config.contextSize());
-        invokeIfPresent(modelParameters, "setContextSize", config.contextSize());
-        invokeIfPresent(modelParameters, "setThreads", config.threads());
-    }
-
-    private void applyOptionalInferenceParameters(final InferenceParameters inferenceParameters) {
-        invokeIfPresent(inferenceParameters, "setNPredict", config.maxTokens());
-        invokeIfPresent(inferenceParameters, "setMaxTokens", config.maxTokens());
-    }
-
-    private void invokeIfPresent(final Object target, final String methodName, final int value) {
-        try {
-            final Method method = target.getClass().getMethod(methodName, int.class);
-            method.invoke(target, value);
-        } catch (ReflectiveOperationException ignored) {
-        }
     }
 
     @Override
