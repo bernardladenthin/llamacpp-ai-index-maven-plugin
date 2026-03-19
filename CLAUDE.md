@@ -78,16 +78,13 @@ llamacpp-ai-index-maven-plugin/
 │   │       ├── LlamaCppJniAiSummaryProvider.java# llama.cpp JNI provider
 │   │       ├── LlamaCppJniConfig.java      # llama.cpp configuration
 │   │       ├── AiSummaryResponse.java      # AI generation response
-│   │       ├── FileSummarizer.java         # Summarizes source files
-│   │       ├── PackageSummarizer.java      # Aggregates into package summaries
-│   │       ├── SourceFileIndexer.java      # Indexes source files
-│   │       ├── PackageIndexer.java         # Manages hierarchical indexing
+│   │       ├── SourceFileIndexer.java      # Indexes + summarizes source files
+│   │       ├── PackageIndexer.java         # Aggregates + summarizes package index files
 │   │       ├── AiChecksumSupport.java      # Checksum utilities
 │   │       ├── AiTimeSupport.java          # Timestamp utilities
 │   │       ├── AiPathSupport.java          # Path utilities
+│   │       ├── AbstractAiIndexMojo.java    # Shared parameters and utilities for all mojos
 │   │       ├── GenerateMojo.java           # goal: ai-index:generate
-│   │       ├── SummarizeFilesMojo.java     # goal: ai-index:summarize-files
-│   │       ├── SummarizePackagesMojo.java  # goal: ai-index:summarize-packages
 │   │       └── AggregatePackagesMojo.java  # goal: ai-index:aggregate-packages
 │   ├── site/
 │   │   └── ai/                            # Output directory for .ai.md files
@@ -111,28 +108,23 @@ The plugin operates in two logical phases:
 
 **Phase 1 — File Indexing & Summarization**
 ```
-[Source .java files] → SourceFileIndexer → [*.java.ai.md files]
-                                          → FileSummarizer (fills s/k fields)
+[Source .java files] → SourceFileIndexer → [*.java.ai.md files (with s/k filled)]
 ```
 
-**Phase 2 — Package Aggregation**
+**Phase 2 — Package Aggregation & Summarization**
 ```
-[*.java.ai.md files] → PackageIndexer → [package.ai.md files]
-                                       → PackageSummarizer (fills s/k fields)
+[*.java.ai.md files] → PackageIndexer → [package.ai.md files (with s/k filled)]
 ```
 
 ### Key Components
 
 | Class | Role |
 |---|---|
-| `GenerateMojo` | Main entry point; orchestrates all phases |
-| `SummarizeFilesMojo` | Standalone mojo for summarizing files only |
-| `SummarizePackagesMojo` | Standalone mojo for summarizing packages only |
-| `AggregatePackagesMojo` | Standalone mojo for aggregating packages only |
-| `SourceFileIndexer` | Walks source trees and creates skeleton `.ai.md` files |
-| `PackageIndexer` | Creates `package.ai.md` files with contents listings |
-| `FileSummarizer` | Fills in `s` (summary) and `k` (keywords) for file nodes |
-| `PackageSummarizer` | Fills in `s` and `k` for package nodes |
+| `AbstractAiIndexMojo` | Shared `@Parameter` fields and utilities for all mojos |
+| `GenerateMojo` | Phase 1: index + summarize source files |
+| `AggregatePackagesMojo` | Phase 2: aggregate + summarize package index files |
+| `SourceFileIndexer` | Walks source trees, creates `.ai.md` files, calls AI for `s`/`k` fields |
+| `PackageIndexer` | Creates `package.ai.md` files with contents listings, calls AI for `s`/`k` fields |
 | `AiGenerationProvider` | Interface for AI backends (llama.cpp JNI or mock) |
 | `AiMdDocumentCodec` | Reads and writes `.ai.md` files |
 | `AiMdHeaderCodec` | Encodes/decodes the YAML-like metadata header |
@@ -188,10 +180,8 @@ k: "parser,codec,markdown"
 
 | Goal | Description |
 |---|---|
-| `ai-index:generate` | Run all phases: index + summarize + aggregate |
-| `ai-index:summarize-files` | Summarize file-level `.ai.md` nodes only |
-| `ai-index:summarize-packages` | Summarize package-level `package.ai.md` nodes only |
-| `ai-index:aggregate-packages` | Aggregate package index files only |
+| `ai-index:generate` | Phase 1: index source files and fill AI summary/keywords fields |
+| `ai-index:aggregate-packages` | Phase 2: aggregate package index files and fill AI summary/keywords fields |
 
 ### Key Parameters (`GenerateMojo`)
 
@@ -358,6 +348,6 @@ Summarise what was fixed. If a failure cannot be fixed automatically, stop and a
 1. **Local-first** — all AI inference runs locally via llama.cpp; no cloud API calls, no data leaves the machine.
 2. **Deterministic indexing** — same source produces the same `.ai.md` skeleton; only AI-generated fields (`s`, `k`) vary.
 3. **Incremental updates** — files with existing summaries are skipped unless `force=true`; checksums detect source changes.
-4. **Separation of concerns** — indexing (skeleton creation) is decoupled from summarization (AI inference); each can be run independently.
+4. **Unified indexing and summarization** — each indexer (`SourceFileIndexer`, `PackageIndexer`) both creates the `.ai.md` skeleton and fills in AI fields in a single pass; no separate summarization step is needed.
 5. **Provider abstraction** — AI backends are pluggable through `AiGenerationProvider`; mock provider enables fully deterministic tests.
 6. **Configuration-driven prompts** — prompt templates are defined in POM configuration, not hardcoded in Java; changing a prompt requires no code change.

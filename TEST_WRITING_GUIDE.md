@@ -125,9 +125,9 @@ Rules:
 Pattern: **`methodUnderTest_inputOrCondition_expectedBehavior`**
 
 ```
-summarizeFiles_outputDirectoryMissing_returnsZero
-summarizeFiles_existingSummaryAndForceIsFalse_skipsFile
-summarizeFiles_forceIsTrue_regeneratesSummary
+indexSourceRoot_emptyDirectory_returnsZero
+indexSourceRoot_existingSummaryForceIsFalse_skipsFile
+indexSourceRoot_forceIsTrue_regeneratesSummary
 read_validDocument_parsesHeaderAndBody
 write_documentWithMetadata_roundtripsCorrectly
 preparePrompt_sourceLongerThanMax_trimmedFlagIsTrue
@@ -150,16 +150,17 @@ Every test body **must** follow the Arrange / Act / Assert structure with explic
 
 ```java
 @Test
-public void summarizeFiles_outputDirectoryMissing_returnsZero() throws Exception {
+public void indexSourceRoot_emptyDirectory_returnsZero() throws Exception {
     // arrange
-    final Path nonExistent = Path.of("/tmp/does-not-exist-" + System.nanoTime());
-    final FileSummarizer summarizer = new FileSummarizer(
-            new SystemStreamLog(), nonExistent, nonExistent, List.of(), false,
+    final Path temp = Files.createTempDirectory("ai-test");
+    final SourceFileIndexer indexer = new SourceFileIndexer(
+            new SystemStreamLog(), temp, temp, List.of(".java"),
+            "0.1.0", "0.0.0", List.of(), false,
             new MockAiGenerationProvider(), List.of(), new AiPromptSupport(List.of())
     );
 
     // act
-    final int result = summarizer.summarizeFiles();
+    final int result = indexer.indexSourceRoot(temp);
 
     // assert
     assertThat(result, is(equalTo(0)));
@@ -180,7 +181,7 @@ final AiMdDocument document = documentCodec.read(aiFile);
 assertThat(document.header().s(), is(emptyOrNullString()));
 
 // act
-final int count = summarizer.summarizeFiles();
+final int count = indexer.indexSourceRoot(sourceRoot);
 
 // assert
 assertThat(count, is(equalTo(1)));
@@ -342,15 +343,15 @@ public void setUp() {
 }
 
 @Test
-public void summarizeFiles_missingSourceFile_logsWarning() throws Exception {
+public void indexSourceRoot_missingSourceFile_logsWarning() throws Exception {
     // arrange
-    final FileSummarizer summarizer = new FileSummarizer(mockLog, ...);
+    final SourceFileIndexer indexer = new SourceFileIndexer(mockLog, ...);
 
     // act
-    summarizer.summarizeFiles();
+    indexer.indexSourceRoot(sourceRoot);
 
     // assert
-    verify(mockLog, atLeastOnce()).warn(contains("Skipping missing source file"));
+    verify(mockLog, atLeastOnce()).warn(contains("Skipping missing subtree"));
 }
 ```
 
@@ -507,65 +508,66 @@ import java.util.List;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Test;
 
-public class FileSummarizerTest {
+public class SourceFileIndexerTest {
 
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
 
     // shared constant used across multiple tests in the same fold
-    private static final String FIXED_CHECKSUM = "AAAAAAAA";
+    private static final String PLUGIN_VERSION = "0.1.0-SNAPSHOT";
+    private static final String AI_VERSION = "0.0.0";
 
-    // <editor-fold defaultstate="collapsed" desc="summarizeFiles">
+    // <editor-fold defaultstate="collapsed" desc="indexSourceRoot">
     @Test
-    public void summarizeFiles_outputDirectoryMissing_returnsZero() throws Exception {
+    public void indexSourceRoot_emptyDirectory_returnsZero() throws Exception {
         // arrange
-        final Path nonExistent = Files.createTempDirectory("ai-test").resolve("missing");
-        final FileSummarizer summarizer = new FileSummarizer(
-                new SystemStreamLog(), nonExistent, nonExistent,
-                List.of(), false, new MockAiGenerationProvider(),
-                List.of(), new AiPromptSupport(List.of())
+        final Path temp = Files.createTempDirectory("ai-test");
+        final SourceFileIndexer indexer = new SourceFileIndexer(
+                new SystemStreamLog(), temp, temp, List.of(".java"),
+                PLUGIN_VERSION, AI_VERSION, List.of(), false,
+                new MockAiGenerationProvider(), List.of(), new AiPromptSupport(List.of())
         );
 
         // act
-        final int result = summarizer.summarizeFiles();
+        final int result = indexer.indexSourceRoot(temp);
 
         // assert
         assertThat(result, is(equalTo(0)));
     }
 
     @Test
-    public void summarizeFiles_existingSummaryForceIsFalse_skipsFile() throws Exception {
+    public void indexSourceRoot_existingSummaryForceIsFalse_skipsFile() throws Exception {
         // arrange
         final Path temp = Files.createTempDirectory("ai-test");
         // ... set up files ...
-        final FileSummarizer summarizer = buildSummarizer(temp, false);
+        final SourceFileIndexer indexer = buildIndexer(temp, false);
 
         // act
-        final int result = summarizer.summarizeFiles();
+        final int result = indexer.indexSourceRoot(temp);
 
         // assert
         assertThat(result, is(equalTo(0)));
     }
     // </editor-fold>
 
-    // <editor-fold defaultstate="collapsed" desc="summarizeFiles — round-trip">
+    // <editor-fold defaultstate="collapsed" desc="indexSourceRoot — round-trip">
     @Test
-    public void summarizeFiles_newFile_writesExpectedSummary() throws Exception {
+    public void indexSourceRoot_newFile_writesExpectedSummary() throws Exception {
         // arrange
         final Path temp = Files.createTempDirectory("ai-test");
-        final Path aiFile = setupAiFile(temp, FIXED_CHECKSUM, "", "");
-        final FileSummarizer summarizer = buildSummarizer(temp, false);
+        final Path sourceFile = setupSourceFile(temp, "Test.java");
+        final SourceFileIndexer indexer = buildIndexer(temp, false);
 
         // act
-        final int result = summarizer.summarizeFiles();
+        final int result = indexer.indexSourceRoot(temp);
 
         // pre-assert
         assertThat(result, is(equalTo(1)));
 
         // assert
-        final AiMdDocument updated = documentCodec.read(aiFile);
-        assertThat(updated, is(notNullValue()));
-        assertThat(updated.header().c(), is(equalTo(FIXED_CHECKSUM)));
-        assertThat(updated.header().s(), is(equalTo("Mock summary for Test.java")));
+        final Path aiFile = temp.resolve("Test.java" + AiMdHeaderCodec.AI_MD_EXTENSION);
+        final AiMdDocument written = documentCodec.read(aiFile);
+        assertThat(written, is(notNullValue()));
+        assertThat(written.header().s(), is(not(emptyOrNullString())));
     }
     // </editor-fold>
 }

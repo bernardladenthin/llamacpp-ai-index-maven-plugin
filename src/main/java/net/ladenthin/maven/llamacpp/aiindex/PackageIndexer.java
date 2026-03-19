@@ -30,6 +30,18 @@ import java.util.stream.Stream;
 
 public class PackageIndexer {
 
+    /**
+     * Section heading inserted above the contents listing in both the package source text
+     * and the default package body.
+     */
+    private static final String CONTENTS_HEADING = "#### Contents";
+
+    /**
+     * Earliest possible date value used as the starting point when scanning child nodes
+     * to find the latest index creation date.
+     */
+    private static final String EPOCH_DATE = "1970-01-01T00:00:00Z";
+
     private final Log log;
     private final Path baseDirectory;
     private final Path outputRoot;
@@ -141,11 +153,11 @@ public class PackageIndexer {
             return stream.anyMatch(path -> {
                 final String name = path.getFileName().toString();
                 if (Files.isDirectory(path)) {
-                    return Files.exists(path.resolve("package.ai.md"));
+                    return Files.exists(path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME));
                 }
-                return name.endsWith(".ai.md")
-                        && !name.equals("package.ai.md")
-                        && !name.startsWith(".generated-by-");
+                return name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)
+                        && !name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME)
+                        && !name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX);
             });
         }
     }
@@ -156,7 +168,7 @@ public class PackageIndexer {
         }
 
         final List<String> contents = collectContents(directory);
-        final Path packageFile = directory.resolve("package.ai.md");
+        final Path packageFile = directory.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
 
         final String nodeName = outputRoot.relativize(directory).toString().replace('\\', '/');
         final String title = nodeName.isEmpty() ? "ai" : nodeName;
@@ -226,11 +238,11 @@ public class PackageIndexer {
             ));
 
             final String target = fieldGeneration.getTarget();
-            if ("header.s".equals(target)) {
+            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
                 summary = generatedValue;
-            } else if ("header.k".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
                 keywords = generatedValue;
-            } else if ("body".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
                 body = generatedValue;
             } else {
                 throw new IllegalArgumentException("Unsupported field target: " + target);
@@ -268,17 +280,17 @@ public class PackageIndexer {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    if (Files.exists(path.resolve("package.ai.md"))) {
+                    if (Files.exists(path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME))) {
                         entries.add(path.getFileName().toString() + "/");
                     }
                     continue;
                 }
 
-                if (name.equals("package.ai.md") || name.startsWith(".generated-by-")) {
+                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
                     continue;
                 }
 
-                if (name.endsWith(".ai.md")) {
+                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
                     entries.add(name);
                 }
             }
@@ -300,7 +312,7 @@ public class PackageIndexer {
 
         if (!contents.isEmpty()) {
             builder.append('\n');
-            builder.append("#### Contents").append('\n');
+            builder.append(CONTENTS_HEADING).append('\n');
             for (String entry : contents) {
                 builder.append("- ").append(entry).append('\n');
             }
@@ -313,7 +325,7 @@ public class PackageIndexer {
         final StringBuilder builder = new StringBuilder();
 
         if (!contents.isEmpty()) {
-            builder.append("#### Contents").append('\n');
+            builder.append(CONTENTS_HEADING).append('\n');
             for (String entry : contents) {
                 builder.append("- ").append(entry).append('\n');
             }
@@ -330,7 +342,7 @@ public class PackageIndexer {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    final Path childPackageFile = path.resolve("package.ai.md");
+                    final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
                     if (Files.exists(childPackageFile)) {
                         final AiMdDocument childDocument = documentCodec.read(childPackageFile);
                         final AiMdHeader childHeader = childDocument.header();
@@ -339,11 +351,11 @@ public class PackageIndexer {
                     continue;
                 }
 
-                if (name.equals("package.ai.md") || name.startsWith(".generated-by-")) {
+                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
                     continue;
                 }
 
-                if (name.endsWith(".ai.md")) {
+                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
                     final AiMdDocument childDocument = documentCodec.read(path);
                     final AiMdHeader childHeader = childDocument.header();
                     builder.append(headerSupport.buildChecksumLine(name, childHeader));
@@ -355,14 +367,14 @@ public class PackageIndexer {
     }
 
     private String calculatePackageDate(final Path directory) throws IOException {
-        String latest = "1970-01-01T00:00:00Z";
+        String latest = EPOCH_DATE;
 
         try (Stream<Path> stream = Files.list(directory)) {
             for (Path path : stream.sorted(Comparator.comparing(p -> p.getFileName().toString())).toList()) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    final Path childPackageFile = path.resolve("package.ai.md");
+                    final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
                     if (Files.exists(childPackageFile)) {
                         final AiMdDocument childDocument = documentCodec.read(childPackageFile);
                         final AiMdHeader childHeader = childDocument.header();
@@ -373,11 +385,11 @@ public class PackageIndexer {
                     continue;
                 }
 
-                if (name.equals("package.ai.md") || name.startsWith(".generated-by-")) {
+                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
                     continue;
                 }
 
-                if (name.endsWith(".ai.md")) {
+                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
                     final AiMdDocument childDocument = documentCodec.read(path);
                     final AiMdHeader childHeader = childDocument.header();
                     if (childHeader.d().compareTo(latest) > 0) {
