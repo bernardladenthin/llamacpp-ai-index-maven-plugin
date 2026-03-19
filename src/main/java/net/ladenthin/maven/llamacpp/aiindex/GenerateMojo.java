@@ -68,13 +68,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
         final List<Path> resolvedSubtrees = resolveSubtrees(basePath);
         final List<String> resolvedExtensions = resolveFileExtensions();
 
-        getLog().info("Starting AI index generation");
-        getLog().info("Base directory  : " + basePath);
-        getLog().info("Output directory: " + outputPath);
-        getLog().info("Subtrees        : " + resolvedSubtrees);
-        getLog().info("Extensions      : " + resolvedExtensions);
-        getLog().info("Force           : " + force);
-        getLog().info("Provider        : " + summaryProvider);
+        logExecutionParameters("Starting AI index generation", basePath, outputPath, resolvedSubtrees, resolvedExtensions);
 
         try {
             final AiPromptSupport promptSupport = buildPromptSupport();

@@ -97,4 +97,19 @@ public record AiMdHeader(
         Objects.requireNonNull(s, "s");
         Objects.requireNonNull(k, "k");
     }
+
+    /**
+     * Returns a new {@code AiMdHeader} identical to this one except that the AI-authored
+     * fields {@code s} and {@code k} are replaced by the supplied values.
+     *
+     * <p>All structural fields ({@code title}, {@code h}, {@code c}, {@code d},
+     * {@code t}, {@code g}, {@code a}, {@code x}) are preserved unchanged.</p>
+     *
+     * @param summary  AI-generated summary to set in the returned header
+     * @param keywords AI-generated keywords to set in the returned header
+     * @return a new {@code AiMdHeader} with updated {@code s} and {@code k} fields
+     */
+    public AiMdHeader withSummaryAndKeywords(final String summary, final String keywords) {
+        return new AiMdHeader(title, h, c, d, t, g, a, x, summary, keywords);
+    }
 }

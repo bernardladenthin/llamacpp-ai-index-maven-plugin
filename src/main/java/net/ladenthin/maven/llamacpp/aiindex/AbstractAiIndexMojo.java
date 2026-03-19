@@ -189,4 +189,36 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     protected AiPromptSupport buildPromptSupport() {
         return new AiPromptSupport(promptDefinitions);
     }
+
+    /**
+     * Logs the standard set of execution parameters that are common to every goal.
+     *
+     * <p>Always logs: the start message, base directory, output directory, subtrees,
+     * force flag, and provider name. When {@code resolvedExtensions} is non-{@code null}
+     * it is also logged; goals that do not use file-extension filtering (e.g.
+     * {@code aggregate-packages}) pass {@code null} to suppress that line.</p>
+     *
+     * @param startMessage       first log line that identifies which goal is starting
+     * @param basePath           resolved, absolute project base directory
+     * @param outputPath         resolved, absolute output directory
+     * @param resolvedSubtrees   resolved subtree paths; may be empty but not {@code null}
+     * @param resolvedExtensions file extensions in scope, or {@code null} if not applicable
+     */
+    protected void logExecutionParameters(
+            final String startMessage,
+            final Path basePath,
+            final Path outputPath,
+            final List<Path> resolvedSubtrees,
+            final List<String> resolvedExtensions
+    ) {
+        getLog().info(startMessage);
+        getLog().info("Base directory  : " + basePath);
+        getLog().info("Output directory: " + outputPath);
+        getLog().info("Subtrees        : " + resolvedSubtrees);
+        if (resolvedExtensions != null) {
+            getLog().info("Extensions      : " + resolvedExtensions);
+        }
+        getLog().info("Force           : " + force);
+        getLog().info("Provider        : " + summaryProvider);
+    }
 }

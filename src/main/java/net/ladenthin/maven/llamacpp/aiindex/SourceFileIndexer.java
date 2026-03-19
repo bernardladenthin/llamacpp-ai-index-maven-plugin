@@ -28,6 +28,12 @@ import java.util.stream.Stream;
 
 public class SourceFileIndexer {
 
+    /**
+     * Context-type label passed to {@link AiFieldGenerationSupport} so that trim-warning
+     * log messages read "Trimmed AI input for file field '…'".
+     */
+    private static final String CONTEXT_TYPE_FILE = "file";
+
     private final Log log;
     private final Path baseDirectory;
     private final Path outputRoot;
@@ -37,15 +43,15 @@ public class SourceFileIndexer {
     private final List<Path> subtrees;
     private final boolean force;
 
-    private final AiGenerationProvider generationProvider;
     private final List<AiFieldGenerationConfig> fieldGenerations;
-    private final AiPromptPreparationSupport promptPreparationSupport;
 
     private final AiPathSupport pathSupport = new AiPathSupport();
     private final AiTimeSupport timeSupport = new AiTimeSupport();
     private final AiChecksumSupport checksumSupport = new AiChecksumSupport();
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
+
+    private final AiFieldGenerationSupport fieldGenerationSupport;
 
     public SourceFileIndexer(
             final Log log,
@@ -68,9 +74,9 @@ public class SourceFileIndexer {
         this.aiVersion = aiVersion;
         this.subtrees = subtrees;
         this.force = force;
-        this.generationProvider = generationProvider;
         this.fieldGenerations = fieldGenerations;
-        this.promptPreparationSupport = new AiPromptPreparationSupport(promptSupport);
+        this.fieldGenerationSupport = new AiFieldGenerationSupport(
+                log, generationProvider, new AiPromptPreparationSupport(promptSupport));
     }
 
     public int indexSourceRoot(final Path sourceRoot) throws IOException {
@@ -141,73 +147,12 @@ public class SourceFileIndexer {
 
         final String sourceText = Files.readString(sourceFile);
 
-        String summary = "";
-        String keywords = "";
-        String body = "";
+        final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
+                fieldGenerations, sourceFile, CONTEXT_TYPE_FILE, sourceText, baseHeader);
 
-        for (AiFieldGenerationConfig fieldGeneration : fieldGenerations) {
-            if (fieldGeneration == null) {
-                continue;
-            }
+        final AiMdHeader finalHeader = baseHeader.withSummaryAndKeywords(result.summary(), result.keywords());
 
-            final AiGenerationConfig generationConfig = fieldGeneration.getGeneration();
-            if (generationConfig == null) {
-                throw new IllegalArgumentException("Missing generation config for field: " + fieldGeneration.getFieldName());
-            }
-
-            final AiGenerationRequest request = new AiGenerationRequest(
-                    fieldGeneration.getPromptKey(),
-                    sourceFile,
-                    sourceText,
-                    baseHeader
-            );
-
-            final AiPreparedPrompt preparedPrompt = promptPreparationSupport.preparePrompt(
-                    request,
-                    generationConfig.getMaxInputChars()
-            );
-
-            if (preparedPrompt.trimmed() && generationConfig.isWarnOnTrim()) {
-                log.warn("Trimmed AI input for file field '" + fieldGeneration.getFieldName() + "': " + sourceFile
-                        + " (source chars " + preparedPrompt.originalSourceLength()
-                        + " -> " + preparedPrompt.trimmedSourceLength()
-                        + ", available source chars " + preparedPrompt.availableSourceChars()
-                        + ", max input chars " + generationConfig.getMaxInputChars() + ")");
-            }
-
-            final String generatedValue = generationProvider.generate(new AiGenerationRequest(
-                    fieldGeneration.getPromptKey(),
-                    sourceFile,
-                    preparedPrompt.sourceText(),
-                    baseHeader
-            ));
-
-            final String target = fieldGeneration.getTarget();
-            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
-                summary = generatedValue;
-            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
-                keywords = generatedValue;
-            } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
-                body = generatedValue;
-            } else {
-                throw new IllegalArgumentException("Unsupported field target: " + target);
-            }
-        }
-
-        final AiMdHeader finalHeader = new AiMdHeader(
-                baseHeader.title(),
-                baseHeader.h(),
-                baseHeader.c(),
-                baseHeader.d(),
-                baseHeader.t(),
-                baseHeader.g(),
-                baseHeader.a(),
-                baseHeader.x(),
-                summary,
-                keywords
-        );
-
-        final AiMdDocument document = new AiMdDocument(finalHeader, body);
+        final AiMdDocument document = new AiMdDocument(finalHeader, result.body());
         documentCodec.write(targetFile, document);
 
         log.info("Wrote AI index file: " + targetFile);
