@@ -39,6 +39,14 @@
         <url>https://github.com/ladenthin/llamacpp-ai-index-maven-plugin/issues</url>
     </issueManagement>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/bernardladenthin/llamacpp-ai-index-maven-plugin</url>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
