@@ -71,12 +71,12 @@ Provide two constructors:
 2. **`@VisibleForTesting` constructor** — accepts a `Log` parameter directly. This is the constructor used by tests.
 
 ```java
-public class FileSummarizer {
+public class SourceFileIndexer {
 
     private final Log log;
 
     // Production constructor — called from Mojo with getLog()
-    public FileSummarizer(
+    public SourceFileIndexer(
             final Log log,
             final Path baseDirectory,
             final Path outputRoot,
@@ -92,7 +92,7 @@ Tests pass a `SystemStreamLog` or a mock `Log` implementation directly:
 
 ```java
 // In tests — pass a real or mock Log
-FileSummarizer summarizer = new FileSummarizer(
+SourceFileIndexer indexer = new SourceFileIndexer(
         new SystemStreamLog(),
         baseDirectory,
         outputRoot,
@@ -137,7 +137,7 @@ public class AiSummaryResponse {
 
 ## 4. Prompt Target String Constants
 
-The field target strings used by `FileSummarizer` and `PackageSummarizer` (`"header.s"`, `"header.k"`, `"body"`) must be defined as named constants. Comparing target strings with bare inline literals is prohibited.
+The field target strings used by `SourceFileIndexer` and `PackageIndexer` (`"header.s"`, `"header.k"`, `"body"`) must be defined as named constants. Comparing target strings with bare inline literals is prohibited.
 
 ```java
 // BAD
