@@ -18,11 +18,13 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
 
 public class AiPromptPreparationSupportTest {
 
@@ -41,11 +43,8 @@ public class AiPromptPreparationSupportTest {
         return new AiPromptSupport(List.of(promptDefinition));
     }
 
-    @Test
-    public void shouldNotTrimIfPromptFits() {
-        final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
-
-        final AiMdHeader header = new AiMdHeader(
+    private AiMdHeader buildHeader() {
+        return new AiMdHeader(
                 "Test.java",
                 AiMdHeaderCodec.HEADER_VERSION_1_0,
                 "00000000",
@@ -57,92 +56,77 @@ public class AiPromptPreparationSupportTest {
                 AiMdHeaderCodec.DEFAULT_SUMMARY,
                 AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
+    }
 
+    // <editor-fold defaultstate="collapsed" desc="preparePrompt">
+    @Test
+    public void preparePrompt_promptFitsWithinLimit_notTrimmed() {
+        // arrange
+        final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
         final String sourceText = """
                 public class Test {
                 }
                 """;
-
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
                 Path.of("Test.java"),
                 sourceText,
-                header
+                buildHeader()
         );
 
+        // act
         final AiPreparedPrompt preparedPrompt = support.preparePrompt(request, 10_000);
 
-        Assert.assertFalse(preparedPrompt.trimmed());
-        Assert.assertEquals(sourceText, preparedPrompt.sourceText());
-        Assert.assertEquals(sourceText.length(), preparedPrompt.originalSourceLength());
-        Assert.assertEquals(sourceText.length(), preparedPrompt.trimmedSourceLength());
-        Assert.assertTrue(preparedPrompt.prompt().contains("Test.java"));
-        Assert.assertTrue(preparedPrompt.prompt().contains(sourceText.strip()));
+        // assert
+        assertThat(preparedPrompt.trimmed(), is(false));
+        assertThat(preparedPrompt.sourceText(), is(equalTo(sourceText)));
+        assertThat(preparedPrompt.originalSourceLength(), is(equalTo(sourceText.length())));
+        assertThat(preparedPrompt.trimmedSourceLength(), is(equalTo(sourceText.length())));
+        assertThat(preparedPrompt.prompt(), containsString("Test.java"));
+        assertThat(preparedPrompt.prompt(), containsString(sourceText.strip()));
     }
 
     @Test
-    public void shouldTrimIfPromptExceedsLimit() {
+    public void preparePrompt_sourceLongerThanLimit_trimmedFlagIsTrue() {
+        // arrange
         final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
-
-        final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "00000000",
-                "2026-03-18T00:00:00Z",
-                "2026-03-18T00:00:00Z",
-                "0.1.0-SNAPSHOT",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY,
-                AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
-
         final String sourceText = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
                 Path.of("Test.java"),
                 sourceText,
-                header
+                buildHeader()
         );
 
+        // act
         final AiPreparedPrompt preparedPrompt = support.preparePrompt(request, 40);
 
-        Assert.assertTrue(preparedPrompt.trimmed());
-        Assert.assertTrue(preparedPrompt.trimmedSourceLength() < preparedPrompt.originalSourceLength());
-        Assert.assertEquals(preparedPrompt.sourceText().length(), preparedPrompt.trimmedSourceLength());
-        Assert.assertTrue(preparedPrompt.availableSourceChars() >= 0);
+        // assert
+        assertThat(preparedPrompt.trimmed(), is(true));
+        assertThat(preparedPrompt.trimmedSourceLength() < preparedPrompt.originalSourceLength(), is(true));
+        assertThat(preparedPrompt.sourceText().length(), is(equalTo(preparedPrompt.trimmedSourceLength())));
+        assertThat(preparedPrompt.availableSourceChars() >= 0, is(true));
     }
 
     @Test
-    public void shouldTrimToEmptySourceIfPromptOverheadAlreadyExceedsLimit() {
+    public void preparePrompt_overheadAlreadyExceedsLimit_sourceTrimmedToEmpty() {
+        // arrange
         final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
-
-        final AiMdHeader header = new AiMdHeader(
-                "Test.java",
-                AiMdHeaderCodec.HEADER_VERSION_1_0,
-                "00000000",
-                "2026-03-18T00:00:00Z",
-                "2026-03-18T00:00:00Z",
-                "0.1.0-SNAPSHOT",
-                "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY,
-                AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
-
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
                 Path.of("Test.java"),
                 "abcdefghijklmnopqrstuvwxyz",
-                header
+                buildHeader()
         );
 
+        // act
         final AiPreparedPrompt preparedPrompt = support.preparePrompt(request, 5);
 
-        Assert.assertTrue(preparedPrompt.trimmed());
-        Assert.assertEquals("", preparedPrompt.sourceText());
-        Assert.assertEquals(0, preparedPrompt.trimmedSourceLength());
-        Assert.assertEquals(0, preparedPrompt.availableSourceChars());
+        // assert
+        assertThat(preparedPrompt.trimmed(), is(true));
+        assertThat(preparedPrompt.sourceText(), is(equalTo("")));
+        assertThat(preparedPrompt.trimmedSourceLength(), is(equalTo(0)));
+        assertThat(preparedPrompt.availableSourceChars(), is(equalTo(0)));
     }
+    // </editor-fold>
 }
