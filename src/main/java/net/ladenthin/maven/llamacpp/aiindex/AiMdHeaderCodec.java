@@ -21,6 +21,7 @@ package net.ladenthin.maven.llamacpp.aiindex;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -105,7 +106,7 @@ public class AiMdHeaderCodec {
         }
 
         return new AiMdHeader(
-                nullToEmpty(title),
+                Objects.requireNonNullElse(title, ""),
                 valueOrEmpty(values, "H"),
                 valueOrEmpty(values, "C"),
                 valueOrEmpty(values, "D"),
@@ -145,13 +146,9 @@ public class AiMdHeaderCodec {
     }
 
     private String valueOrEmpty(final Map<String, String> values, final String key) {
-        return nullToEmpty(values.get(key));
+        return Objects.requireNonNullElse(values.get(key), "");
     }
 
-    private String nullToEmpty(final String value) {
-        return value == null ? "" : value;
-    }
-    
     public AiMdHeader read(final Path file) throws IOException {
         return read(Files.readAllLines(file, StandardCharsets.UTF_8));
     }

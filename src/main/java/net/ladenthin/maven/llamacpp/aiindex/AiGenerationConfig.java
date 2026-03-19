@@ -20,13 +20,40 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiGenerationConfig {
 
+    /** Default context window size (in tokens) used when no explicit context size is configured. */
+    public static final int DEFAULT_CONTEXT_SIZE = 32768;
+
+    /** Default maximum number of tokens to generate in a single inference call. */
+    public static final int DEFAULT_MAX_TOKENS = 128;
+
+    /**
+     * Default sampling temperature. Lower values make output more deterministic;
+     * {@code 0.0} is fully greedy.
+     */
+    public static final float DEFAULT_TEMPERATURE = 0.15f;
+
+    /** Default number of CPU threads used for llama.cpp inference. */
+    public static final int DEFAULT_THREADS = 8;
+
+    /**
+     * Default maximum number of characters of source text fed into the prompt.
+     * Prompts exceeding this limit are trimmed before being sent to the AI provider.
+     */
+    public static final int DEFAULT_MAX_INPUT_CHARS = 120000;
+
+    /**
+     * Default setting for whether to emit a warning when the prompt source text is trimmed
+     * to fit within {@link #DEFAULT_MAX_INPUT_CHARS}.
+     */
+    public static final boolean DEFAULT_WARN_ON_TRIM = true;
+
     private String modelPath;
-    private int contextSize = 32768;
-    private int maxTokens = 128;
-    private float temperature = 0.15f;
-    private int threads = 8;
-    private int maxInputChars = 120000;
-    private boolean warnOnTrim = true;
+    private int contextSize = DEFAULT_CONTEXT_SIZE;
+    private int maxTokens = DEFAULT_MAX_TOKENS;
+    private float temperature = DEFAULT_TEMPERATURE;
+    private int threads = DEFAULT_THREADS;
+    private int maxInputChars = DEFAULT_MAX_INPUT_CHARS;
+    private boolean warnOnTrim = DEFAULT_WARN_ON_TRIM;
 
     public String getModelPath() {
         return modelPath;

@@ -48,6 +48,13 @@ public class PackageIndexer {
      */
     private static final String CONTEXT_TYPE_PACKAGE = "package";
 
+    /**
+     * Comparator that orders {@link Path} instances by their file name component only,
+     * producing a consistent, platform-independent sort order when listing directory entries.
+     */
+    private static final Comparator<Path> BY_FILE_NAME =
+            Comparator.comparing(p -> p.getFileName().toString());
+
     private final Log log;
     private final Path baseDirectory;
     private final Path outputRoot;
@@ -159,13 +166,22 @@ public class PackageIndexer {
             return stream.anyMatch(path -> {
                 final String name = path.getFileName().toString();
                 if (Files.isDirectory(path)) {
-                    return Files.exists(path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME));
+                    return hasPackageAiMdFile(path);
                 }
-                return name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)
-                        && !name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME)
-                        && !name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX);
+                return isAiMdContentFile(name);
             });
         }
+    }
+
+    /**
+     * Returns {@code true} when {@code directory} contains a
+     * {@link AiMdHeaderCodec#PACKAGE_AI_MD_FILENAME} file.
+     *
+     * @param directory the directory to examine
+     * @return {@code true} if the package AI index file exists inside {@code directory}
+     */
+    private boolean hasPackageAiMdFile(final Path directory) {
+        return Files.exists(directory.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME));
     }
 
     private void writePackageFile(final Path directory) throws IOException {
@@ -221,11 +237,11 @@ public class PackageIndexer {
         final List<String> entries = new ArrayList<>();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(Comparator.comparing(p -> p.getFileName().toString())).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    if (Files.exists(path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME))) {
+                    if (hasPackageAiMdFile(path)) {
                         entries.add(name + "/");
                     }
                     continue;
@@ -288,12 +304,12 @@ public class PackageIndexer {
         final StringBuilder builder = new StringBuilder();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(Comparator.comparing(p -> p.getFileName().toString())).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
-                    if (Files.exists(childPackageFile)) {
+                    if (hasPackageAiMdFile(path)) {
+                        final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
                         final AiMdDocument childDocument = documentCodec.read(childPackageFile);
                         final AiMdHeader childHeader = childDocument.header();
                         builder.append(headerSupport.buildChecksumLine(path.getFileName().toString(), childHeader));
@@ -316,32 +332,39 @@ public class PackageIndexer {
         String latest = EPOCH_DATE;
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(Comparator.comparing(p -> p.getFileName().toString())).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
-                    final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
-                    if (Files.exists(childPackageFile)) {
+                    if (hasPackageAiMdFile(path)) {
+                        final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
                         final AiMdDocument childDocument = documentCodec.read(childPackageFile);
-                        final AiMdHeader childHeader = childDocument.header();
-                        if (childHeader.d().compareTo(latest) > 0) {
-                            latest = childHeader.d();
-                        }
+                        latest = laterDate(latest, childDocument.header().d());
                     }
                     continue;
                 }
 
                 if (isAiMdContentFile(name)) {
                     final AiMdDocument childDocument = documentCodec.read(path);
-                    final AiMdHeader childHeader = childDocument.header();
-                    if (childHeader.d().compareTo(latest) > 0) {
-                        latest = childHeader.d();
-                    }
+                    latest = laterDate(latest, childDocument.header().d());
                 }
             }
         }
 
         return latest;
+    }
+
+    /**
+     * Returns the lexicographically later of two ISO-8601 date strings,
+     * i.e. the more-recent creation date.
+     *
+     * @param current   the currently known latest date
+     * @param candidate a date from a child node to compare against {@code current}
+     * @return {@code candidate} if it is strictly later than {@code current}, otherwise
+     *         {@code current}
+     */
+    private String laterDate(final String current, final String candidate) {
+        return candidate.compareTo(current) > 0 ? candidate : current;
     }
 
     /**

@@ -44,35 +44,13 @@ public class AiMdHeaderSupport {
             return true;
         }
 
-        if (!expectedHeader.h().equals(actualHeader.h())) {
-            return true;
-        }
-
-        if (!expectedHeader.x().equals(actualHeader.x())) {
-            return true;
-        }
-
-        if (!expectedHeader.title().equals(actualHeader.title())) {
-            return true;
-        }
-
-        if (!expectedHeader.c().equals(actualHeader.c())) {
-            return true;
-        }
-
-        if (!expectedHeader.d().equals(actualHeader.d())) {
-            return true;
-        }
-
-        if (!expectedHeader.g().equals(actualHeader.g())) {
-            return true;
-        }
-
-        if (!expectedHeader.a().equals(actualHeader.a())) {
-            return true;
-        }
-
-        return false;
+        return !expectedHeader.h().equals(actualHeader.h())
+                || !expectedHeader.x().equals(actualHeader.x())
+                || !expectedHeader.title().equals(actualHeader.title())
+                || !expectedHeader.c().equals(actualHeader.c())
+                || !expectedHeader.d().equals(actualHeader.d())
+                || !expectedHeader.g().equals(actualHeader.g())
+                || !expectedHeader.a().equals(actualHeader.a());
     }
 
     public String buildChecksumLine(

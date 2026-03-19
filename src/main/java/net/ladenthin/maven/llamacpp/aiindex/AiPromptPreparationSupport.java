@@ -30,7 +30,7 @@ public class AiPromptPreparationSupport {
             final AiGenerationRequest request,
             final int maxInputChars
     ) {
-        final String fullPrompt = buildPrompt(request);
+        final String fullPrompt = promptSupport.buildPrompt(request);
         final int originalSourceLength = request.sourceText().length();
 
         if (fullPrompt.length() <= maxInputChars) {
@@ -51,7 +51,7 @@ public class AiPromptPreparationSupport {
                 request.currentHeader()
         );
 
-        final String promptWithoutSource = buildPrompt(emptySourceRequest);
+        final String promptWithoutSource = promptSupport.buildPrompt(emptySourceRequest);
         final int availableSourceChars = Math.max(0, maxInputChars - promptWithoutSource.length());
 
         final String trimmedSource = request.sourceText().substring(
@@ -66,7 +66,7 @@ public class AiPromptPreparationSupport {
                 request.currentHeader()
         );
 
-        final String trimmedPrompt = buildPrompt(trimmedRequest);
+        final String trimmedPrompt = promptSupport.buildPrompt(trimmedRequest);
 
         return new AiPreparedPrompt(
                 trimmedPrompt,
@@ -78,7 +78,4 @@ public class AiPromptPreparationSupport {
         );
     }
 
-    private String buildPrompt(final AiGenerationRequest request) {
-        return promptSupport.buildPrompt(request);
-    }
 }
