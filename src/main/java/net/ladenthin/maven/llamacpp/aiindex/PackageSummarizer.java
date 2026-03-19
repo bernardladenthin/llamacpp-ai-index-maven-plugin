@@ -70,7 +70,7 @@ public class PackageSummarizer {
         try (Stream<Path> stream = Files.walk(outputRoot)) {
             for (Path path : stream.filter(Files::isRegularFile).toList()) {
                 final String name = path.getFileName().toString();
-                if (!"package.ai.md".equals(name)) {
+                if (!AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME.equals(name)) {
                     continue;
                 }
                 if (!matchesSubtree(path)) {
@@ -149,11 +149,11 @@ public class PackageSummarizer {
                     header
             ));
 
-            if ("header.s".equals(target)) {
+            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
                 summary = generatedValue;
-            } else if ("header.k".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
                 keywords = generatedValue;
-            } else if ("body".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
                 body = generatedValue;
             } else {
                 throw new IllegalArgumentException("Unsupported field target: " + target);
@@ -192,13 +192,13 @@ public class PackageSummarizer {
             final AiMdHeader header,
             final AiMdDocument document
     ) {
-        if ("header.s".equals(target)) {
+        if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
             return header.s() == null || header.s().isBlank();
         }
-        if ("header.k".equals(target)) {
+        if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
             return header.k() == null || header.k().isBlank();
         }
-        if ("body".equals(target)) {
+        if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
             return document.body() == null || document.body().isBlank();
         }
         throw new IllegalArgumentException("Unsupported field target: " + target);

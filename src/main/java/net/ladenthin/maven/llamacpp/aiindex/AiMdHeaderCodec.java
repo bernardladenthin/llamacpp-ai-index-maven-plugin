@@ -27,15 +27,58 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class AiMdHeaderCodec {
-    
+
+    /**
+     * Current metadata header format version written into every AI document.
+     *
+     * @see AiMdHeader#h()
+     */
     public static final String HEADER_VERSION_1_0 = "1.0";
 
+    /**
+     * Node type value for source-file-level AI index documents.
+     *
+     * @see AiMdHeader#x()
+     */
     public static final String NODE_TYPE_FILE = "file";
+
+    /**
+     * Node type value for package-level AI index documents.
+     *
+     * @see AiMdHeader#x()
+     */
     public static final String NODE_TYPE_PACKAGE = "package";
 
+    /** Placeholder summary written when no AI summary has been generated yet. */
     public static final String DEFAULT_SUMMARY = "TODO";
+
+    /** Placeholder keywords string written when no AI keywords have been generated yet. */
     public static final String DEFAULT_KEYWORDS = "TODO";
+
+    /**
+     * Title of the root AI index node representing the top-level output directory.
+     *
+     * @see AiMdHeader#title()
+     */
     public static final String ROOT_NODE_TITLE = "ai";
+
+    /**
+     * File extension appended to every source file name to produce its AI index file name.
+     * Example: {@code "MyClass.java"} becomes {@code "MyClass.java.ai.md"}.
+     */
+    public static final String AI_MD_EXTENSION = ".ai.md";
+
+    /**
+     * File name used for package-level AI index documents.
+     * One {@value} file is created per indexed package directory.
+     */
+    public static final String PACKAGE_AI_MD_FILENAME = "package.ai.md";
+
+    /**
+     * Prefix of internally generated marker files that must be excluded from content
+     * listings and checksum calculations.
+     */
+    public static final String GENERATED_BY_PREFIX = ".generated-by-";
 
     public AiMdHeader read(final List<String> lines) {
         String title = null;

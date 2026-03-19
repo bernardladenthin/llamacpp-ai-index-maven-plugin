@@ -18,40 +18,16 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 @Mojo(name = "generate", threadSafe = true)
-public class GenerateMojo extends AbstractMojo {
-
-    @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
-    private File baseDirectory;
-
-    @Parameter(
-            property = "aiIndex.outputDirectory",
-            defaultValue = "${project.basedir}/src/site/ai"
-    )
-    private File outputDirectory;
-
-    @Parameter(property = "aiIndex.skip", defaultValue = "false")
-    private boolean skip;
-
-    @Parameter(property = "aiIndex.force", defaultValue = "false")
-    private boolean force;
-
-    @Parameter(property = "aiIndex.subtrees")
-    private List<String> subtrees;
-
-    @Parameter(property = "aiIndex.fileExtensions")
-    private List<String> fileExtensions;
+public class GenerateMojo extends AbstractAiIndexMojo {
 
     @Parameter(defaultValue = "${project.version}", readonly = true)
     private String pluginVersion;
@@ -59,32 +35,26 @@ public class GenerateMojo extends AbstractMojo {
     @Parameter(property = "aiIndex.aiVersion", defaultValue = "0.0.0")
     private String aiVersion;
 
-    @Parameter
-    private List<AiPromptDefinition> promptDefinitions;
+    @Parameter(property = "aiIndex.fileExtensions")
+    private List<String> fileExtensions;
 
-    @Parameter
-    private List<AiFieldGenerationConfig> fieldGenerations;
-
-    @Parameter(property = "aiIndex.summaryProvider", defaultValue = "mock")
-    private String summaryProvider;
-
-    @Parameter(property = "aiIndex.llama.libraryPath")
-    private String llamaLibraryPath;
-
-    @Parameter(property = "aiIndex.llama.modelPath")
-    private String llamaModelPath;
-
+    /** llama.cpp context window size; smaller default suits the fast generate pass. */
     @Parameter(property = "aiIndex.llama.contextSize", defaultValue = "2048")
     private int llamaContextSize;
 
-    @Parameter(property = "aiIndex.llama.maxTokens", defaultValue = "128")
-    private int llamaMaxTokens;
-
-    @Parameter(property = "aiIndex.llama.temperature", defaultValue = "0.15")
-    private float llamaTemperature;
-
+    /** CPU threads for llama.cpp inference during the generate pass. */
     @Parameter(property = "aiIndex.llama.threads", defaultValue = "2")
     private int llamaThreads;
+
+    @Override
+    protected int getLlamaContextSize() {
+        return llamaContextSize;
+    }
+
+    @Override
+    protected int getLlamaThreads() {
+        return llamaThreads;
+    }
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -107,20 +77,11 @@ public class GenerateMojo extends AbstractMojo {
         getLog().info("Provider        : " + summaryProvider);
 
         try {
-            final LlamaCppJniConfig llamaConfig = new LlamaCppJniConfig(
-                    llamaLibraryPath,
-                    llamaModelPath,
-                    llamaContextSize,
-                    llamaMaxTokens,
-                    llamaTemperature,
-                    llamaThreads
-            );
-
-            final AiPromptSupport promptSupport = new AiPromptSupport(promptDefinitions);
+            final AiPromptSupport promptSupport = buildPromptSupport();
             final AiGenerationProviderFactory providerFactory = new AiGenerationProviderFactory();
 
             try (AiGenerationProvider generationProvider =
-                         providerFactory.create(summaryProvider, llamaConfig, promptSupport)) {
+                         providerFactory.create(summaryProvider, buildLlamaCppJniConfig(), promptSupport)) {
 
                 final SourceFileIndexer fileIndexer = new SourceFileIndexer(
                         getLog(),
@@ -165,24 +126,5 @@ public class GenerateMojo extends AbstractMojo {
             return List.of(".java");
         }
         return fileExtensions;
-    }
-
-    private List<Path> resolveSubtrees(final Path basePath) {
-        final List<Path> resolved = new ArrayList<>();
-
-        if (subtrees == null || subtrees.isEmpty()) {
-            return resolved;
-        }
-
-        for (String subtree : subtrees) {
-            final Path path = basePath.resolve(subtree).normalize();
-            if (path.toFile().exists()) {
-                resolved.add(path);
-            } else {
-                getLog().warn("Skipping missing subtree: " + path);
-            }
-        }
-
-        return resolved;
     }
 }

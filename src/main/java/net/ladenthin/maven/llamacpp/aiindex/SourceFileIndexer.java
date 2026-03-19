@@ -111,7 +111,7 @@ public class SourceFileIndexer {
 
         final Path relativeToBase = pathSupport.relativizeFromSrc(baseDirectory, sourceFile);
         final Path targetFile = outputRoot
-                .resolve(relativeToBase.toString() + ".ai.md")
+                .resolve(relativeToBase.toString() + AiMdHeaderCodec.AI_MD_EXTENSION)
                 .normalize();
 
         Files.createDirectories(targetFile.getParent());
@@ -183,11 +183,11 @@ public class SourceFileIndexer {
             ));
 
             final String target = fieldGeneration.getTarget();
-            if ("header.s".equals(target)) {
+            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
                 summary = generatedValue;
-            } else if ("header.k".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
                 keywords = generatedValue;
-            } else if ("body".equals(target)) {
+            } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
                 body = generatedValue;
             } else {
                 throw new IllegalArgumentException("Unsupported field target: " + target);
