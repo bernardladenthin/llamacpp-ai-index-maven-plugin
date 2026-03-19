@@ -1,0 +1,391 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>net.ladenthin</groupId>
+    <artifactId>llamacpp-ai-index-maven-plugin</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>maven-plugin</packaging>
+
+    <name>llamacpp-ai-index-maven-plugin</name>
+    <description>Free Maven plugin for hierarchical AI-readable indexing and summarization of source code projects using llama.cpp-compatible local models.</description>
+    <url>https://github.com/ladenthin/llamacpp-ai-index-maven-plugin</url>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Bernard Ladenthin</name>
+            <organization>ladenthin.net</organization>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/ladenthin/llamacpp-ai-index-maven-plugin.git</connection>
+        <developerConnection>scm:git:ssh://github.com/ladenthin/llamacpp-ai-index-maven-plugin.git</developerConnection>
+        <url>https://github.com/ladenthin/llamacpp-ai-index-maven-plugin</url>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/ladenthin/llamacpp-ai-index-maven-plugin/issues</url>
+    </issueManagement>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
+        <maven.version>3.9.13</maven.version>
+
+        <ai.index.model.path>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q4_k_m.gguf</ai.index.model.path>
+        <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
+        <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
+        <ai.index.context.size>2048</ai.index.context.size>
+        <ai.index.max.tokens>64</ai.index.max.tokens>
+        <ai.index.temperature>0.15</ai.index.temperature>
+        <ai.index.threads>8</ai.index.threads>
+        <ai.index.max.input.chars>20000</ai.index.max.input.chars>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.kherud</groupId>
+            <artifactId>llama</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-plugin-api</artifactId>
+            <version>${maven.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.maven.plugin-tools</groupId>
+            <artifactId>maven-plugin-annotations</artifactId>
+            <version>${maven.plugin.tools.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.6.3,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.15.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>${maven.plugin.tools.version}</version>
+                <configuration>
+                    <goalPrefix>ai-index</goalPrefix>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-descriptor</id>
+                        <goals>
+                            <goal>descriptor</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>help-goal</id>
+                        <goals>
+                            <goal>helpmojo</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>ai-index-selftest</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>${project.artifactId}</artifactId>
+                        <version>${project.version}</version>
+
+                        <configuration>
+                            <outputDirectory>${ai.index.output.directory}</outputDirectory>
+                            <subtrees>
+                                <subtree>src/main/java/net/ladenthin/maven/llamacpp/aiindex</subtree>
+                            </subtrees>
+
+                            <summaryProvider>${ai.index.summary.provider}</summaryProvider>
+
+                            <llamaModelPath>${ai.index.model.path}</llamaModelPath>
+                            <llamaContextSize>${ai.index.context.size}</llamaContextSize>
+                            <llamaMaxTokens>${ai.index.max.tokens}</llamaMaxTokens>
+                            <llamaTemperature>${ai.index.temperature}</llamaTemperature>
+                            <llamaThreads>${ai.index.threads}</llamaThreads>
+                        </configuration>
+
+                        <executions>
+                            <execution>
+                                <id>ai-generate</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <promptDefinitions>
+                                        <promptDefinition>
+                                            <key>file-summary</key>
+                                            <template><![CDATA[
+You generate a concise but complete markdown summary for a Java source file.
+
+Rules:
+- Output markdown only.
+- Do not output explanations outside the summary.
+- Never return an empty response.
+- Start immediately with content (no leading whitespace or empty lines).
+- The summary may be multiple lines.
+- The length should adapt to the file size and complexity.
+- Small files -> short summary.
+- Large or complex files -> longer summary is allowed.
+- The surrounding file already uses '###' for the file header.
+- Therefore your markdown summary must start at heading level '####' or below.
+- Do not use '###' or higher-level headings.
+- Do not wrap the markdown in code fences.
+- Do not output ```markdown, ```java, or ``` .
+- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- Mention every directly extended class.
+- Mention every directly implemented interface.
+- Mention generic declarations and important generic types when present.
+- Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
+- Summarize recurring exception behavior across methods when relevant.
+- Focus on purpose, behavior, important abstractions, and search-relevant terms.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+
+                                        <promptDefinition>
+                                            <key>file-keywords</key>
+                                            <template><![CDATA[
+You generate keywords for a Java source file.
+
+Rules:
+- Output exactly ONE line.
+- Output comma-separated keywords only.
+- Never return an empty response.
+- Do not start with whitespace or empty lines.
+- No explanations.
+- Do not output code fences like ``` or ```java.
+- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- Focus on retrieval-relevant terms for searching.
+- Include every directly extended class.
+- Include every directly implemented interface.
+- Include generic declarations and important generic types when present.
+- Include every known non-standard method name from the source file.
+- Do not include standard Java methods unless they are meaningfully overridden or central to the class behavior.
+- Include important exception types, especially when exception behavior is repeated across methods.
+- Include important domain terms, framework types, annotations, protocols, formats, and technical responsibilities.
+- The keyword list may be as long as necessary to summarize the class well.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+                                    </promptDefinitions>
+
+                                    <fieldGenerations>
+                                        <fieldGeneration>
+                                            <fieldName>summary</fieldName>
+                                            <promptKey>file-summary</promptKey>
+                                            <target>body</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>256</maxTokens>
+                                                <temperature>${ai.index.temperature}</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+
+                                        <fieldGeneration>
+                                            <fieldName>keywords</fieldName>
+                                            <promptKey>file-keywords</promptKey>
+                                            <target>header.k</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
+                                                <temperature>0.10</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+                                    </fieldGenerations>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <id>ai-aggregate-packages</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>aggregate-packages</goal>
+                                </goals>
+                                <configuration>
+                                    <promptDefinitions>
+                                        <promptDefinition>
+                                            <key>package-summary</key>
+                                            <template><![CDATA[
+You generate a concise but complete markdown summary for a Java package or package-like index containing many Java files.
+
+Rules:
+- Output markdown only.
+- Do not output explanations outside the summary.
+- Never return an empty response.
+- Start immediately with content (no leading whitespace or empty lines).
+- The summary may be multiple lines.
+- The length should adapt to the size and complexity of the package.
+- Small packages -> short summary.
+- Large packages -> more detailed summary is allowed.
+- The surrounding file already uses '###' for the package header.
+- Therefore your markdown summary must start at heading level '####' or below.
+- Do not use '###' or higher-level headings.
+- Do not wrap the markdown in code fences.
+- Do not output ```markdown, ```java, or ``` .
+- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- Focus on the overall purpose, structure, responsibilities, and collaboration of the contained files.
+- Mention important directly extended classes and directly implemented interfaces if they are central and repeatedly represented in the package content.
+- Mention important generic declarations or important generic type patterns if they are central to the package design.
+- Summarize recurring exception behavior across the package when relevant.
+- For larger packages, group contained files by responsibility instead of listing every file.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+
+                                        <promptDefinition>
+                                            <key>package-keywords</key>
+                                            <template><![CDATA[
+You generate keywords for a Java package or package-like index containing many Java files.
+
+Rules:
+- Output exactly ONE line.
+- Output comma-separated keywords only.
+- Never return an empty response.
+- Do not start with whitespace or empty lines.
+- No explanations.
+- Do not output code fences like ``` or ```java.
+- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- Focus on retrieval-relevant terms for searching.
+- Include central package responsibilities and important technical concepts.
+- Include important directly extended classes and directly implemented interfaces when they are central across the package.
+- Include important generic declarations and generic type patterns when central across the package.
+- Include important non-standard method names when they are central or repeated across the package.
+- Do not include standard Java methods unless they are meaningfully overridden or central to the package behavior.
+- Include important exception types when repeated or central.
+- Include important domain terms, annotations, frameworks, data formats, protocols, and architectural roles.
+- For larger packages, prefer representative and repeated terms over file-by-file noise.
+- The keyword list may be as long as necessary.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+                                    </promptDefinitions>
+
+                                    <fieldGenerations>
+                                        <fieldGeneration>
+                                            <fieldName>summary</fieldName>
+                                            <promptKey>package-summary</promptKey>
+                                            <target>body</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>256</maxTokens>
+                                                <temperature>${ai.index.temperature}</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+
+                                        <fieldGeneration>
+                                            <fieldName>keywords</fieldName>
+                                            <promptKey>package-keywords</promptKey>
+                                            <target>header.k</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
+                                                <temperature>0.10</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+                                    </fieldGenerations>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
