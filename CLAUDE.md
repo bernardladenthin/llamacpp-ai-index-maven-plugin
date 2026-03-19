@@ -50,6 +50,37 @@ mvn install
 - UTF-8 encoding
 - `maven-enforcer-plugin` requires Maven ≥ 3.6.3
 
+### Offline / Restricted-Network Environments
+
+When Maven cannot reach the internet (proxy, air-gap, restricted CI), use the options below.
+
+**Offline Maven (requires warm `~/.m2/repository` cache):**
+```bash
+# Run tests without downloading anything
+mvn test -o
+
+# Package without downloading anything
+mvn package -o -DskipTests
+```
+
+The cache is warm after any previous successful `mvn test` or `mvn install` run.
+
+**Direct `javac` compilation (fallback, no Maven required):**
+```bash
+# Gather classpath from already-downloaded JARs
+CP=$(find ~/.m2/repository -name "*.jar" | tr '\n' ':')
+OUT=/tmp/aiindex-classes && mkdir -p "$OUT"
+
+# Compile production sources
+find src/main/java -name "*.java" | xargs javac -cp "$CP" -d "$OUT" --release 21
+
+# Compile test sources (after production classes are compiled)
+TOUT=/tmp/aiindex-test-classes && mkdir -p "$TOUT"
+find src/test/java -name "*.java" | xargs javac -cp "$CP:$OUT" -d "$TOUT" --release 21
+```
+
+Zero compiler output means zero errors.
+
 ---
 
 ## Project Structure
@@ -66,8 +97,10 @@ llamacpp-ai-index-maven-plugin/
 │   │       ├── AiMdHeaderSupport.java      # Header manipulation utilities
 │   │       ├── AiGenerationConfig.java     # Configuration for a generation step
 │   │       ├── AiFieldGenerationConfig.java# Per-field generation config
+│   │       ├── AiFieldGenerationSupport.java# Shared field-generation loop (summary/keywords/body)
 │   │       ├── AiGenerationKind.java       # Enum: generation types
 │   │       ├── AiGenerationRequest.java    # Request object
+│   │       ├── AiGenerationResult.java     # Record: summary + keywords + body output
 │   │       ├── AiPromptDefinition.java     # Prompt template definition
 │   │       ├── AiPreparedPrompt.java       # Prompt after substitution
 │   │       ├── AiPromptSupport.java        # Prompt lookup utilities
@@ -126,6 +159,8 @@ The plugin operates in two logical phases:
 | `SourceFileIndexer` | Walks source trees, creates `.ai.md` files, calls AI for `s`/`k` fields |
 | `PackageIndexer` | Creates `package.ai.md` files with contents listings, calls AI for `s`/`k` fields |
 | `AiGenerationProvider` | Interface for AI backends (llama.cpp JNI or mock) |
+| `AiFieldGenerationSupport` | Shared field-generation loop extracted from both indexers |
+| `AiGenerationResult` | Record carrying `summary`, `keywords`, and `body` out of the loop |
 | `AiMdDocumentCodec` | Reads and writes `.ai.md` files |
 | `AiMdHeaderCodec` | Encodes/decodes the YAML-like metadata header |
 | `AiPromptSupport` | Looks up prompt templates by key |

@@ -42,6 +42,12 @@ public class PackageIndexer {
      */
     private static final String EPOCH_DATE = "1970-01-01T00:00:00Z";
 
+    /**
+     * Context-type label passed to {@link AiFieldGenerationSupport} so that trim-warning
+     * log messages read "Trimmed AI input for package field '…'".
+     */
+    private static final String CONTEXT_TYPE_PACKAGE = "package";
+
     private final Log log;
     private final Path baseDirectory;
     private final Path outputRoot;
@@ -51,15 +57,15 @@ public class PackageIndexer {
     private final List<Path> aiSubtrees;
     private final boolean force;
 
-    private final AiGenerationProvider generationProvider;
     private final List<AiFieldGenerationConfig> fieldGenerations;
-    private final AiPromptPreparationSupport promptPreparationSupport;
 
     private final AiPathSupport pathSupport = new AiPathSupport();
     private final AiTimeSupport timeSupport = new AiTimeSupport();
     private final AiChecksumSupport checksumSupport = new AiChecksumSupport();
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
+
+    private final AiFieldGenerationSupport fieldGenerationSupport;
 
     public PackageIndexer(
             final Log log,
@@ -81,9 +87,9 @@ public class PackageIndexer {
         this.sourceSubtrees = sourceSubtrees;
         this.aiSubtrees = toAiSubtrees(sourceSubtrees);
         this.force = force;
-        this.generationProvider = generationProvider;
         this.fieldGenerations = fieldGenerations;
-        this.promptPreparationSupport = new AiPromptPreparationSupport(promptSupport);
+        this.fieldGenerationSupport = new AiFieldGenerationSupport(
+                log, generationProvider, new AiPromptPreparationSupport(promptSupport));
     }
 
     public int aggregate(final Path rootDirectory) throws IOException {
@@ -196,75 +202,14 @@ public class PackageIndexer {
 
         final String sourceText = buildPackageSourceText(baseHeader, contents);
 
-        String summary = "";
-        String keywords = "";
-        String body = "";
+        final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
+                fieldGenerations, packageFile, CONTEXT_TYPE_PACKAGE, sourceText, baseHeader);
 
-        for (AiFieldGenerationConfig fieldGeneration : fieldGenerations) {
-            if (fieldGeneration == null) {
-                continue;
-            }
+        final String body = (result.body() == null || result.body().isBlank())
+                ? buildDefaultPackageBody(contents)
+                : result.body();
 
-            final AiGenerationConfig generationConfig = fieldGeneration.getGeneration();
-            if (generationConfig == null) {
-                throw new IllegalArgumentException("Missing generation config for field: " + fieldGeneration.getFieldName());
-            }
-
-            final AiGenerationRequest request = new AiGenerationRequest(
-                    fieldGeneration.getPromptKey(),
-                    packageFile,
-                    sourceText,
-                    baseHeader
-            );
-
-            final AiPreparedPrompt preparedPrompt = promptPreparationSupport.preparePrompt(
-                    request,
-                    generationConfig.getMaxInputChars()
-            );
-
-            if (preparedPrompt.trimmed() && generationConfig.isWarnOnTrim()) {
-                log.warn("Trimmed AI input for package field '" + fieldGeneration.getFieldName() + "': " + packageFile
-                        + " (source chars " + preparedPrompt.originalSourceLength()
-                        + " -> " + preparedPrompt.trimmedSourceLength()
-                        + ", available source chars " + preparedPrompt.availableSourceChars()
-                        + ", max input chars " + generationConfig.getMaxInputChars() + ")");
-            }
-
-            final String generatedValue = generationProvider.generate(new AiGenerationRequest(
-                    fieldGeneration.getPromptKey(),
-                    packageFile,
-                    preparedPrompt.sourceText(),
-                    baseHeader
-            ));
-
-            final String target = fieldGeneration.getTarget();
-            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
-                summary = generatedValue;
-            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
-                keywords = generatedValue;
-            } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
-                body = generatedValue;
-            } else {
-                throw new IllegalArgumentException("Unsupported field target: " + target);
-            }
-        }
-
-        if (body == null || body.isBlank()) {
-            body = buildDefaultPackageBody(contents);
-        }
-
-        final AiMdHeader finalHeader = new AiMdHeader(
-                baseHeader.title(),
-                baseHeader.h(),
-                baseHeader.c(),
-                baseHeader.d(),
-                baseHeader.t(),
-                baseHeader.g(),
-                baseHeader.a(),
-                baseHeader.x(),
-                summary,
-                keywords
-        );
+        final AiMdHeader finalHeader = baseHeader.withSummaryAndKeywords(result.summary(), result.keywords());
 
         final AiMdDocument document = new AiMdDocument(finalHeader, body);
         documentCodec.write(packageFile, document);
@@ -281,16 +226,12 @@ public class PackageIndexer {
 
                 if (Files.isDirectory(path)) {
                     if (Files.exists(path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME))) {
-                        entries.add(path.getFileName().toString() + "/");
+                        entries.add(name + "/");
                     }
                     continue;
                 }
 
-                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
-                    continue;
-                }
-
-                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
+                if (isAiMdContentFile(name)) {
                     entries.add(name);
                 }
             }
@@ -309,29 +250,38 @@ public class PackageIndexer {
         builder.append("- G: ").append(header.g()).append('\n');
         builder.append("- A: ").append(header.a()).append('\n');
         builder.append("- X: ").append(header.x()).append('\n');
-
-        if (!contents.isEmpty()) {
-            builder.append('\n');
-            builder.append(CONTENTS_HEADING).append('\n');
-            for (String entry : contents) {
-                builder.append("- ").append(entry).append('\n');
-            }
-        }
-
+        appendContentsSection(builder, contents, true);
         return builder.toString();
     }
 
     private String buildDefaultPackageBody(final List<String> contents) {
         final StringBuilder builder = new StringBuilder();
-
-        if (!contents.isEmpty()) {
-            builder.append(CONTENTS_HEADING).append('\n');
-            for (String entry : contents) {
-                builder.append("- ").append(entry).append('\n');
-            }
-        }
-
+        appendContentsSection(builder, contents, false);
         return builder.toString();
+    }
+
+    /**
+     * Appends the {@link #CONTENTS_HEADING} and the content entry list to {@code builder}.
+     * Does nothing when {@code contents} is empty.
+     *
+     * @param builder        target string builder
+     * @param contents       list of content entry names
+     * @param prependNewline when {@code true}, a blank line is prepended before the heading
+     */
+    private void appendContentsSection(
+            final StringBuilder builder,
+            final List<String> contents,
+            final boolean prependNewline) {
+        if (contents.isEmpty()) {
+            return;
+        }
+        if (prependNewline) {
+            builder.append('\n');
+        }
+        builder.append(CONTENTS_HEADING).append('\n');
+        for (String entry : contents) {
+            builder.append("- ").append(entry).append('\n');
+        }
     }
 
     private String calculatePackageChecksum(final Path directory) throws IOException {
@@ -351,11 +301,7 @@ public class PackageIndexer {
                     continue;
                 }
 
-                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
-                    continue;
-                }
-
-                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
+                if (isAiMdContentFile(name)) {
                     final AiMdDocument childDocument = documentCodec.read(path);
                     final AiMdHeader childHeader = childDocument.header();
                     builder.append(headerSupport.buildChecksumLine(name, childHeader));
@@ -385,11 +331,7 @@ public class PackageIndexer {
                     continue;
                 }
 
-                if (name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME) || name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)) {
-                    continue;
-                }
-
-                if (name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION)) {
+                if (isAiMdContentFile(name)) {
                     final AiMdDocument childDocument = documentCodec.read(path);
                     final AiMdHeader childHeader = childDocument.header();
                     if (childHeader.d().compareTo(latest) > 0) {
@@ -400,5 +342,20 @@ public class PackageIndexer {
         }
 
         return latest;
+    }
+
+    /**
+     * Returns {@code true} when {@code name} refers to a child AI index file that should
+     * be included in content listings and checksum calculations. Excludes the
+     * {@link AiMdHeaderCodec#PACKAGE_AI_MD_FILENAME} file itself and any
+     * {@link AiMdHeaderCodec#GENERATED_BY_PREFIX} marker files.
+     *
+     * @param name file name of the path under examination
+     * @return {@code true} if the file is a regular content AI index entry
+     */
+    private boolean isAiMdContentFile(final String name) {
+        return !name.equals(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME)
+                && !name.startsWith(AiMdHeaderCodec.GENERATED_BY_PREFIX)
+                && name.endsWith(AiMdHeaderCodec.AI_MD_EXTENSION);
     }
 }

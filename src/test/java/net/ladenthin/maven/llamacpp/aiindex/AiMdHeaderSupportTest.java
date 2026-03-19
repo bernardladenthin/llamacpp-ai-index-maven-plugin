@@ -53,17 +53,30 @@ public class AiMdHeaderSupportTest {
     /** Fixed checksum used in tests that do not exercise checksum-change detection. */
     private static final String FIXED_CHECKSUM = "12345678";
 
+    /**
+     * Builds an {@link AiMdHeader} for {@link #FIXED_TITLE} / {@link AiMdHeaderCodec#NODE_TYPE_FILE}
+     * using the supplied checksum and generator version. All other structural fields are
+     * taken from the class-level {@code FIXED_*} constants.
+     *
+     * @param checksum         value for the {@code c} field
+     * @param generatorVersion value for the {@code g} field
+     * @return a fully populated header suitable for use in shouldWrite tests
+     */
+    private AiMdHeader buildHeader(final String checksum, final String generatorVersion) {
+        return new AiMdHeader(
+                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, checksum,
+                FIXED_D, FIXED_T, generatorVersion, FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE,
+                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
+        );
+    }
+
     // <editor-fold defaultstate="collapsed" desc="shouldWrite">
     @Test
     public void shouldWrite_fileDoesNotExist_returnsTrue() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
-        final AiMdHeader header = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader header = buildHeader(FIXED_CHECKSUM, FIXED_G);
 
         // act
         final boolean result = headerSupport.shouldWrite(false, target, header);
@@ -76,12 +89,7 @@ public class AiMdHeaderSupportTest {
     public void shouldWrite_matchingExistingHeader_returnsFalse() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
-        final AiMdHeader header = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "ABCDEF12",
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader header = buildHeader("ABCDEF12", FIXED_G);
         Files.writeString(target, headerCodec.write(header));
 
         // act
@@ -95,20 +103,10 @@ public class AiMdHeaderSupportTest {
     public void shouldWrite_checksumChanged_returnsTrue() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
-        final AiMdHeader original = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "AAAAAAAA",
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader original = buildHeader("AAAAAAAA", FIXED_G);
         Files.writeString(target, headerCodec.write(original));
 
-        final AiMdHeader changed = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, "BBBBBBBB",
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader changed = buildHeader("BBBBBBBB", FIXED_G);
 
         // act
         final boolean result = headerSupport.shouldWrite(false, target, changed);
@@ -121,20 +119,10 @@ public class AiMdHeaderSupportTest {
     public void shouldWrite_generatorVersionChanged_returnsTrue() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
-        final AiMdHeader original = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader original = buildHeader(FIXED_CHECKSUM, FIXED_G);
         Files.writeString(target, headerCodec.write(original));
 
-        final AiMdHeader changed = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
-                FIXED_D, FIXED_T, "2.0.0", FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader changed = buildHeader(FIXED_CHECKSUM, "2.0.0");
 
         // act
         final boolean result = headerSupport.shouldWrite(false, target, changed);
@@ -147,12 +135,7 @@ public class AiMdHeaderSupportTest {
     public void shouldWrite_forceEnabled_returnsTrue() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
-        final AiMdHeader header = new AiMdHeader(
-                FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, FIXED_CHECKSUM,
-                FIXED_D, FIXED_T, FIXED_G, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY, AiMdHeaderCodec.DEFAULT_KEYWORDS
-        );
+        final AiMdHeader header = buildHeader(FIXED_CHECKSUM, FIXED_G);
         Files.writeString(target, headerCodec.write(header));
 
         // act
