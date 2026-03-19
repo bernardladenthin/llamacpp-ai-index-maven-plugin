@@ -30,6 +30,45 @@ import java.nio.file.Path;
 public class AiMdHeaderCodec {
 
     /**
+     * Prefix used for the title line in every AI index document header.
+     * Example: {@code "### MyClass.java"}.
+     */
+    public static final String HEADER_TITLE_PREFIX = "### ";
+
+    /**
+     * Prefix used for each key-value field line in every AI index document header.
+     * Example: {@code "- H: 1.0"}.
+     */
+    public static final String HEADER_FIELD_PREFIX = "- ";
+
+    /** Field key for the header format version ({@code h}). */
+    public static final String FIELD_KEY_H = "H";
+
+    /** Field key for the source file checksum ({@code c}). */
+    public static final String FIELD_KEY_C = "C";
+
+    /** Field key for the index creation date ({@code d}). */
+    public static final String FIELD_KEY_D = "D";
+
+    /** Field key for the last generation timestamp ({@code t}). */
+    public static final String FIELD_KEY_T = "T";
+
+    /** Field key for the plugin version ({@code g}). */
+    public static final String FIELD_KEY_G = "G";
+
+    /** Field key for the AI model version ({@code a}). */
+    public static final String FIELD_KEY_A = "A";
+
+    /** Field key for the node type ({@code x}). */
+    public static final String FIELD_KEY_X = "X";
+
+    /** Field key for the AI-generated summary ({@code s}). */
+    public static final String FIELD_KEY_S = "S";
+
+    /** Field key for the AI-generated keywords ({@code k}). */
+    public static final String FIELD_KEY_K = "K";
+
+    /**
      * Current metadata header format version written into every AI document.
      *
      * @see AiMdHeader#h()
@@ -86,36 +125,36 @@ public class AiMdHeaderCodec {
         final Map<String, String> values = new HashMap<>();
 
         for (String line : lines) {
-            if (line.startsWith("### ")) {
-                title = line.substring(4).trim();
+            if (line.startsWith(HEADER_TITLE_PREFIX)) {
+                title = line.substring(HEADER_TITLE_PREFIX.length()).trim();
                 continue;
             }
 
-            if (!line.startsWith("- ")) {
+            if (!line.startsWith(HEADER_FIELD_PREFIX)) {
                 continue;
             }
 
             final int colonIndex = line.indexOf(':');
-            if (colonIndex < 0 || colonIndex < 3) {
+            if (colonIndex < 0 || colonIndex < HEADER_FIELD_PREFIX.length() + 1) {
                 continue;
             }
 
-            final String key = line.substring(2, colonIndex).trim();
+            final String key = line.substring(HEADER_FIELD_PREFIX.length(), colonIndex).trim();
             final String value = line.substring(colonIndex + 1).trim();
             values.put(key, value);
         }
 
         return new AiMdHeader(
                 Objects.requireNonNullElse(title, ""),
-                valueOrEmpty(values, "H"),
-                valueOrEmpty(values, "C"),
-                valueOrEmpty(values, "D"),
-                valueOrEmpty(values, "T"),
-                valueOrEmpty(values, "G"),
-                valueOrEmpty(values, "A"),
-                valueOrEmpty(values, "X"),
-                valueOrEmpty(values, "S"),
-                valueOrEmpty(values, "K")
+                valueOrEmpty(values, FIELD_KEY_H),
+                valueOrEmpty(values, FIELD_KEY_C),
+                valueOrEmpty(values, FIELD_KEY_D),
+                valueOrEmpty(values, FIELD_KEY_T),
+                valueOrEmpty(values, FIELD_KEY_G),
+                valueOrEmpty(values, FIELD_KEY_A),
+                valueOrEmpty(values, FIELD_KEY_X),
+                valueOrEmpty(values, FIELD_KEY_S),
+                valueOrEmpty(values, FIELD_KEY_K)
         );
     }
 

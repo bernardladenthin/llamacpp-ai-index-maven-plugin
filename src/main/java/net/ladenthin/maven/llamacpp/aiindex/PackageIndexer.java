@@ -258,14 +258,14 @@ public class PackageIndexer {
 
     private String buildPackageSourceText(final AiMdHeader header, final List<String> contents) {
         final StringBuilder builder = new StringBuilder();
-        builder.append("### ").append(header.title()).append('\n');
-        builder.append("- H: ").append(header.h()).append('\n');
-        builder.append("- C: ").append(header.c()).append('\n');
-        builder.append("- D: ").append(header.d()).append('\n');
-        builder.append("- T: ").append(header.t()).append('\n');
-        builder.append("- G: ").append(header.g()).append('\n');
-        builder.append("- A: ").append(header.a()).append('\n');
-        builder.append("- X: ").append(header.x()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_TITLE_PREFIX).append(header.title()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("H: ").append(header.h()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("C: ").append(header.c()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("D: ").append(header.d()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("T: ").append(header.t()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("G: ").append(header.g()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("A: ").append(header.a()).append('\n');
+        builder.append(AiMdHeaderCodec.HEADER_FIELD_PREFIX).append("X: ").append(header.x()).append('\n');
         appendContentsSection(builder, contents, true);
         return builder.toString();
     }
@@ -309,18 +309,14 @@ public class PackageIndexer {
 
                 if (Files.isDirectory(path)) {
                     if (hasPackageAiMdFile(path)) {
-                        final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
-                        final AiMdDocument childDocument = documentCodec.read(childPackageFile);
-                        final AiMdHeader childHeader = childDocument.header();
-                        builder.append(headerSupport.buildChecksumLine(path.getFileName().toString(), childHeader));
+                        builder.append(headerSupport.buildChecksumLine(
+                                path.getFileName().toString(), readChildPackageHeader(path)));
                     }
                     continue;
                 }
 
                 if (isAiMdContentFile(name)) {
-                    final AiMdDocument childDocument = documentCodec.read(path);
-                    final AiMdHeader childHeader = childDocument.header();
-                    builder.append(headerSupport.buildChecksumLine(name, childHeader));
+                    builder.append(headerSupport.buildChecksumLine(name, documentCodec.read(path).header()));
                 }
             }
         }
@@ -337,21 +333,31 @@ public class PackageIndexer {
 
                 if (Files.isDirectory(path)) {
                     if (hasPackageAiMdFile(path)) {
-                        final Path childPackageFile = path.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME);
-                        final AiMdDocument childDocument = documentCodec.read(childPackageFile);
-                        latest = laterDate(latest, childDocument.header().d());
+                        latest = laterDate(latest, readChildPackageHeader(path).d());
                     }
                     continue;
                 }
 
                 if (isAiMdContentFile(name)) {
-                    final AiMdDocument childDocument = documentCodec.read(path);
-                    latest = laterDate(latest, childDocument.header().d());
+                    latest = laterDate(latest, documentCodec.read(path).header().d());
                 }
             }
         }
 
         return latest;
+    }
+
+    /**
+     * Reads and returns the {@link AiMdHeader} from the
+     * {@link AiMdHeaderCodec#PACKAGE_AI_MD_FILENAME} file inside {@code directory}.
+     * The caller must ensure {@link #hasPackageAiMdFile(Path)} is {@code true} first.
+     *
+     * @param directory a directory that contains a {@code package.ai.md} file
+     * @return the header of that package AI index file
+     * @throws java.io.IOException if the file cannot be read
+     */
+    private AiMdHeader readChildPackageHeader(final Path directory) throws java.io.IOException {
+        return documentCodec.read(directory.resolve(AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME)).header();
     }
 
     /**

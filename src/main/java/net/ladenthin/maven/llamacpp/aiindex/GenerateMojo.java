@@ -29,6 +29,12 @@ import java.util.List;
 @Mojo(name = "generate", threadSafe = true)
 public class GenerateMojo extends AbstractAiIndexMojo {
 
+    /**
+     * Default file extension used when no explicit {@code fileExtensions} parameter
+     * is configured. Only files whose names end with this extension are indexed.
+     */
+    private static final String DEFAULT_FILE_EXTENSION = ".java";
+
     @Parameter(defaultValue = "${project.version}", readonly = true)
     private String pluginVersion;
 
@@ -117,7 +123,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
 
     private List<String> resolveFileExtensions() {
         if (fileExtensions == null || fileExtensions.isEmpty()) {
-            return List.of(".java");
+            return List.of(DEFAULT_FILE_EXTENSION);
         }
         return fileExtensions;
     }
