@@ -29,7 +29,7 @@ import java.util.List;
 public class LlamaCppJniAiSummaryProviderTest {
 
     private static final String MODEL_PATH =
-            Path.of("src", "test", "resources", "SmolLM2-135M-Instruct-Q5_K_M.gguf")
+            Path.of("src", "test", "resources", "SmolLM2-135M-Instruct-Q3_K_M.gguf")
                     .toAbsolutePath()
                     .toString();
 
