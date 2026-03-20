@@ -48,7 +48,7 @@ public class PackageIndexerTest {
         final AiMdHeader childHeader = new AiMdHeader(
                 "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "AAAAAAAA",
                 "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE, "Child summary", "child,keywords"
+                AiMdHeaderCodec.NODE_TYPE_FILE, "child,keywords"
         );
         documentCodec.write(childAiFile, new AiMdDocument(childHeader, ""));
 

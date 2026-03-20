@@ -21,17 +21,15 @@ package net.ladenthin.maven.llamacpp.aiindex;
 /**
  * Immutable result produced by {@link AiFieldGenerationSupport#processFieldGenerations}.
  *
- * <p>Groups the three generated field values that a single processing pass may produce:
- * a header summary, a header keyword string, and a document body. All fields default to
+ * <p>Groups the generated field values that a single processing pass may produce:
+ * a header keyword string and a document body. All fields default to
  * an empty string when the corresponding target is not present in the field generation
  * configuration.</p>
  *
- * @param summary  AI-generated summary text destined for {@link AiMdHeader#s()}
  * @param keywords AI-generated keywords string destined for {@link AiMdHeader#k()}
  * @param body     AI-generated body text destined for {@link AiMdDocument#body()}
  */
 public record AiGenerationResult(
-        String summary,
         String keywords,
         String body
 ) {}

@@ -150,7 +150,7 @@ public class SourceFileIndexer {
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, sourceFile, CONTEXT_TYPE_FILE, sourceText, baseHeader);
 
-        final AiMdHeader finalHeader = baseHeader.withSummaryAndKeywords(result.summary(), result.keywords());
+        final AiMdHeader finalHeader = baseHeader.withKeywords(result.keywords());
 
         final AiMdDocument document = new AiMdDocument(finalHeader, result.body());
         documentCodec.write(targetFile, document);

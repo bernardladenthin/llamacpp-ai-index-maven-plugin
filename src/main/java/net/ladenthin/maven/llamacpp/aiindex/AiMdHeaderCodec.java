@@ -62,9 +62,6 @@ public class AiMdHeaderCodec {
     /** Field key for the node type ({@code x}). */
     public static final String FIELD_KEY_X = "X";
 
-    /** Field key for the AI-generated summary ({@code s}). */
-    public static final String FIELD_KEY_S = "S";
-
     /** Field key for the AI-generated keywords ({@code k}). */
     public static final String FIELD_KEY_K = "K";
 
@@ -153,7 +150,6 @@ public class AiMdHeaderCodec {
                 valueOrEmpty(values, FIELD_KEY_G),
                 valueOrEmpty(values, FIELD_KEY_A),
                 valueOrEmpty(values, FIELD_KEY_X),
-                valueOrEmpty(values, FIELD_KEY_S),
                 valueOrEmpty(values, FIELD_KEY_K)
         );
     }
@@ -168,7 +164,6 @@ public class AiMdHeaderCodec {
                 - G: %s
                 - A: %s
                 - X: %s
-                - S: %s
                 - K: %s
                 """.formatted(
                 header.title(),
@@ -179,7 +174,6 @@ public class AiMdHeaderCodec {
                 header.g(),
                 header.a(),
                 header.x(),
-                header.s(),
                 header.k()
         );
     }

@@ -76,7 +76,7 @@ public class AiFieldGenerationSupport {
      *   <li>A trim warning is logged if the source was truncated and
      *       {@link AiGenerationConfig#isWarnOnTrim()} is {@code true}.</li>
      *   <li>The AI provider generates a value for the trimmed source.</li>
-     *   <li>The value is routed to {@code summary}, {@code keywords}, or {@code body}
+     *   <li>The value is routed to {@code keywords} or {@code body}
      *       according to the entry's {@link AiFieldGenerationConfig#getTarget() target}.</li>
      * </ol>
      *
@@ -89,9 +89,8 @@ public class AiFieldGenerationSupport {
      * @param sourceText       full source text passed as input to the prompt preparation step
      * @param baseHeader       current header; passed through to each
      *                         {@link AiGenerationRequest}
-     * @return an {@link AiGenerationResult} with all generated field values; fields for
-     *         which no matching {@link AiFieldGenerationConfig} target exists default to
-     *         an empty string
+     * @return an {@link AiGenerationResult} with all generated field values; fields for which
+     *         no matching {@link AiFieldGenerationConfig} target exists default to an empty string
      * @throws IOException              if the AI provider throws during generation
      * @throws IllegalArgumentException if a field's {@link AiGenerationConfig} is
      *                                  {@code null}, or if an unrecognised target is found
@@ -103,7 +102,6 @@ public class AiFieldGenerationSupport {
             final String sourceText,
             final AiMdHeader baseHeader
     ) throws IOException {
-        String summary = "";
         String keywords = "";
         String body = "";
 
@@ -145,9 +143,7 @@ public class AiFieldGenerationSupport {
             ));
 
             final String target = fieldGeneration.getTarget();
-            if (AiFieldGenerationConfig.TARGET_HEADER_SUMMARY.equals(target)) {
-                summary = generatedValue;
-            } else if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
+            if (AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS.equals(target)) {
                 keywords = generatedValue;
             } else if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
                 body = generatedValue;
@@ -156,6 +152,6 @@ public class AiFieldGenerationSupport {
             }
         }
 
-        return new AiGenerationResult(summary, keywords, body);
+        return new AiGenerationResult(keywords, body);
     }
 }

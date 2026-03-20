@@ -52,7 +52,7 @@ public class LlamaCppJniAiSummaryProviderTest {
                 "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "00000000",
                 "2026-03-18T00:00:00Z", "2026-03-18T00:00:00Z",
                 "0.1.0-SNAPSHOT", "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE, "", ""
+                AiMdHeaderCodec.NODE_TYPE_FILE, ""
         );
         final String source = """
                 package com.example;

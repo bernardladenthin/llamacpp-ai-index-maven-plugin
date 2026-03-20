@@ -53,7 +53,6 @@ public class AiPromptPreparationSupportTest {
                 "0.1.0-SNAPSHOT",
                 "0.0.0",
                 AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY,
                 AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
     }

@@ -47,7 +47,6 @@ import java.util.Objects;
  *   <li><b>g</b>: Version of the template/generator implementation that produced this document.</li>
  *   <li><b>a</b>: Version of the AI summarization logic or AI output schema applied to this document.</li>
  *   <li><b>x</b>: Node type, for example {@code file} or {@code package}.</li>
- *   <li><b>s</b>: Compact summary text intended for fast navigation and retrieval.</li>
  *   <li><b>k</b>: Compact keyword list intended for retrieval and indexing.</li>
  * </ul>
  *
@@ -55,7 +54,7 @@ import java.util.Objects;
  * <ul>
  *   <li>Header comparison for rewrite decisions should be based on structural fields such as
  *       {@code h}, {@code c}, {@code d}, {@code g}, {@code a}, {@code x}, and {@code title},
- *       not on generated text fields such as {@code s} and {@code k}.</li>
+ *       not on generated text fields such as {@code k}.</li>
  *   <li>Package aggregation must be deterministic. Child traversal order must therefore be stable,
  *       typically ascending by child file name or relative path.</li>
  *   <li>The generator should preserve AI-authored fields when the structural state did not change.</li>
@@ -69,7 +68,6 @@ import java.util.Objects;
  * @param g generator version
  * @param a AI generation version
  * @param x node type, e.g. {@code file} or {@code package}
- * @param s compact summary
  * @param k compact keywords
  */
 public record AiMdHeader(
@@ -81,7 +79,6 @@ public record AiMdHeader(
         String g,
         String a,
         String x,
-        String s,
         String k
 ) {
 
@@ -94,22 +91,20 @@ public record AiMdHeader(
         Objects.requireNonNull(g, "g");
         Objects.requireNonNull(a, "a");
         Objects.requireNonNull(x, "x");
-        Objects.requireNonNull(s, "s");
         Objects.requireNonNull(k, "k");
     }
 
     /**
      * Returns a new {@code AiMdHeader} identical to this one except that the AI-authored
-     * fields {@code s} and {@code k} are replaced by the supplied values.
+     * keywords field {@code k} is replaced by the supplied value.
      *
      * <p>All structural fields ({@code title}, {@code h}, {@code c}, {@code d},
      * {@code t}, {@code g}, {@code a}, {@code x}) are preserved unchanged.</p>
      *
-     * @param summary  AI-generated summary to set in the returned header
      * @param keywords AI-generated keywords to set in the returned header
-     * @return a new {@code AiMdHeader} with updated {@code s} and {@code k} fields
+     * @return a new {@code AiMdHeader} with updated {@code k} field
      */
-    public AiMdHeader withSummaryAndKeywords(final String summary, final String keywords) {
-        return new AiMdHeader(title, h, c, d, t, g, a, x, summary, keywords);
+    public AiMdHeader withKeywords(final String keywords) {
+        return new AiMdHeader(title, h, c, d, t, g, a, x, keywords);
     }
 }
