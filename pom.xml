@@ -245,6 +245,13 @@ Rules for the entire output:
 - Summarize recurring exception behavior across methods when relevant.
 - **IMPORTANT: If the source contains "[EOF - source was truncated]", the file is incomplete. Do NOT guess, invent, or hallucinate any methods, classes, fields, or code that is not explicitly present in the provided source. Only summarize what is actually shown.**
 
+Rules for keywords specifically:
+- Use only simple class names, never fully qualified names (write "Stream" not "java.util.stream.Stream").
+- Each keyword must be unique — no duplicates allowed.
+- Include at most 15 keywords.
+- Prefer class names, interface names, annotation names, and domain-specific terms.
+- Omit standard Java utility types (String, List, Map, etc.) unless they are central to the class purpose.
+
 File: %s
 
 Source:
@@ -313,6 +320,13 @@ Rules for the entire output:
 - Summarize recurring exception behavior across the package when relevant.
 - For larger packages, group contained files by responsibility instead of listing every file.
 - **IMPORTANT: If the source contains "[EOF - source was truncated]", the index is incomplete. Do NOT guess, invent, or hallucinate any files, classes, or content that is not explicitly present in the provided source. Only summarize what is actually shown.**
+
+Rules for keywords specifically:
+- Use only simple class names, never fully qualified names (write "Stream" not "java.util.stream.Stream").
+- Each keyword must be unique — no duplicates allowed.
+- Include at most 15 keywords.
+- Prefer class names, interface names, annotation names, and domain-specific terms.
+- Omit standard Java utility types (String, List, Map, etc.) unless they are central to the package purpose.
 
 File: %s
 
