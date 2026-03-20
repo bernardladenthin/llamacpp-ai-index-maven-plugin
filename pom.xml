@@ -58,12 +58,33 @@
         <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
-        <ai.index.context.size>2048</ai.index.context.size>
-        <ai.index.max.tokens>256</ai.index.max.tokens>
+
+        <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
+        <ai.index.context.size>32768</ai.index.context.size>
+        <ai.index.max.tokens>1024</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
-        <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
+        <ai.index.body.max.tokens>1024</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
-        <ai.index.max.input.chars>100000</ai.index.max.input.chars>
+
+        <!--
+            Maximum input characters for source code before trimming.
+            Calculated as: (context_size × 4) - overhead
+
+            Context: 32768 tokens
+            Chars per token: ~4
+            Total available: 32768 × 4 = 131,072 chars
+
+            Overhead (conservative estimate):
+            - Prompt template: ~500 chars
+            - EOF marker: ~30 chars
+            - Max output (1024 tokens × 4): ~4,096 chars
+            - Safety margin: ~500 chars
+            - Subtotal overhead: ~5,126 chars
+
+            Available for source: 131,072 - 5,126 = 125,946 chars
+            Set to: 125,000 (rounded, conservative)
+        -->
+        <ai.index.max.input.chars>125000</ai.index.max.input.chars>
     </properties>
 
     <dependencies>
@@ -222,6 +243,7 @@ Rules for the entire output:
 - Mention generic declarations and important generic types when present.
 - Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
 - Summarize recurring exception behavior across methods when relevant.
+- **IMPORTANT: If the source contains "[EOF - source was truncated]", the file is incomplete. Do NOT guess, invent, or hallucinate any methods, classes, fields, or code that is not explicitly present in the provided source. Only summarize what is actually shown.**
 
 File: %s
 
@@ -290,6 +312,7 @@ Rules for the entire output:
 - Mention important generic declarations or important generic type patterns if they are central to the package design.
 - Summarize recurring exception behavior across the package when relevant.
 - For larger packages, group contained files by responsibility instead of listing every file.
+- **IMPORTANT: If the source contains "[EOF - source was truncated]", the index is incomplete. Do NOT guess, invent, or hallucinate any files, classes, or content that is not explicitly present in the provided source. Only summarize what is actually shown.**
 
 File: %s
 

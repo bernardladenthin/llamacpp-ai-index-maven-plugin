@@ -20,6 +20,12 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiPromptPreparationSupport {
 
+    /**
+     * Marker appended to source text when it has been trimmed to indicate that
+     * the source is incomplete and not representative of the full file.
+     */
+    private static final String EOF_MARKER = "\n/* [EOF - source was truncated] */";
+
     private final AiPromptSupport promptSupport;
 
     public AiPromptPreparationSupport(final AiPromptSupport promptSupport) {
@@ -54,15 +60,15 @@ public class AiPromptPreparationSupport {
         final String promptWithoutSource = promptSupport.buildPrompt(emptySourceRequest);
         final int availableSourceChars = Math.max(0, maxInputChars - promptWithoutSource.length());
 
-        final String trimmedSource = request.sourceText().substring(
-                0,
-                Math.min(request.sourceText().length(), availableSourceChars)
-        );
+        final String sourceText = request.sourceText();
+        final int trimPoint = Math.min(sourceText.length(), availableSourceChars);
+        final String trimmedSource = trimSourceAtLineBreak(sourceText, trimPoint);
+        final String trimmedSourceWithMarker = trimmedSource + EOF_MARKER;
 
         final AiGenerationRequest trimmedRequest = new AiGenerationRequest(
                 request.promptKey(),
                 request.sourceFile(),
-                trimmedSource,
+                trimmedSourceWithMarker,
                 request.currentHeader()
         );
 
@@ -70,12 +76,35 @@ public class AiPromptPreparationSupport {
 
         return new AiPreparedPrompt(
                 trimmedPrompt,
-                trimmedSource,
+                trimmedSourceWithMarker,
                 true,
                 originalSourceLength,
                 trimmedSource.length(),
                 availableSourceChars
         );
+    }
+
+    /**
+     * Trims the source text at or before the given character index, ensuring the trim
+     * occurs at a line boundary (after a newline) rather than mid-line. This prevents
+     * breaking Java syntax and confusing the AI model.
+     *
+     * @param sourceText the source code to trim
+     * @param targetIndex the target character index
+     * @return the source trimmed at the last newline at or before {@code targetIndex},
+     *         or the entire source if no newline is found before the index
+     */
+    private String trimSourceAtLineBreak(final String sourceText, final int targetIndex) {
+        if (targetIndex >= sourceText.length()) {
+            return sourceText;
+        }
+
+        final int lastNewline = sourceText.lastIndexOf('\n', targetIndex);
+        if (lastNewline < 0) {
+            return sourceText.substring(0, targetIndex);
+        }
+
+        return sourceText.substring(0, lastNewline + 1);
     }
 
 }
