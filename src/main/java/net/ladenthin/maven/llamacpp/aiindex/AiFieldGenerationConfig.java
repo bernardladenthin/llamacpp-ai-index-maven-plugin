@@ -20,26 +20,9 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiFieldGenerationConfig {
 
-    /**
-     * Target string that routes the generated value into the document body.
-     *
-     * @see AiMdDocument#body()
-     */
-    public static final String TARGET_BODY = "body";
-
-    private String fieldName;
     private String promptKey;
-    private String target;
 
     private AiGenerationConfig generation = new AiGenerationConfig();
-
-    public String getFieldName() {
-        return fieldName;
-    }
-
-    public void setFieldName(final String fieldName) {
-        this.fieldName = fieldName;
-    }
 
     public String getPromptKey() {
         return promptKey;
@@ -47,14 +30,6 @@ public class AiFieldGenerationConfig {
 
     public void setPromptKey(final String promptKey) {
         this.promptKey = promptKey;
-    }
-
-    public String getTarget() {
-        return target;
-    }
-
-    public void setTarget(final String target) {
-        this.target = target;
     }
 
     public AiGenerationConfig getGeneration() {

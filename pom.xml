@@ -233,9 +233,7 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>body</fieldName>
                                             <promptKey>file-body</promptKey>
-                                            <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
@@ -303,9 +301,7 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>body</fieldName>
                                             <promptKey>package-body</promptKey>
-                                            <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>

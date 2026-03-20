@@ -30,7 +30,7 @@ import java.util.List;
  *
  * <p>Iterates over a list of {@link AiFieldGenerationConfig} entries, prepares the
  * prompt for each, delegates generation to the configured {@link AiGenerationProvider},
- * and routes the generated value into the correct slot of an {@link AiGenerationResult}.
+ * and accumulates the generated text as the document body.
  * A trim warning is emitted via the supplied {@link Log} whenever the source text had
  * to be truncated to fit within the configured maximum input character budget.</p>
  */
@@ -76,8 +76,7 @@ public class AiFieldGenerationSupport {
      *   <li>A trim warning is logged if the source was truncated and
      *       {@link AiGenerationConfig#isWarnOnTrim()} is {@code true}.</li>
      *   <li>The AI provider generates a value for the trimmed source.</li>
-     *   <li>The value is routed to {@code body} according to the entry's
-     *       {@link AiFieldGenerationConfig#getTarget() target}.</li>
+     *   <li>The generated value is stored as the document body.</li>
      * </ol>
      *
      * @param fieldGenerations per-field generation configuration list; {@code null} entries
@@ -90,10 +89,8 @@ public class AiFieldGenerationSupport {
      * @param baseHeader       current header; passed through to each
      *                         {@link AiGenerationRequest}
      * @return an {@link AiGenerationResult} with the generated body; defaults to empty string
-     *         when no matching {@link AiFieldGenerationConfig} target exists
      * @throws IOException              if the AI provider throws during generation
-     * @throws IllegalArgumentException if a field's {@link AiGenerationConfig} is
-     *                                  {@code null}, or if an unrecognised target is found
+     * @throws IllegalArgumentException if a field's {@link AiGenerationConfig} is {@code null}
      */
     public AiGenerationResult processFieldGenerations(
             final List<AiFieldGenerationConfig> fieldGenerations,
@@ -111,7 +108,7 @@ public class AiFieldGenerationSupport {
 
             final AiGenerationConfig generationConfig = fieldGeneration.getGeneration();
             if (generationConfig == null) {
-                throw new IllegalArgumentException("Missing generation config for field: " + fieldGeneration.getFieldName());
+                throw new IllegalArgumentException("Missing generation config for body field");
             }
 
             final AiGenerationRequest request = new AiGenerationRequest(
@@ -127,26 +124,19 @@ public class AiFieldGenerationSupport {
             );
 
             if (preparedPrompt.trimmed() && generationConfig.isWarnOnTrim()) {
-                log.warn("Trimmed AI input for " + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getFieldName() + "': " + contextFile
+                log.warn("Trimmed AI input for " + contextType + TRIM_WARN_FIELD_LABEL + "body': " + contextFile
                         + " (source chars " + preparedPrompt.originalSourceLength()
                         + " -> " + preparedPrompt.trimmedSourceLength()
                         + ", available source chars " + preparedPrompt.availableSourceChars()
                         + ", max input chars " + generationConfig.getMaxInputChars() + ")");
             }
 
-            final String generatedValue = generationProvider.generate(new AiGenerationRequest(
+            body = generationProvider.generate(new AiGenerationRequest(
                     fieldGeneration.getPromptKey(),
                     contextFile,
                     preparedPrompt.sourceText(),
                     baseHeader
             ));
-
-            final String target = fieldGeneration.getTarget();
-            if (AiFieldGenerationConfig.TARGET_BODY.equals(target)) {
-                body = generatedValue;
-            } else {
-                throw new IllegalArgumentException("Unsupported field target: " + target);
-            }
         }
 
         return new AiGenerationResult(body);
