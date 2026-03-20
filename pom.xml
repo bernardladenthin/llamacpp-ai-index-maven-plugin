@@ -58,7 +58,7 @@
         <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
-        <ai.index.context.size>2048</ai.index.context.size>
+        <ai.index.context.size>32768</ai.index.context.size>
         <ai.index.max.tokens>256</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
         <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
