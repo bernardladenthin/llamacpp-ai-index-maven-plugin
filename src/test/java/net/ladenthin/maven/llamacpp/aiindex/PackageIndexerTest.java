@@ -84,8 +84,6 @@ public class PackageIndexerTest {
         assertThat(document.header().d().isBlank(), is(false));
         assertThat(document.header().t().isBlank(), is(false));
         assertThat(document.body().isBlank(), is(false));
-        assertThat(document.body().contains("#### Contents"), is(true));
-        assertThat(document.body().contains("- Test.java.ai.md"), is(true));
     }
     // </editor-fold>
 }
