@@ -211,10 +211,7 @@
                                         <promptDefinition>
                                             <key>file-body</key>
                                             <template><![CDATA[
-You generate a detailed markdown body section for a Java source file.
-
-Output format:
-<markdown-summary>
+You generate a detailed markdown body section for a Java source file. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
 
 Rules for the entire output:
 - Output markdown only.
@@ -276,10 +273,7 @@ Source:
                                         <promptDefinition>
                                             <key>package-body</key>
                                             <template><![CDATA[
-You generate a detailed markdown body section for a Java package or package-like index.
-
-Output format:
-<markdown-summary>
+You generate a detailed markdown body section for a Java package or package-like index. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
 
 Rules for the entire output:
 - Output markdown only.
