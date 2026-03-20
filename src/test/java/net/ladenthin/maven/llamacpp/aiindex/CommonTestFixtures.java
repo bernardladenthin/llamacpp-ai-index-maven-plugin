@@ -29,9 +29,9 @@ import java.util.List;
 public class CommonTestFixtures {
 
     /**
-     * Prompt key for the file-level summary prompt, used in file summarizer and source file indexer tests.
+     * Prompt key for the file-level body prompt, used in file summarizer and source file indexer tests.
      */
-    public static final String PROMPT_KEY_FILE_SUMMARY = "file-summary";
+    public static final String PROMPT_KEY_FILE_BODY = "file-body-with-keywords";
 
     /**
      * Prompt key for the file-level keywords prompt, used in file summarizer and source file indexer tests.
@@ -39,9 +39,9 @@ public class CommonTestFixtures {
     public static final String PROMPT_KEY_FILE_KEYWORDS = "file-keywords";
 
     /**
-     * Prompt key for the package-level summary prompt, used in package indexer and summarizer tests.
+     * Prompt key for the package-level body prompt, used in package indexer and summarizer tests.
      */
-    public static final String PROMPT_KEY_PACKAGE_SUMMARY = "package-summary";
+    public static final String PROMPT_KEY_PACKAGE_BODY = "package-body-with-keywords";
 
     /**
      * Prompt key for the package-level keywords prompt, used in package indexer and summarizer tests.
@@ -57,10 +57,10 @@ public class CommonTestFixtures {
      * @return list of two prompt definitions for file-level summarization
      */
     public static List<AiPromptDefinition> createFilePromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey(PROMPT_KEY_FILE_SUMMARY);
-        summaryPrompt.setTemplate("""
-                Summarize this Java file.
+        final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
+        bodyPrompt.setKey(PROMPT_KEY_FILE_BODY);
+        bodyPrompt.setTemplate("""
+                Summarize this Java file and list relevant keywords.
 
                 File: %s
 
@@ -79,11 +79,11 @@ public class CommonTestFixtures {
                 %s
                 """);
 
-        return List.of(summaryPrompt, keywordsPrompt);
+        return List.of(bodyPrompt, keywordsPrompt);
     }
 
     /**
-     * Creates the standard file-level field generation configs targeting {@code header.s} and {@code header.k}.
+     * Creates the standard file-level field generation configs targeting {@code body} and {@code header.k}.
      *
      * <p>Used in file summarizer and source file indexer tests.</p>
      *
@@ -91,7 +91,7 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
         return List.of(
-                createFieldConfig("summary", PROMPT_KEY_FILE_SUMMARY, AiFieldGenerationConfig.TARGET_HEADER_SUMMARY),
+                createFieldConfig("body", PROMPT_KEY_FILE_BODY, AiFieldGenerationConfig.TARGET_BODY),
                 createFieldConfig("keywords", PROMPT_KEY_FILE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
         );
     }
@@ -104,10 +104,10 @@ public class CommonTestFixtures {
      * @return list of two prompt definitions for package-level summarization
      */
     public static List<AiPromptDefinition> createPackagePromptDefinitions() {
-        final AiPromptDefinition summaryPrompt = new AiPromptDefinition();
-        summaryPrompt.setKey(PROMPT_KEY_PACKAGE_SUMMARY);
-        summaryPrompt.setTemplate("""
-                Summarize this Java package.
+        final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
+        bodyPrompt.setKey(PROMPT_KEY_PACKAGE_BODY);
+        bodyPrompt.setTemplate("""
+                Summarize this Java package and list relevant keywords.
 
                 File: %s
 
@@ -126,11 +126,11 @@ public class CommonTestFixtures {
                 %s
                 """);
 
-        return List.of(summaryPrompt, keywordsPrompt);
+        return List.of(bodyPrompt, keywordsPrompt);
     }
 
     /**
-     * Creates the standard package-level field generation configs targeting {@code header.s} and {@code header.k}.
+     * Creates the standard package-level field generation configs targeting {@code body} and {@code header.k}.
      *
      * <p>Used in package indexer and summarizer tests.</p>
      *
@@ -138,7 +138,7 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
         return List.of(
-                createFieldConfig("summary", PROMPT_KEY_PACKAGE_SUMMARY, AiFieldGenerationConfig.TARGET_HEADER_SUMMARY),
+                createFieldConfig("body", PROMPT_KEY_PACKAGE_BODY, AiFieldGenerationConfig.TARGET_BODY),
                 createFieldConfig("keywords", PROMPT_KEY_PACKAGE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
         );
     }
