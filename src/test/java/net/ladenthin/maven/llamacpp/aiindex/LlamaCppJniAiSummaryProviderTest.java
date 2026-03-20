@@ -66,7 +66,7 @@ public class LlamaCppJniAiSummaryProviderTest {
                 """;
 
         final AiGenerationRequest summaryRequest = new AiGenerationRequest(
-                CommonTestFixtures.PROMPT_KEY_FILE_SUMMARY, Path.of("Test.java"), source, header
+                CommonTestFixtures.PROMPT_KEY_FILE_BODY, Path.of("Test.java"), source, header
         );
         final AiGenerationRequest keywordsRequest = new AiGenerationRequest(
                 CommonTestFixtures.PROMPT_KEY_FILE_KEYWORDS, Path.of("Test.java"), source, header
