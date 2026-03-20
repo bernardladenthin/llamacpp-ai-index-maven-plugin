@@ -24,18 +24,18 @@ import java.nio.file.Path;
 public class MockAiGenerationProvider implements AiGenerationProvider {
 
     /**
-     * Fragment that must appear in the prompt key to identify a keywords-generation request.
-     * Prompt keys containing this fragment trigger the mock keywords response;
-     * all other keys receive the mock summary response.
+     * Suffix that identifies a keywords-generation request.
+     * Prompt keys ending with this suffix trigger the mock keywords response;
+     * all other keys receive the mock body/summary response.
      */
-    private static final String KEYWORDS_PROMPT_FRAGMENT = "keywords";
+    private static final String KEYWORDS_PROMPT_SUFFIX = "-keywords";
 
     @Override
     public String generate(final AiGenerationRequest request) throws IOException {
         final Path file = request.sourceFile();
         final String fileName = file.getFileName().toString();
 
-        if (request.promptKey().contains(KEYWORDS_PROMPT_FRAGMENT)) {
+        if (request.promptKey().endsWith(KEYWORDS_PROMPT_SUFFIX)) {
             return "mock,keywords," + fileName;
         }
 

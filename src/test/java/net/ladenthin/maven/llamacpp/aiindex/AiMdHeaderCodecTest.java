@@ -41,7 +41,6 @@ public class AiMdHeaderCodecTest {
                 "0.1.0-SNAPSHOT",
                 "0.0.0",
                 AiMdHeaderCodec.NODE_TYPE_FILE,
-                "Mock summary",
                 "mock,file"
         );
 
@@ -65,7 +64,6 @@ public class AiMdHeaderCodecTest {
                 "0.1.0-SNAPSHOT",
                 "0.0.0",
                 AiMdHeaderCodec.NODE_TYPE_PACKAGE,
-                AiMdHeaderCodec.DEFAULT_SUMMARY,
                 AiMdHeaderCodec.DEFAULT_KEYWORDS
         );
 
@@ -83,7 +81,6 @@ public class AiMdHeaderCodecTest {
         assertThat(decoded.g(), is(equalTo("0.1.0-SNAPSHOT")));
         assertThat(decoded.a(), is(equalTo("0.0.0")));
         assertThat(decoded.x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_PACKAGE)));
-        assertThat(decoded.s(), is(equalTo(AiMdHeaderCodec.DEFAULT_SUMMARY)));
         assertThat(decoded.k(), is(equalTo(AiMdHeaderCodec.DEFAULT_KEYWORDS)));
     }
     // </editor-fold>

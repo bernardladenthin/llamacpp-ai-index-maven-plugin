@@ -207,7 +207,6 @@ public class PackageIndexer {
                 pluginVersion,
                 aiVersion,
                 AiMdHeaderCodec.NODE_TYPE_PACKAGE,
-                "",
                 ""
         );
 
@@ -225,7 +224,7 @@ public class PackageIndexer {
                 ? buildDefaultPackageBody(contents)
                 : result.body();
 
-        final AiMdHeader finalHeader = baseHeader.withSummaryAndKeywords(result.summary(), result.keywords());
+        final AiMdHeader finalHeader = baseHeader.withKeywords(result.keywords());
 
         final AiMdDocument document = new AiMdDocument(finalHeader, body);
         documentCodec.write(packageFile, document);

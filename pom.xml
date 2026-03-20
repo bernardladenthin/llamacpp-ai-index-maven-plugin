@@ -54,14 +54,18 @@
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
 
-        <ai.index.model.path>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q4_k_m.gguf</ai.index.model.path>
+        <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF -->
+        <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
         <ai.index.context.size>2048</ai.index.context.size>
-        <ai.index.max.tokens>64</ai.index.max.tokens>
+        <ai.index.max.tokens>256</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
+        <ai.index.keywords.temperature>0.10</ai.index.keywords.temperature>
+        <!-- Increased from 64 to 512 for body generation which includes keywords + separator + summary -->
+        <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
-        <ai.index.max.input.chars>20000</ai.index.max.input.chars>
+        <ai.index.max.input.chars>100000</ai.index.max.input.chars>
     </properties>
 
     <dependencies>
@@ -186,31 +190,40 @@
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>file-summary</key>
+                                            <key>file-body-with-keywords</key>
                                             <template><![CDATA[
-You generate a concise but complete markdown summary for a Java source file.
+You generate a markdown body section for a Java source file that includes both keywords and a summary.
 
-Rules:
+Output format:
+**Keywords:** <comma-separated-keywords>
+
+---
+
+<markdown-summary>
+
+Rules for the entire output:
 - Output markdown only.
-- Do not output explanations outside the summary.
+- Do not output explanations outside the body content.
 - Never return an empty response.
-- Start immediately with content (no leading whitespace or empty lines).
+- Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
+- First list the keywords as comma-separated values on the same line after "**Keywords:**".
+- On the next line, output a single horizontal rule: ---
+- Then output one blank line.
+- Then output the markdown summary starting at heading level '####' or below.
 - The summary may be multiple lines.
 - The length should adapt to the file size and complexity.
 - Small files -> short summary.
 - Large or complex files -> longer summary is allowed.
-- The surrounding file already uses '###' for the file header.
-- Therefore your markdown summary must start at heading level '####' or below.
-- Do not use '###' or higher-level headings.
-- Do not wrap the markdown in code fences.
-- Do not output ```markdown, ```java, or ``` .
+- Do not use '###' or higher-level headings in the summary.
+- Do not wrap the summary in code fences.
+- Do not output ```markdown, ```java, or ```.
 - Do not output formatter comments like // @formatter:on or // @formatter:off.
+- Focus the summary on purpose, behavior, important abstractions, and search-relevant terms.
 - Mention every directly extended class.
 - Mention every directly implemented interface.
 - Mention generic declarations and important generic types when present.
 - Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
 - Summarize recurring exception behavior across methods when relevant.
-- Focus on purpose, behavior, important abstractions, and search-relevant terms.
 
 File: %s
 
@@ -225,13 +238,16 @@ Source:
 You generate keywords for a Java source file.
 
 Rules:
-- Output exactly ONE line.
-- Output comma-separated keywords only.
+- Output exactly ONE line with ONLY comma-separated keywords.
 - Never return an empty response.
 - Do not start with whitespace or empty lines.
-- No explanations.
-- Do not output code fences like ``` or ```java.
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- No explanations, no preamble.
+- Do NOT output the word "Keywords" or any label.
+- Do NOT use markdown format, bullet points, or asterisks (* or -).
+- Do NOT output code fences like ``` or ```java.
+- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
+- Output ONLY comma-separated keywords with no other text.
+- Example output: "MyClass, executeAction, handleError, IOException, ConfigParser"
 - Focus on retrieval-relevant terms for searching.
 - Include every directly extended class.
 - Include every directly implemented interface.
@@ -252,13 +268,13 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>summary</fieldName>
-                                            <promptKey>file-summary</promptKey>
+                                            <fieldName>body</fieldName>
+                                            <promptKey>file-body-with-keywords</promptKey>
                                             <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>256</maxTokens>
+                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
@@ -274,7 +290,7 @@ Source:
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>0.10</temperature>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
@@ -293,26 +309,35 @@ Source:
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>package-summary</key>
+                                            <key>package-body-with-keywords</key>
                                             <template><![CDATA[
-You generate a concise but complete markdown summary for a Java package or package-like index containing many Java files.
+You generate a markdown body section for a Java package or package-like index that includes both keywords and a summary.
 
-Rules:
+Output format:
+**Keywords:** <comma-separated-keywords>
+
+---
+
+<markdown-summary>
+
+Rules for the entire output:
 - Output markdown only.
-- Do not output explanations outside the summary.
+- Do not output explanations outside the body content.
 - Never return an empty response.
-- Start immediately with content (no leading whitespace or empty lines).
+- Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
+- First list the keywords as comma-separated values on the same line after "**Keywords:**".
+- On the next line, output a single horizontal rule: ---
+- Then output one blank line.
+- Then output the markdown summary starting at heading level '####' or below.
 - The summary may be multiple lines.
 - The length should adapt to the size and complexity of the package.
 - Small packages -> short summary.
 - Large packages -> more detailed summary is allowed.
-- The surrounding file already uses '###' for the package header.
-- Therefore your markdown summary must start at heading level '####' or below.
-- Do not use '###' or higher-level headings.
-- Do not wrap the markdown in code fences.
-- Do not output ```markdown, ```java, or ``` .
+- Do not use '###' or higher-level headings in the summary.
+- Do not wrap the summary in code fences.
+- Do not output ```markdown, ```java, or ```.
 - Do not output formatter comments like // @formatter:on or // @formatter:off.
-- Focus on the overall purpose, structure, responsibilities, and collaboration of the contained files.
+- Focus the summary on the overall purpose, structure, responsibilities, and collaboration of the contained files.
 - Mention important directly extended classes and directly implemented interfaces if they are central and repeatedly represented in the package content.
 - Mention important generic declarations or important generic type patterns if they are central to the package design.
 - Summarize recurring exception behavior across the package when relevant.
@@ -331,13 +356,16 @@ Source:
 You generate keywords for a Java package or package-like index containing many Java files.
 
 Rules:
-- Output exactly ONE line.
-- Output comma-separated keywords only.
+- Output exactly ONE line with ONLY comma-separated keywords.
 - Never return an empty response.
 - Do not start with whitespace or empty lines.
-- No explanations.
-- Do not output code fences like ``` or ```java.
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
+- No explanations, no preamble.
+- Do NOT output the word "Keywords" or any label.
+- Do NOT use markdown format, bullet points, or asterisks (* or -).
+- Do NOT output code fences like ``` or ```java.
+- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
+- Output ONLY comma-separated keywords with no other text.
+- Example output: "Parser, Codec, Markdown, Configuration, Error Handling"
 - Focus on retrieval-relevant terms for searching.
 - Include central package responsibilities and important technical concepts.
 - Include important directly extended classes and directly implemented interfaces when they are central across the package.
@@ -359,13 +387,13 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>summary</fieldName>
-                                            <promptKey>package-summary</promptKey>
+                                            <fieldName>body</fieldName>
+                                            <promptKey>package-body-with-keywords</promptKey>
                                             <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>256</maxTokens>
+                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
@@ -381,7 +409,7 @@ Source:
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>0.10</temperature>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>

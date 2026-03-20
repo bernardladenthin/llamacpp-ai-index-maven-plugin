@@ -48,7 +48,7 @@ public class PackageIndexerTest {
         final AiMdHeader childHeader = new AiMdHeader(
                 "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "AAAAAAAA",
                 "2026-03-16T00:00:00Z", "2026-03-16T00:00:10Z", "1.0.0", "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE, "Child summary", "child,keywords"
+                AiMdHeaderCodec.NODE_TYPE_FILE, "child,keywords"
         );
         documentCodec.write(childAiFile, new AiMdDocument(childHeader, ""));
 
@@ -79,13 +79,11 @@ public class PackageIndexerTest {
         assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_PACKAGE)));
         assertThat(document.header().g(), is(equalTo("1.0.0")));
         assertThat(document.header().a(), is(equalTo("0.0.0")));
-        assertThat(document.header().s(), is(equalTo("Mock summary for package.ai.md")));
         assertThat(document.header().k(), is(equalTo("mock,keywords,package.ai.md")));
         assertThat(document.header().c().isBlank(), is(false));
         assertThat(document.header().d().isBlank(), is(false));
         assertThat(document.header().t().isBlank(), is(false));
-        assertThat(document.body().contains("#### Contents"), is(true));
-        assertThat(document.body().contains("- Test.java.ai.md"), is(true));
+        assertThat(document.body().isBlank(), is(false));
     }
     // </editor-fold>
 }
