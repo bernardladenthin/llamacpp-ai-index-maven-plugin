@@ -27,11 +27,9 @@ import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 
 public class AiFieldGenerationSupportTest {
 
@@ -80,7 +78,7 @@ public class AiFieldGenerationSupportTest {
                 contextFile, "file", "public class Test {}", header);
 
         // assert
-        assertThat(capturingLog.getCapturedWarnings(), is(empty()));
+        assertThat(capturingLog.getCapturedWarnings().isEmpty(), is(true));
     }
 
     @Test
@@ -101,7 +99,7 @@ public class AiFieldGenerationSupportTest {
                 contextFile, "file", "public class AiGenerationConfig {}", header);
 
         // assert
-        assertThat(capturingLog.getCapturedWarnings(), hasSize(1));
+        assertThat(capturingLog.getCapturedWarnings().size(), is(equalTo(1)));
         assertThat(capturingLog.getCapturedWarnings().get(0), containsString(contextFile.toString()));
     }
 
@@ -123,7 +121,7 @@ public class AiFieldGenerationSupportTest {
                 contextFile, "file", "public class Test {}", header);
 
         // assert
-        assertThat(capturingLog.getCapturedWarnings(), hasSize(1));
+        assertThat(capturingLog.getCapturedWarnings().size(), is(equalTo(1)));
         assertThat(capturingLog.getCapturedWarnings().get(0),
                 containsString(CommonTestFixtures.PROMPT_KEY_FILE_BODY));
     }
