@@ -216,8 +216,6 @@ You generate a markdown body section for a Java source file that includes both a
 Output format:
 **Keywords:** <comma-separated-keywords>
 
----
-
 <markdown-summary>
 
 Rules for the entire output:
@@ -226,7 +224,6 @@ Rules for the entire output:
 - Never return an empty response.
 - Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
 - First list the keywords as comma-separated values on the same line after "**Keywords:**".
-- On the next line, output a single horizontal rule: ---
 - Then output one blank line.
 - Then output the markdown summary starting at heading level '####' or below.
 - The summary may be multiple lines.
@@ -293,8 +290,6 @@ You generate a markdown body section for a Java package or package-like index th
 Output format:
 **Keywords:** <comma-separated-keywords>
 
----
-
 <markdown-summary>
 
 Rules for the entire output:
@@ -303,7 +298,6 @@ Rules for the entire output:
 - Never return an empty response.
 - Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
 - First list the keywords as comma-separated values on the same line after "**Keywords:**".
-- On the next line, output a single horizontal rule: ---
 - Then output one blank line.
 - Then output the markdown summary starting at heading level '####' or below.
 - The summary may be multiple lines.
