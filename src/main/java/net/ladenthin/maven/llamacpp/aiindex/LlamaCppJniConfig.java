@@ -24,7 +24,7 @@ public record LlamaCppJniConfig(
         String libraryPath,
         String modelPath,
         int contextSize,
-        int maxTokens,
+        int maxOutputTokens,
         float temperature,
         int threads
 ) {

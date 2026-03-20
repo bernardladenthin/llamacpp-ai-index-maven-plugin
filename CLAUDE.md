@@ -230,7 +230,7 @@ k: "parser,codec,markdown"
 | `summaryProvider` | `aiIndex.summaryProvider` | `mock` | `mock` or `llamacpp-jni` |
 | `llamaModelPath` | `aiIndex.llama.modelPath` | — | Path to GGUF model file |
 | `llamaContextSize` | `aiIndex.llama.contextSize` | `2048` | Context window size |
-| `llamaMaxTokens` | `aiIndex.llama.maxTokens` | `128` | Max generated tokens |
+| `llamaMaxOutputTokens` | `aiIndex.llama.maxOutputTokens` | `128` | Max generated output tokens |
 | `llamaTemperature` | `aiIndex.llama.temperature` | `0.15` | Sampling temperature |
 | `llamaThreads` | `aiIndex.llama.threads` | `2` | CPU threads for inference |
 

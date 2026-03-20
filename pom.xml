@@ -70,7 +70,7 @@
             Overhead (conservative estimate):
             - Prompt template: ~${PROMPT_CHARS} chars
             - EOF marker: ~${EOF_CHARS} chars
-            - Max output (${MAX_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
+            - Max output tokens (${MAX_OUTPUT_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
             - Safety margin: ~${SAFETY_CHARS} chars
             - [Subtotal overhead]: ~${OVERHEAD_TOTAL} chars
 
@@ -104,8 +104,7 @@
                     -->
                     <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
                     <ai.index.context.size>16384</ai.index.context.size>
-                    <ai.index.max.tokens>1024</ai.index.max.tokens>
-                    <ai.index.body.max.tokens>1024</ai.index.body.max.tokens>
+                    <ai.index.max.output.tokens>1024</ai.index.max.output.tokens>
                     <ai.index.temperature>0.10</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>60400</ai.index.max.input.chars>
@@ -137,8 +136,7 @@
                     -->
                     <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
                     <ai.index.context.size>32768</ai.index.context.size>
-                    <ai.index.max.tokens>1536</ai.index.max.tokens>
-                    <ai.index.body.max.tokens>1536</ai.index.body.max.tokens>
+                    <ai.index.max.output.tokens>1536</ai.index.max.output.tokens>
                     <ai.index.temperature>0.10</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>123800</ai.index.max.input.chars>
@@ -253,7 +251,7 @@
 
                             <llamaModelPath>${ai.index.model.path}</llamaModelPath>
                             <llamaContextSize>${ai.index.context.size}</llamaContextSize>
-                            <llamaMaxTokens>${ai.index.max.tokens}</llamaMaxTokens>
+                            <llamaMaxOutputTokens>${ai.index.max.output.tokens}</llamaMaxOutputTokens>
                             <llamaTemperature>${ai.index.temperature}</llamaTemperature>
                             <llamaThreads>${ai.index.threads}</llamaThreads>
                         </configuration>
@@ -310,7 +308,7 @@ Source:
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
+                                                <maxOutputTokens>${ai.index.max.output.tokens}</maxOutputTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
@@ -371,7 +369,7 @@ Source:
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
+                                                <maxOutputTokens>${ai.index.max.output.tokens}</maxOutputTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>

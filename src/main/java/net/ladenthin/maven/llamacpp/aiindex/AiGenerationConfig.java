@@ -23,8 +23,8 @@ public class AiGenerationConfig {
     /** Default context window size (in tokens) used when no explicit context size is configured. */
     public static final int DEFAULT_CONTEXT_SIZE = 32768;
 
-    /** Default maximum number of tokens to generate in a single inference call. */
-    public static final int DEFAULT_MAX_TOKENS = 128;
+    /** Default maximum number of output tokens to generate in a single inference call. */
+    public static final int DEFAULT_MAX_OUTPUT_TOKENS = 128;
 
     /**
      * Default sampling temperature. Lower values make output more deterministic;
@@ -49,7 +49,7 @@ public class AiGenerationConfig {
 
     private String modelPath;
     private int contextSize = DEFAULT_CONTEXT_SIZE;
-    private int maxTokens = DEFAULT_MAX_TOKENS;
+    private int maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS;
     private float temperature = DEFAULT_TEMPERATURE;
     private int threads = DEFAULT_THREADS;
     private int maxInputChars = DEFAULT_MAX_INPUT_CHARS;
@@ -71,12 +71,12 @@ public class AiGenerationConfig {
         this.contextSize = contextSize;
     }
 
-    public int getMaxTokens() {
-        return maxTokens;
+    public int getMaxOutputTokens() {
+        return maxOutputTokens;
     }
 
-    public void setMaxTokens(final int maxTokens) {
-        this.maxTokens = maxTokens;
+    public void setMaxOutputTokens(final int maxOutputTokens) {
+        this.maxOutputTokens = maxOutputTokens;
     }
 
     public float getTemperature() {
