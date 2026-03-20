@@ -54,17 +54,17 @@
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
 
-        <ai.index.model.path>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q4_k_m.gguf</ai.index.model.path>
+        <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
         <ai.index.context.size>2048</ai.index.context.size>
-        <ai.index.max.tokens>64</ai.index.max.tokens>
+        <ai.index.max.tokens>256</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
         <ai.index.keywords.temperature>0.10</ai.index.keywords.temperature>
         <!-- Increased from 64 to 512 for body generation which includes keywords + separator + summary -->
         <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
-        <ai.index.max.input.chars>20000</ai.index.max.input.chars>
+        <ai.index.max.input.chars>100000</ai.index.max.input.chars>
     </properties>
 
     <dependencies>
