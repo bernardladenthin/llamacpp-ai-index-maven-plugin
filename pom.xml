@@ -189,39 +189,6 @@
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>file-keywords</key>
-                                            <template><![CDATA[
-You generate keywords for a Java source file.
-
-Rules:
-- Output exactly ONE line with ONLY comma-separated keywords.
-- Never return an empty response.
-- Do not start with whitespace or empty lines.
-- No explanations, no preamble.
-- Do NOT output the word "Keywords" or any label.
-- Do NOT use markdown format, bullet points, or asterisks (* or -).
-- Do NOT output code fences like ``` or ```java.
-- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
-- Output ONLY comma-separated keywords with no other text.
-- Example output: "MyClass, executeAction, handleError, IOException, ConfigParser"
-- Focus on retrieval-relevant terms for searching.
-- Include every directly extended class.
-- Include every directly implemented interface.
-- Include generic declarations and important generic types when present.
-- Include every known non-standard method name from the source file.
-- Do not include standard Java methods unless they are meaningfully overridden or central to the class behavior.
-- Include important exception types, especially when exception behavior is repeated across methods.
-- Include important domain terms, framework types, annotations, protocols, formats, and technical responsibilities.
-- The keyword list may be as long as necessary to summarize the class well.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
-
-                                        <promptDefinition>
                                             <key>file-body-with-keywords</key>
                                             <template><![CDATA[
 You generate a markdown body section for a Java source file that includes both keywords and a summary.
@@ -256,6 +223,39 @@ Rules for the entire output:
 - Mention generic declarations and important generic types when present.
 - Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
 - Summarize recurring exception behavior across methods when relevant.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+
+                                        <promptDefinition>
+                                            <key>file-keywords</key>
+                                            <template><![CDATA[
+You generate keywords for a Java source file.
+
+Rules:
+- Output exactly ONE line with ONLY comma-separated keywords.
+- Never return an empty response.
+- Do not start with whitespace or empty lines.
+- No explanations, no preamble.
+- Do NOT output the word "Keywords" or any label.
+- Do NOT use markdown format, bullet points, or asterisks (* or -).
+- Do NOT output code fences like ``` or ```java.
+- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
+- Output ONLY comma-separated keywords with no other text.
+- Example output: "MyClass, executeAction, handleError, IOException, ConfigParser"
+- Focus on retrieval-relevant terms for searching.
+- Include every directly extended class.
+- Include every directly implemented interface.
+- Include generic declarations and important generic types when present.
+- Include every known non-standard method name from the source file.
+- Do not include standard Java methods unless they are meaningfully overridden or central to the class behavior.
+- Include important exception types, especially when exception behavior is repeated across methods.
+- Include important domain terms, framework types, annotations, protocols, formats, and technical responsibilities.
+- The keyword list may be as long as necessary to summarize the class well.
 
 File: %s
 
@@ -308,40 +308,6 @@ Source:
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>package-keywords</key>
-                                            <template><![CDATA[
-You generate keywords for a Java package or package-like index containing many Java files.
-
-Rules:
-- Output exactly ONE line with ONLY comma-separated keywords.
-- Never return an empty response.
-- Do not start with whitespace or empty lines.
-- No explanations, no preamble.
-- Do NOT output the word "Keywords" or any label.
-- Do NOT use markdown format, bullet points, or asterisks (* or -).
-- Do NOT output code fences like ``` or ```java.
-- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
-- Output ONLY comma-separated keywords with no other text.
-- Example output: "Parser, Codec, Markdown, Configuration, Error Handling"
-- Focus on retrieval-relevant terms for searching.
-- Include central package responsibilities and important technical concepts.
-- Include important directly extended classes and directly implemented interfaces when they are central across the package.
-- Include important generic declarations and generic type patterns when central across the package.
-- Include important non-standard method names when they are central or repeated across the package.
-- Do not include standard Java methods unless they are meaningfully overridden or central to the package behavior.
-- Include important exception types when repeated or central.
-- Include important domain terms, annotations, frameworks, data formats, protocols, and architectural roles.
-- For larger packages, prefer representative and repeated terms over file-by-file noise.
-- The keyword list may be as long as necessary.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
-
-                                        <promptDefinition>
                                             <key>package-body-with-keywords</key>
                                             <template><![CDATA[
 You generate a markdown body section for a Java package or package-like index that includes both keywords and a summary.
@@ -375,6 +341,40 @@ Rules for the entire output:
 - Mention important generic declarations or important generic type patterns if they are central to the package design.
 - Summarize recurring exception behavior across the package when relevant.
 - For larger packages, group contained files by responsibility instead of listing every file.
+
+File: %s
+
+Source:
+%s
+                                            ]]></template>
+                                        </promptDefinition>
+
+                                        <promptDefinition>
+                                            <key>package-keywords</key>
+                                            <template><![CDATA[
+You generate keywords for a Java package or package-like index containing many Java files.
+
+Rules:
+- Output exactly ONE line with ONLY comma-separated keywords.
+- Never return an empty response.
+- Do not start with whitespace or empty lines.
+- No explanations, no preamble.
+- Do NOT output the word "Keywords" or any label.
+- Do NOT use markdown format, bullet points, or asterisks (* or -).
+- Do NOT output code fences like ``` or ```java.
+- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
+- Output ONLY comma-separated keywords with no other text.
+- Example output: "Parser, Codec, Markdown, Configuration, Error Handling"
+- Focus on retrieval-relevant terms for searching.
+- Include central package responsibilities and important technical concepts.
+- Include important directly extended classes and directly implemented interfaces when they are central across the package.
+- Include important generic declarations and generic type patterns when central across the package.
+- Include important non-standard method names when they are central or repeated across the package.
+- Do not include standard Java methods unless they are meaningfully overridden or central to the package behavior.
+- Include important exception types when repeated or central.
+- Include important domain terms, annotations, frameworks, data formats, protocols, and architectural roles.
+- For larger packages, prefer representative and repeated terms over file-by-file noise.
+- The keyword list may be as long as necessary.
 
 File: %s
 
