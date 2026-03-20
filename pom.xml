@@ -61,8 +61,6 @@
         <ai.index.context.size>2048</ai.index.context.size>
         <ai.index.max.tokens>256</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
-        <ai.index.keywords.temperature>0.10</ai.index.keywords.temperature>
-        <!-- Increased from 64 to 512 for body generation which includes keywords + separator + summary -->
         <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
         <ai.index.max.input.chars>100000</ai.index.max.input.chars>
@@ -190,9 +188,9 @@
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>file-body-with-keywords</key>
+                                            <key>file-body</key>
                                             <template><![CDATA[
-You generate a markdown body section for a Java source file that includes both keywords and a summary.
+You generate a markdown body section for a Java source file that includes both a summary and relevant keywords.
 
 Output format:
 **Keywords:** <comma-separated-keywords>
@@ -231,66 +229,18 @@ Source:
 %s
                                             ]]></template>
                                         </promptDefinition>
-
-                                        <promptDefinition>
-                                            <key>file-keywords</key>
-                                            <template><![CDATA[
-You generate keywords for a Java source file.
-
-Rules:
-- Output exactly ONE line with ONLY comma-separated keywords.
-- Never return an empty response.
-- Do not start with whitespace or empty lines.
-- No explanations, no preamble.
-- Do NOT output the word "Keywords" or any label.
-- Do NOT use markdown format, bullet points, or asterisks (* or -).
-- Do NOT output code fences like ``` or ```java.
-- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
-- Output ONLY comma-separated keywords with no other text.
-- Example output: "MyClass, executeAction, handleError, IOException, ConfigParser"
-- Focus on retrieval-relevant terms for searching.
-- Include every directly extended class.
-- Include every directly implemented interface.
-- Include generic declarations and important generic types when present.
-- Include every known non-standard method name from the source file.
-- Do not include standard Java methods unless they are meaningfully overridden or central to the class behavior.
-- Include important exception types, especially when exception behavior is repeated across methods.
-- Include important domain terms, framework types, annotations, protocols, formats, and technical responsibilities.
-- The keyword list may be as long as necessary to summarize the class well.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
                                     </promptDefinitions>
 
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <fieldName>body</fieldName>
-                                            <promptKey>file-body-with-keywords</promptKey>
+                                            <promptKey>file-body</promptKey>
                                             <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                            </generation>
-                                        </fieldGeneration>
-
-                                        <fieldGeneration>
-                                            <fieldName>keywords</fieldName>
-                                            <promptKey>file-keywords</promptKey>
-                                            <target>header.k</target>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
@@ -309,9 +259,9 @@ Source:
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>package-body-with-keywords</key>
+                                            <key>package-body</key>
                                             <template><![CDATA[
-You generate a markdown body section for a Java package or package-like index that includes both keywords and a summary.
+You generate a markdown body section for a Java package or package-like index that includes both a summary and relevant keywords.
 
 Output format:
 **Keywords:** <comma-separated-keywords>
@@ -349,67 +299,18 @@ Source:
 %s
                                             ]]></template>
                                         </promptDefinition>
-
-                                        <promptDefinition>
-                                            <key>package-keywords</key>
-                                            <template><![CDATA[
-You generate keywords for a Java package or package-like index containing many Java files.
-
-Rules:
-- Output exactly ONE line with ONLY comma-separated keywords.
-- Never return an empty response.
-- Do not start with whitespace or empty lines.
-- No explanations, no preamble.
-- Do NOT output the word "Keywords" or any label.
-- Do NOT use markdown format, bullet points, or asterisks (* or -).
-- Do NOT output code fences like ``` or ```java.
-- Do NOT output formatter comments like // @formatter:on or // @formatter:off.
-- Output ONLY comma-separated keywords with no other text.
-- Example output: "Parser, Codec, Markdown, Configuration, Error Handling"
-- Focus on retrieval-relevant terms for searching.
-- Include central package responsibilities and important technical concepts.
-- Include important directly extended classes and directly implemented interfaces when they are central across the package.
-- Include important generic declarations and generic type patterns when central across the package.
-- Include important non-standard method names when they are central or repeated across the package.
-- Do not include standard Java methods unless they are meaningfully overridden or central to the package behavior.
-- Include important exception types when repeated or central.
-- Include important domain terms, annotations, frameworks, data formats, protocols, and architectural roles.
-- For larger packages, prefer representative and repeated terms over file-by-file noise.
-- The keyword list may be as long as necessary.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
                                     </promptDefinitions>
 
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <fieldName>body</fieldName>
-                                            <promptKey>package-body-with-keywords</promptKey>
+                                            <promptKey>package-body</promptKey>
                                             <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                            </generation>
-                                        </fieldGeneration>
-
-                                        <fieldGeneration>
-                                            <fieldName>keywords</fieldName>
-                                            <promptKey>package-keywords</promptKey>
-                                            <target>header.k</target>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>

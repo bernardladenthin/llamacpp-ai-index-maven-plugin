@@ -66,8 +66,7 @@ public class AiMdHeaderSupportTest {
         return new AiMdHeader(
                 FIXED_TITLE, AiMdHeaderCodec.HEADER_VERSION_1_0, checksum,
                 FIXED_D, FIXED_T, generatorVersion, FIXED_A,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_KEYWORDS
+                AiMdHeaderCodec.NODE_TYPE_FILE
         );
     }
 

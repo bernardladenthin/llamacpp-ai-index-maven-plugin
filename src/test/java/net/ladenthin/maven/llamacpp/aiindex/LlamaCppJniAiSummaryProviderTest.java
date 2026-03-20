@@ -52,7 +52,7 @@ public class LlamaCppJniAiSummaryProviderTest {
                 "Test.java", AiMdHeaderCodec.HEADER_VERSION_1_0, "00000000",
                 "2026-03-18T00:00:00Z", "2026-03-18T00:00:00Z",
                 "0.1.0-SNAPSHOT", "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE, ""
+                AiMdHeaderCodec.NODE_TYPE_FILE
         );
         final String source = """
                 package com.example;
@@ -65,23 +65,17 @@ public class LlamaCppJniAiSummaryProviderTest {
                 }
                 """;
 
-        final AiGenerationRequest summaryRequest = new AiGenerationRequest(
+        final AiGenerationRequest bodyRequest = new AiGenerationRequest(
                 CommonTestFixtures.PROMPT_KEY_FILE_BODY, Path.of("Test.java"), source, header
-        );
-        final AiGenerationRequest keywordsRequest = new AiGenerationRequest(
-                CommonTestFixtures.PROMPT_KEY_FILE_KEYWORDS, Path.of("Test.java"), source, header
         );
 
         // act
         try (LlamaCppJniAiSummaryProvider provider = new LlamaCppJniAiSummaryProvider(config, promptSupport)) {
-            final String summary = provider.generate(summaryRequest);
-            final String keywords = provider.generate(keywordsRequest);
+            final String body = provider.generate(bodyRequest);
 
             // assert
-            assertThat(summary, is(notNullValue()));
-            assertThat(keywords, is(notNullValue()));
-            assertThat(summary.isBlank(), is(false));
-            assertThat(keywords.isBlank(), is(false));
+            assertThat(body, is(notNullValue()));
+            assertThat(body.isBlank(), is(false));
         }
     }
     // </editor-fold>

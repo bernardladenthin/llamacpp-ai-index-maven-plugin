@@ -23,8 +23,9 @@ import java.util.Objects;
 /**
  * Canonical header model for a single {@code .ai.md} document.
  *
- * <p>The header is the stable machine-readable metadata block used by the generator
- * and by later AI enrichment steps. It is intentionally compact and versioned.</p>
+ * <p>The header contains only deterministic metadata fields. All AI-generated content
+ * is stored in the document body (after the {@code ---} separator), keeping the header
+ * machine-parseable without AI involvement.</p>
  *
  * <p>Field semantics:</p>
  * <ul>
@@ -47,17 +48,15 @@ import java.util.Objects;
  *   <li><b>g</b>: Version of the template/generator implementation that produced this document.</li>
  *   <li><b>a</b>: Version of the AI summarization logic or AI output schema applied to this document.</li>
  *   <li><b>x</b>: Node type, for example {@code file} or {@code package}.</li>
- *   <li><b>k</b>: Compact keyword list intended for retrieval and indexing.</li>
  * </ul>
  *
  * <p>Important invariants:</p>
  * <ul>
- *   <li>Header comparison for rewrite decisions should be based on structural fields such as
- *       {@code h}, {@code c}, {@code d}, {@code g}, {@code a}, {@code x}, and {@code title},
- *       not on generated text fields such as {@code k}.</li>
+ *   <li>Header comparison for rewrite decisions is based on all structural fields:
+ *       {@code h}, {@code c}, {@code d}, {@code g}, {@code a}, {@code x}, and {@code title}.</li>
  *   <li>Package aggregation must be deterministic. Child traversal order must therefore be stable,
  *       typically ascending by child file name or relative path.</li>
- *   <li>The generator should preserve AI-authored fields when the structural state did not change.</li>
+ *   <li>The generator should preserve the body when the structural state did not change.</li>
  * </ul>
  *
  * @param title display title of the node
@@ -68,7 +67,6 @@ import java.util.Objects;
  * @param g generator version
  * @param a AI generation version
  * @param x node type, e.g. {@code file} or {@code package}
- * @param k compact keywords
  */
 public record AiMdHeader(
         String title,
@@ -78,8 +76,7 @@ public record AiMdHeader(
         String t,
         String g,
         String a,
-        String x,
-        String k
+        String x
 ) {
 
     public AiMdHeader {
@@ -91,20 +88,5 @@ public record AiMdHeader(
         Objects.requireNonNull(g, "g");
         Objects.requireNonNull(a, "a");
         Objects.requireNonNull(x, "x");
-        Objects.requireNonNull(k, "k");
-    }
-
-    /**
-     * Returns a new {@code AiMdHeader} identical to this one except that the AI-authored
-     * keywords field {@code k} is replaced by the supplied value.
-     *
-     * <p>All structural fields ({@code title}, {@code h}, {@code c}, {@code d},
-     * {@code t}, {@code g}, {@code a}, {@code x}) are preserved unchanged.</p>
-     *
-     * @param keywords AI-generated keywords to set in the returned header
-     * @return a new {@code AiMdHeader} with updated {@code k} field
-     */
-    public AiMdHeader withKeywords(final String keywords) {
-        return new AiMdHeader(title, h, c, d, t, g, a, x, keywords);
     }
 }

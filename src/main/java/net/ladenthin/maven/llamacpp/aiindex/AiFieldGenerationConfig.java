@@ -21,13 +21,6 @@ package net.ladenthin.maven.llamacpp.aiindex;
 public class AiFieldGenerationConfig {
 
     /**
-     * Target string that routes the generated value into the header keywords field ({@code k}).
-     *
-     * @see AiMdHeader#k()
-     */
-    public static final String TARGET_HEADER_KEYWORDS = "header.k";
-
-    /**
      * Target string that routes the generated value into the document body.
      *
      * @see AiMdDocument#body()

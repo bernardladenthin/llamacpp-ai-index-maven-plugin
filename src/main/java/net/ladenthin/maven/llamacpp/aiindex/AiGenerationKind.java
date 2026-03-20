@@ -20,7 +20,5 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public enum AiGenerationKind {
     FILE_SUMMARY,
-    PACKAGE_SUMMARY,
-    FILE_KEYWORDS,
-    PACKAGE_KEYWORDS
+    PACKAGE_SUMMARY
 }
