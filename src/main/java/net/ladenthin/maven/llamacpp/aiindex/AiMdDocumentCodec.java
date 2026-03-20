@@ -39,16 +39,28 @@ public class AiMdDocumentCodec {
 
         for (String line : lines) {
             if (!headerFinished) {
-                if (line.startsWith(AiMdHeaderCodec.HEADER_TITLE_PREFIX) || line.startsWith(AiMdHeaderCodec.HEADER_FIELD_PREFIX)) {
-                    continue;
-                }
-
-                if (line.isBlank()) {
+                // Check if we've passed the header closing tag
+                if (line.startsWith(AiMdHeaderCodec.HEADER_CLOSING_TAG)) {
                     headerFinished = true;
                     continue;
                 }
 
+                // Skip any lines that are part of the header
+                if (line.startsWith(AiMdHeaderCodec.HEADER_OPENING_TAG) || line.contains(":")) {
+                    continue;
+                }
+
+                // Skip blank lines between header and body
+                if (line.isBlank()) {
+                    continue;
+                }
+
                 headerFinished = true;
+            }
+
+            // Skip separator line
+            if (line.equals("---")) {
+                continue;
             }
 
             if (!bodyStarted) {
@@ -67,9 +79,9 @@ public class AiMdDocumentCodec {
     public String write(final AiMdDocument document) {
         final StringBuilder builder = new StringBuilder();
         builder.append(new AiMdHeaderCodec().write(document.header()));
+        builder.append("---\n");
 
         if (!document.body().isBlank()) {
-            builder.append('\n');
             builder.append(document.body());
             if (!document.body().endsWith("\n")) {
                 builder.append('\n');

@@ -30,37 +30,44 @@ import java.nio.file.Path;
 public class AiMdHeaderCodec {
 
     /**
-     * Prefix used for the title line in every AI index document header.
-     * Example: {@code "### MyClass.java"}.
+     * Opening tag for the AI index document header.
      */
-    public static final String HEADER_TITLE_PREFIX = "### ";
+    public static final String HEADER_OPENING_TAG = "<!-- ai-md-header";
 
     /**
-     * Prefix used for each key-value field line in every AI index document header.
-     * Example: {@code "- H: 1.0"}.
+     * Closing tag for the AI index document header.
      */
-    public static final String HEADER_FIELD_PREFIX = "- ";
+    public static final String HEADER_CLOSING_TAG = "-->";
 
     /** Field key for the header format version ({@code h}). */
-    public static final String FIELD_KEY_H = "H";
+    public static final String FIELD_KEY_H = "h";
 
     /** Field key for the source file checksum ({@code c}). */
-    public static final String FIELD_KEY_C = "C";
+    public static final String FIELD_KEY_C = "c";
 
     /** Field key for the index creation date ({@code d}). */
-    public static final String FIELD_KEY_D = "D";
+    public static final String FIELD_KEY_D = "d";
 
     /** Field key for the last generation timestamp ({@code t}). */
-    public static final String FIELD_KEY_T = "T";
+    public static final String FIELD_KEY_T = "t";
 
     /** Field key for the plugin version ({@code g}). */
-    public static final String FIELD_KEY_G = "G";
+    public static final String FIELD_KEY_G = "g";
 
     /** Field key for the AI model version ({@code a}). */
-    public static final String FIELD_KEY_A = "A";
+    public static final String FIELD_KEY_A = "a";
 
     /** Field key for the node type ({@code x}). */
-    public static final String FIELD_KEY_X = "X";
+    public static final String FIELD_KEY_X = "x";
+
+    /** Field key for the title ({@code title}). */
+    public static final String FIELD_KEY_TITLE = "title";
+
+    /** Field key for the AI-generated summary ({@code s}). */
+    public static final String FIELD_KEY_S = "s";
+
+    /** Field key for the AI-generated keywords ({@code k}). */
+    public static final String FIELD_KEY_K = "k";
 
     /**
      * Current metadata header format version written into every AI document.
@@ -109,31 +116,39 @@ public class AiMdHeaderCodec {
     public static final String GENERATED_BY_PREFIX = ".generated-by-";
 
     public AiMdHeader read(final List<String> lines) {
-        String title = null;
         final Map<String, String> values = new HashMap<>();
+        boolean inHeader = false;
 
         for (String line : lines) {
-            if (line.startsWith(HEADER_TITLE_PREFIX)) {
-                title = line.substring(HEADER_TITLE_PREFIX.length()).trim();
+            if (line.startsWith(HEADER_OPENING_TAG)) {
+                inHeader = true;
                 continue;
             }
 
-            if (!line.startsWith(HEADER_FIELD_PREFIX)) {
+            if (line.startsWith(HEADER_CLOSING_TAG)) {
+                break;
+            }
+
+            if (!inHeader || line.isBlank()) {
                 continue;
             }
 
             final int colonIndex = line.indexOf(':');
-            if (colonIndex < 0 || colonIndex < HEADER_FIELD_PREFIX.length() + 1) {
+            if (colonIndex < 0) {
                 continue;
             }
 
-            final String key = line.substring(HEADER_FIELD_PREFIX.length(), colonIndex).trim();
-            final String value = line.substring(colonIndex + 1).trim();
+            final String key = line.substring(0, colonIndex).trim();
+            final String rawValue = line.substring(colonIndex + 1).trim();
+            // Remove surrounding quotes if present
+            final String value = rawValue.startsWith("\"") && rawValue.endsWith("\"")
+                    ? rawValue.substring(1, rawValue.length() - 1)
+                    : rawValue;
             values.put(key, value);
         }
 
         return new AiMdHeader(
-                Objects.requireNonNullElse(title, ""),
+                valueOrEmpty(values, FIELD_KEY_TITLE),
                 valueOrEmpty(values, FIELD_KEY_H),
                 valueOrEmpty(values, FIELD_KEY_C),
                 valueOrEmpty(values, FIELD_KEY_D),
@@ -146,24 +161,30 @@ public class AiMdHeaderCodec {
 
     public String write(final AiMdHeader header) {
         return """
-                ### %s
-                - H: %s
-                - C: %s
-                - D: %s
-                - T: %s
-                - G: %s
-                - A: %s
-                - X: %s
+                <!-- ai-md-header
+                h: "%s"
+                title: "%s"
+                c: "%s"
+                d: "%s"
+                t: "%s"
+                g: "%s"
+                a: "%s"
+                x: "%s"
+                -->
                 """.formatted(
-                header.title(),
-                header.h(),
-                header.c(),
-                header.d(),
-                header.t(),
-                header.g(),
-                header.a(),
-                header.x()
+                escapeQuotes(header.h()),
+                escapeQuotes(header.title()),
+                escapeQuotes(header.c()),
+                escapeQuotes(header.d()),
+                escapeQuotes(header.t()),
+                escapeQuotes(header.g()),
+                escapeQuotes(header.a()),
+                escapeQuotes(header.x())
         );
+    }
+
+    private String escapeQuotes(final String value) {
+        return value.replace("\"", "\\\"");
     }
 
     private String valueOrEmpty(final Map<String, String> values, final String key) {
