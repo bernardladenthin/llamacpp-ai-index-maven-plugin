@@ -54,38 +54,97 @@
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
 
-        <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF -->
-        <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
 
-        <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
-        <ai.index.context.size>32768</ai.index.context.size>
-        <ai.index.max.tokens>1024</ai.index.max.tokens>
-        <ai.index.temperature>0.15</ai.index.temperature>
-        <ai.index.body.max.tokens>1024</ai.index.body.max.tokens>
-        <ai.index.threads>8</ai.index.threads>
-
+    </properties>
+    <profiles>
         <!--
             Maximum input characters for source code before trimming.
             Calculated as: (context_size × 4) - overhead
 
-            Context: 32768 tokens
+            Context: ${CONTEXT_SIZE} tokens
             Chars per token: ~4
-            Total available: 32768 × 4 = 131,072 chars
+            [Total available]: ${CONTEXT_SIZE} × 4 = ${TOTAL_CHARS} chars
 
             Overhead (conservative estimate):
-            - Prompt template: ~500 chars
-            - EOF marker: ~30 chars
-            - Max output (1024 tokens × 4): ~4,096 chars
-            - Safety margin: ~500 chars
-            - Subtotal overhead: ~5,126 chars
+            - Prompt template: ~${PROMPT_CHARS} chars
+            - EOF marker: ~${EOF_CHARS} chars
+            - Max output (${MAX_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
+            - Safety margin: ~${SAFETY_CHARS} chars
+            - [Subtotal overhead]: ~${OVERHEAD_TOTAL} chars
 
-            Available for source: 131,072 - 5,126 = 125,946 chars
-            Set to: 125,000 (rounded, conservative)
+            Available for source: [Total available] - [Subtotal overhead]
+            Available for source: ${TOTAL_CHARS} - ${OVERHEAD_TOTAL} = ${AVAILABLE_CHARS} chars
+            Set to: ${FINAL_CHARS} (rounded, conservative)
         -->
-        <ai.index.max.input.chars>125000</ai.index.max.input.chars>
-    </properties>
+            <profile>
+                <id>Mistral-7B-instruct-v0.3-GGUF_C16k</id>
+                <properties>
+                    <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
+                    <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf -->
+                    <!--
+                        Maximum input characters for source code before trimming.
+                        Calculated as: (context_size × 4) - overhead
+
+                        Context: 16384 tokens
+                        Chars per token: ~4
+                        [Total available]: 16384 × 4 = 65,536 chars
+
+                        Overhead (conservative estimate):
+                        - Prompt template: ~500 chars
+                        - EOF marker: ~30 chars
+                        - Max output (1024 tokens × 4): ~4,096 chars
+                        - Safety margin: ~500 chars
+                        - [Subtotal overhead]: ~5,126 chars
+
+                        Available for source: [Total available] - [Subtotal overhead]
+                        Available for source: 65,536 - 5,126 = 60,410 chars
+                        Set to: 60,400 (rounded, conservative)
+                    -->
+                    <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
+                    <ai.index.context.size>16384</ai.index.context.size>
+                    <ai.index.max.tokens>1024</ai.index.max.tokens>
+                    <ai.index.body.max.tokens>1024</ai.index.body.max.tokens>
+                    <ai.index.temperature>0.10</ai.index.temperature>
+                    <ai.index.threads>8</ai.index.threads>
+                    <ai.index.max.input.chars>60400</ai.index.max.input.chars>
+                </properties>
+            </profile>
+            <profile>
+                <id>Codestral-22B-v0.1-GGUF_C32k</id>
+                <properties>
+                    <!-- llama.cpp context configuration for Codestral 22B v0.1 (max 32K context) -->
+                    <!-- https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf -->
+                    <!--
+                        Maximum input characters for source code before trimming.
+                        Calculated as: (context_size × 4) - overhead
+
+                        Context: 32768 tokens
+                        Chars per token: ~4
+                        [Total available]: 32768 × 4 = 131,072 chars
+
+                        Overhead (conservative estimate):
+                        - Prompt template: ~500 chars
+                        - EOF marker: ~30 chars
+                        - Max output (1536 tokens × 4): ~6,144 chars
+                        - Safety margin: ~500 chars
+                        - [Subtotal overhead]: ~7,174 chars
+
+                        Available for source: [Total available] - [Subtotal overhead]
+                        Available for source: 131,072 - 7,174 = 123,898 chars
+                        Set to: 123,800 (rounded, conservative)
+                    -->
+                    <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
+                    <ai.index.context.size>32768</ai.index.context.size>
+                    <ai.index.max.tokens>1536</ai.index.max.tokens>
+                    <ai.index.body.max.tokens>1536</ai.index.body.max.tokens>
+                    <ai.index.temperature>0.10</ai.index.temperature>
+                    <ai.index.threads>8</ai.index.threads>
+                    <ai.index.max.input.chars>123800</ai.index.max.input.chars>
+                </properties>
+            </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
