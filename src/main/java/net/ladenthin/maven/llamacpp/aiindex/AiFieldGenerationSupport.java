@@ -108,7 +108,7 @@ public class AiFieldGenerationSupport {
 
             final AiGenerationConfig generationConfig = fieldGeneration.getGeneration();
             if (generationConfig == null) {
-                throw new IllegalArgumentException("Missing generation config for field: " + fieldGeneration.getFieldName());
+                throw new IllegalArgumentException("Missing generation config for body field");
             }
 
             final AiGenerationRequest request = new AiGenerationRequest(
@@ -124,7 +124,7 @@ public class AiFieldGenerationSupport {
             );
 
             if (preparedPrompt.trimmed() && generationConfig.isWarnOnTrim()) {
-                log.warn("Trimmed AI input for " + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getFieldName() + "': " + contextFile
+                log.warn("Trimmed AI input for " + contextType + TRIM_WARN_FIELD_LABEL + "body': " + contextFile
                         + " (source chars " + preparedPrompt.originalSourceLength()
                         + " -> " + preparedPrompt.trimmedSourceLength()
                         + ", available source chars " + preparedPrompt.availableSourceChars()

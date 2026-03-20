@@ -20,18 +20,9 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiFieldGenerationConfig {
 
-    private String fieldName;
     private String promptKey;
 
     private AiGenerationConfig generation = new AiGenerationConfig();
-
-    public String getFieldName() {
-        return fieldName;
-    }
-
-    public void setFieldName(final String fieldName) {
-        this.fieldName = fieldName;
-    }
 
     public String getPromptKey() {
         return promptKey;

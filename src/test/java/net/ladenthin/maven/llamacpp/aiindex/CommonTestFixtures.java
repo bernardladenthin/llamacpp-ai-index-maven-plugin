@@ -39,11 +39,6 @@ public class CommonTestFixtures {
     public static final String PROMPT_KEY_PACKAGE_BODY = "package-body";
 
     /**
-     * Field name for the body field, used in both file and package field generation configs.
-     */
-    public static final String FIELD_NAME_BODY = "body";
-
-    /**
      * Creates the standard file-level prompt definitions used in file summarizer,
      * source file indexer, and llama JNI provider tests.
      *
@@ -76,7 +71,7 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
         return List.of(
-                createFieldConfig(FIELD_NAME_BODY, PROMPT_KEY_FILE_BODY)
+                createFieldConfig(PROMPT_KEY_FILE_BODY)
         );
     }
 
@@ -112,24 +107,20 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
         return List.of(
-                createFieldConfig(FIELD_NAME_BODY, PROMPT_KEY_PACKAGE_BODY)
+                createFieldConfig(PROMPT_KEY_PACKAGE_BODY)
         );
     }
 
     /**
-     * Creates a single {@link AiFieldGenerationConfig} with the given field name and prompt key.
+     * Creates a single {@link AiFieldGenerationConfig} with the given prompt key.
      * The {@link AiGenerationConfig} uses its default values ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
      * characters max input and {@link AiGenerationConfig#DEFAULT_WARN_ON_TRIM} for trim warnings).
      *
-     * @param fieldName human-readable label for the field (e.g. {@link #FIELD_NAME_BODY})
      * @param promptKey key that identifies the prompt template in the prompt support
      * @return a fully configured {@link AiFieldGenerationConfig}
      */
-    private static AiFieldGenerationConfig createFieldConfig(
-            final String fieldName,
-            final String promptKey) {
+    private static AiFieldGenerationConfig createFieldConfig(final String promptKey) {
         final AiFieldGenerationConfig field = new AiFieldGenerationConfig();
-        field.setFieldName(fieldName);
         field.setPromptKey(promptKey);
         return field;
     }

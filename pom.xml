@@ -233,7 +233,6 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>body</fieldName>
                                             <promptKey>file-body</promptKey>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
@@ -302,7 +301,6 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>body</fieldName>
                                             <promptKey>package-body</promptKey>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
