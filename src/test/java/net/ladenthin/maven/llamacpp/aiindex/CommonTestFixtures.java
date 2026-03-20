@@ -63,7 +63,7 @@ public class CommonTestFixtures {
     }
 
     /**
-     * Creates the standard file-level field generation configs targeting {@code body}.
+     * Creates the standard file-level field generation configs for the body.
      *
      * <p>Used in file summarizer and source file indexer tests.</p>
      *
@@ -71,7 +71,7 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
         return List.of(
-                createFieldConfig("body", PROMPT_KEY_FILE_BODY, AiFieldGenerationConfig.TARGET_BODY)
+                createFieldConfig("body", PROMPT_KEY_FILE_BODY)
         );
     }
 
@@ -99,7 +99,7 @@ public class CommonTestFixtures {
     }
 
     /**
-     * Creates the standard package-level field generation configs targeting {@code body}.
+     * Creates the standard package-level field generation configs for the body.
      *
      * <p>Used in package indexer and summarizer tests.</p>
      *
@@ -107,28 +107,25 @@ public class CommonTestFixtures {
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
         return List.of(
-                createFieldConfig("body", PROMPT_KEY_PACKAGE_BODY, AiFieldGenerationConfig.TARGET_BODY)
+                createFieldConfig("body", PROMPT_KEY_PACKAGE_BODY)
         );
     }
 
     /**
-     * Creates a single {@link AiFieldGenerationConfig} with the given field name, prompt key, and target.
+     * Creates a single {@link AiFieldGenerationConfig} with the given field name and prompt key.
      * The {@link AiGenerationConfig} uses its default values ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
      * characters max input and {@link AiGenerationConfig#DEFAULT_WARN_ON_TRIM} for trim warnings).
      *
      * @param fieldName human-readable label for the field (e.g. {@code "body"})
      * @param promptKey key that identifies the prompt template in the prompt support
-     * @param target    routing target string (e.g. {@link AiFieldGenerationConfig#TARGET_BODY})
      * @return a fully configured {@link AiFieldGenerationConfig}
      */
     private static AiFieldGenerationConfig createFieldConfig(
             final String fieldName,
-            final String promptKey,
-            final String target) {
+            final String promptKey) {
         final AiFieldGenerationConfig field = new AiFieldGenerationConfig();
         field.setFieldName(fieldName);
         field.setPromptKey(promptKey);
-        field.setTarget(target);
         return field;
     }
 
