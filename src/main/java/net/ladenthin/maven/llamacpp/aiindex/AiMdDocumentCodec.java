@@ -26,6 +26,11 @@ import java.util.List;
 
 public class AiMdDocumentCodec {
 
+    /**
+     * Separator line between the metadata header and document body.
+     */
+    public static final String HEADER_BODY_SEPARATOR = "---";
+
     public AiMdDocument read(final Path file) throws IOException {
         return read(Files.readAllLines(file, StandardCharsets.UTF_8));
     }
@@ -52,7 +57,7 @@ public class AiMdDocumentCodec {
             }
 
             if (!bodyStarted) {
-                if (line.isBlank()) {
+                if (line.isBlank() || HEADER_BODY_SEPARATOR.equals(line)) {
                     continue;
                 }
                 bodyStarted = true;
@@ -69,7 +74,7 @@ public class AiMdDocumentCodec {
         builder.append(new AiMdHeaderCodec().write(document.header()));
 
         if (!document.body().isBlank()) {
-            builder.append('\n');
+            builder.append(HEADER_BODY_SEPARATOR).append('\n');
             builder.append(document.body());
             if (!document.body().endsWith("\n")) {
                 builder.append('\n');
