@@ -47,6 +47,23 @@ public class AiGenerationConfig {
      */
     public static final boolean DEFAULT_WARN_ON_TRIM = true;
 
+    /**
+     * Default maximum number of retry attempts when the AI provider returns an empty body.
+     * A value of {@code 0} disables retries entirely.
+     * Each retry uses a temperature incremented by {@link #DEFAULT_RETRY_TEMPERATURE_INCREMENT}.
+     */
+    public static final int DEFAULT_MAX_RETRIES = 3;
+
+    /**
+     * Default temperature increment applied on each successive retry attempt.
+     * Added to {@link #temperature} per attempt: attempt 1 uses
+     * {@code temperature + retryTemperatureIncrement}, attempt 2 uses
+     * {@code temperature + 2 * retryTemperatureIncrement}, and so on.
+     * Higher temperatures make the model less deterministic and can break out of
+     * EOS-early failure modes.
+     */
+    public static final float DEFAULT_RETRY_TEMPERATURE_INCREMENT = 0.1f;
+
     private String modelPath;
     private int contextSize = DEFAULT_CONTEXT_SIZE;
     private int maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS;
@@ -54,6 +71,8 @@ public class AiGenerationConfig {
     private int threads = DEFAULT_THREADS;
     private int maxInputChars = DEFAULT_MAX_INPUT_CHARS;
     private boolean warnOnTrim = DEFAULT_WARN_ON_TRIM;
+    private int maxRetries = DEFAULT_MAX_RETRIES;
+    private float retryTemperatureIncrement = DEFAULT_RETRY_TEMPERATURE_INCREMENT;
 
     public String getModelPath() {
         return modelPath;
@@ -109,5 +128,21 @@ public class AiGenerationConfig {
 
     public void setWarnOnTrim(final boolean warnOnTrim) {
         this.warnOnTrim = warnOnTrim;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(final int maxRetries) {
+        this.maxRetries = maxRetries;
+    }
+
+    public float getRetryTemperatureIncrement() {
+        return retryTemperatureIncrement;
+    }
+
+    public void setRetryTemperatureIncrement(final float retryTemperatureIncrement) {
+        this.retryTemperatureIncrement = retryTemperatureIncrement;
     }
 }
