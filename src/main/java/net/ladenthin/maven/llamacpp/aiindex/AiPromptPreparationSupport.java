@@ -20,6 +20,12 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiPromptPreparationSupport {
 
+    /**
+     * Marker appended to source text when it has been trimmed to indicate that
+     * the source is incomplete and not representative of the full file.
+     */
+    private static final String EOF_MARKER = "\n/* [EOF - source was truncated] */";
+
     private final AiPromptSupport promptSupport;
 
     public AiPromptPreparationSupport(final AiPromptSupport promptSupport) {
@@ -57,11 +63,12 @@ public class AiPromptPreparationSupport {
         final String sourceText = request.sourceText();
         final int trimPoint = Math.min(sourceText.length(), availableSourceChars);
         final String trimmedSource = trimSourceAtLineBreak(sourceText, trimPoint);
+        final String trimmedSourceWithMarker = trimmedSource + EOF_MARKER;
 
         final AiGenerationRequest trimmedRequest = new AiGenerationRequest(
                 request.promptKey(),
                 request.sourceFile(),
-                trimmedSource,
+                trimmedSourceWithMarker,
                 request.currentHeader()
         );
 
@@ -69,10 +76,10 @@ public class AiPromptPreparationSupport {
 
         return new AiPreparedPrompt(
                 trimmedPrompt,
-                trimmedSource,
+                trimmedSourceWithMarker,
                 true,
                 originalSourceLength,
-                trimmedSource.length(),
+                trimmedSourceWithMarker.length(),
                 availableSourceChars
         );
     }

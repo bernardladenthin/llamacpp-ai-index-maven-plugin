@@ -222,6 +222,7 @@ Rules for the entire output:
 - Mention generic declarations and important generic types when present.
 - Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
 - Summarize recurring exception behavior across methods when relevant.
+- **IMPORTANT: If the source contains "[EOF - source was truncated]", the file is incomplete. Do NOT guess, invent, or hallucinate any methods, classes, fields, or code that is not explicitly present in the provided source. Only summarize what is actually shown.**
 
 File: %s
 
@@ -290,6 +291,7 @@ Rules for the entire output:
 - Mention important generic declarations or important generic type patterns if they are central to the package design.
 - Summarize recurring exception behavior across the package when relevant.
 - For larger packages, group contained files by responsibility instead of listing every file.
+- **IMPORTANT: If the source contains "[EOF - source was truncated]", the index is incomplete. Do NOT guess, invent, or hallucinate any files, classes, or content that is not explicitly present in the provided source. Only summarize what is actually shown.**
 
 File: %s
 
