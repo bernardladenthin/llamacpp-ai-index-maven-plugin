@@ -62,9 +62,6 @@ public class AiMdHeaderCodec {
     /** Field key for the node type ({@code x}). */
     public static final String FIELD_KEY_X = "X";
 
-    /** Field key for the AI-generated keywords ({@code k}). */
-    public static final String FIELD_KEY_K = "K";
-
     /**
      * Current metadata header format version written into every AI document.
      *
@@ -85,12 +82,6 @@ public class AiMdHeaderCodec {
      * @see AiMdHeader#x()
      */
     public static final String NODE_TYPE_PACKAGE = "package";
-
-    /** Placeholder summary written when no AI summary has been generated yet. */
-    public static final String DEFAULT_SUMMARY = "TODO";
-
-    /** Placeholder keywords string written when no AI keywords have been generated yet. */
-    public static final String DEFAULT_KEYWORDS = "TODO";
 
     /**
      * Title of the root AI index node representing the top-level output directory.
@@ -149,8 +140,7 @@ public class AiMdHeaderCodec {
                 valueOrEmpty(values, FIELD_KEY_T),
                 valueOrEmpty(values, FIELD_KEY_G),
                 valueOrEmpty(values, FIELD_KEY_A),
-                valueOrEmpty(values, FIELD_KEY_X),
-                valueOrEmpty(values, FIELD_KEY_K)
+                valueOrEmpty(values, FIELD_KEY_X)
         );
     }
 
@@ -164,7 +154,6 @@ public class AiMdHeaderCodec {
                 - G: %s
                 - A: %s
                 - X: %s
-                - K: %s
                 """.formatted(
                 header.title(),
                 header.h(),
@@ -173,8 +162,7 @@ public class AiMdHeaderCodec {
                 header.t(),
                 header.g(),
                 header.a(),
-                header.x(),
-                header.k()
+                header.x()
         );
     }
 

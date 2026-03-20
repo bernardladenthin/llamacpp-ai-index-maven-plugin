@@ -52,8 +52,7 @@ public class AiPromptPreparationSupportTest {
                 "2026-03-18T00:00:00Z",
                 "0.1.0-SNAPSHOT",
                 "0.0.0",
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                AiMdHeaderCodec.DEFAULT_KEYWORDS
+                AiMdHeaderCodec.NODE_TYPE_FILE
         );
     }
 

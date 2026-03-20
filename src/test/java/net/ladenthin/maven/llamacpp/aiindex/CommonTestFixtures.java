@@ -31,36 +31,27 @@ public class CommonTestFixtures {
     /**
      * Prompt key for the file-level body prompt, used in file summarizer and source file indexer tests.
      */
-    public static final String PROMPT_KEY_FILE_BODY = "file-body-with-keywords";
-
-    /**
-     * Prompt key for the file-level keywords prompt, used in file summarizer and source file indexer tests.
-     */
-    public static final String PROMPT_KEY_FILE_KEYWORDS = "file-keywords";
+    public static final String PROMPT_KEY_FILE_BODY = "file-body";
 
     /**
      * Prompt key for the package-level body prompt, used in package indexer and summarizer tests.
      */
-    public static final String PROMPT_KEY_PACKAGE_BODY = "package-body-with-keywords";
-
-    /**
-     * Prompt key for the package-level keywords prompt, used in package indexer and summarizer tests.
-     */
-    public static final String PROMPT_KEY_PACKAGE_KEYWORDS = "package-keywords";
+    public static final String PROMPT_KEY_PACKAGE_BODY = "package-body";
 
     /**
      * Creates the standard file-level prompt definitions used in file summarizer,
      * source file indexer, and llama JNI provider tests.
      *
-     * <p>Provides {@code file-summary} and {@code file-keywords} prompt templates.</p>
+     * <p>Provides a single {@code file-body} prompt template that produces the complete
+     * body text (summary and any keywords naturally embedded in the text).</p>
      *
-     * @return list of two prompt definitions for file-level summarization
+     * @return list with one prompt definition for file-level summarization
      */
     public static List<AiPromptDefinition> createFilePromptDefinitions() {
         final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
         bodyPrompt.setKey(PROMPT_KEY_FILE_BODY);
         bodyPrompt.setTemplate("""
-                Summarize this Java file and list relevant keywords.
+                Summarize this Java file and include relevant keywords in your response.
 
                 File: %s
 
@@ -68,46 +59,35 @@ public class CommonTestFixtures {
                 %s
                 """);
 
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey(PROMPT_KEY_FILE_KEYWORDS);
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java file.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(bodyPrompt, keywordsPrompt);
+        return List.of(bodyPrompt);
     }
 
     /**
-     * Creates the standard file-level field generation configs targeting {@code body} and {@code header.k}.
+     * Creates the standard file-level field generation configs targeting {@code body}.
      *
      * <p>Used in file summarizer and source file indexer tests.</p>
      *
-     * @return list of two field generation configs for summary and keywords
+     * @return list with one field generation config for the body
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
         return List.of(
-                createFieldConfig("body", PROMPT_KEY_FILE_BODY, AiFieldGenerationConfig.TARGET_BODY),
-                createFieldConfig("keywords", PROMPT_KEY_FILE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
+                createFieldConfig("body", PROMPT_KEY_FILE_BODY, AiFieldGenerationConfig.TARGET_BODY)
         );
     }
 
     /**
      * Creates the standard package-level prompt definitions used in package indexer and summarizer tests.
      *
-     * <p>Provides {@code package-summary} and {@code package-keywords} prompt templates.</p>
+     * <p>Provides a single {@code package-body} prompt template that produces the complete
+     * body text (summary and any keywords naturally embedded in the text).</p>
      *
-     * @return list of two prompt definitions for package-level summarization
+     * @return list with one prompt definition for package-level summarization
      */
     public static List<AiPromptDefinition> createPackagePromptDefinitions() {
         final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
         bodyPrompt.setKey(PROMPT_KEY_PACKAGE_BODY);
         bodyPrompt.setTemplate("""
-                Summarize this Java package and list relevant keywords.
+                Summarize this Java package and include relevant keywords in your response.
 
                 File: %s
 
@@ -115,31 +95,19 @@ public class CommonTestFixtures {
                 %s
                 """);
 
-        final AiPromptDefinition keywordsPrompt = new AiPromptDefinition();
-        keywordsPrompt.setKey(PROMPT_KEY_PACKAGE_KEYWORDS);
-        keywordsPrompt.setTemplate("""
-                Generate comma-separated keywords for this Java package.
-
-                File: %s
-
-                Source:
-                %s
-                """);
-
-        return List.of(bodyPrompt, keywordsPrompt);
+        return List.of(bodyPrompt);
     }
 
     /**
-     * Creates the standard package-level field generation configs targeting {@code body} and {@code header.k}.
+     * Creates the standard package-level field generation configs targeting {@code body}.
      *
      * <p>Used in package indexer and summarizer tests.</p>
      *
-     * @return list of two field generation configs for summary and keywords
+     * @return list with one field generation config for the body
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
         return List.of(
-                createFieldConfig("body", PROMPT_KEY_PACKAGE_BODY, AiFieldGenerationConfig.TARGET_BODY),
-                createFieldConfig("keywords", PROMPT_KEY_PACKAGE_KEYWORDS, AiFieldGenerationConfig.TARGET_HEADER_KEYWORDS)
+                createFieldConfig("body", PROMPT_KEY_PACKAGE_BODY, AiFieldGenerationConfig.TARGET_BODY)
         );
     }
 
@@ -148,9 +116,9 @@ public class CommonTestFixtures {
      * The {@link AiGenerationConfig} uses its default values ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
      * characters max input and {@link AiGenerationConfig#DEFAULT_WARN_ON_TRIM} for trim warnings).
      *
-     * @param fieldName human-readable label for the field (e.g. {@code "summary"})
+     * @param fieldName human-readable label for the field (e.g. {@code "body"})
      * @param promptKey key that identifies the prompt template in the prompt support
-     * @param target    routing target string (e.g. {@link AiFieldGenerationConfig#TARGET_HEADER_SUMMARY})
+     * @param target    routing target string (e.g. {@link AiFieldGenerationConfig#TARGET_BODY})
      * @return a fully configured {@link AiFieldGenerationConfig}
      */
     private static AiFieldGenerationConfig createFieldConfig(

@@ -135,8 +135,7 @@ public class SourceFileIndexer {
                 generatedAt,
                 pluginVersion,
                 aiVersion,
-                AiMdHeaderCodec.NODE_TYPE_FILE,
-                ""
+                AiMdHeaderCodec.NODE_TYPE_FILE
         );
 
         if (!headerSupport.shouldWrite(force, targetFile, baseHeader)) {
@@ -149,9 +148,7 @@ public class SourceFileIndexer {
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, sourceFile, CONTEXT_TYPE_FILE, sourceText, baseHeader);
 
-        final AiMdHeader finalHeader = baseHeader.withKeywords(result.keywords());
-
-        final AiMdDocument document = new AiMdDocument(finalHeader, result.body());
+        final AiMdDocument document = new AiMdDocument(baseHeader, result.body());
         documentCodec.write(targetFile, document);
 
         log.info("Wrote AI index file: " + targetFile);

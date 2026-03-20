@@ -206,8 +206,7 @@ public class PackageIndexer {
                 generatedAt,
                 pluginVersion,
                 aiVersion,
-                AiMdHeaderCodec.NODE_TYPE_PACKAGE,
-                ""
+                AiMdHeaderCodec.NODE_TYPE_PACKAGE
         );
 
         if (!headerSupport.shouldWrite(force, packageFile, baseHeader)) {
@@ -224,9 +223,7 @@ public class PackageIndexer {
                 ? buildDefaultPackageBody(contents)
                 : result.body();
 
-        final AiMdHeader finalHeader = baseHeader.withKeywords(result.keywords());
-
-        final AiMdDocument document = new AiMdDocument(finalHeader, body);
+        final AiMdDocument document = new AiMdDocument(baseHeader, body);
         documentCodec.write(packageFile, document);
 
         log.info("Wrote package AI index file: " + packageFile);

@@ -83,7 +83,6 @@ public class SourceFileIndexerTest {
         assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_FILE)));
         assertThat(document.header().g(), is(equalTo("1.0.0")));
         assertThat(document.header().a(), is(equalTo("0.0.0")));
-        assertThat(document.header().k(), is(equalTo("mock,keywords,Test.java")));
         assertThat(document.header().c().isBlank(), is(false));
         assertThat(document.header().d().isBlank(), is(false));
         assertThat(document.header().t().isBlank(), is(false));
