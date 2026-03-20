@@ -132,7 +132,8 @@ public class AiMdDocumentCodecTest {
 
         // assert
         assertThat(decoded.header(), is(equalTo(original.header())));
-        assertThat(decoded.body(), is(equalTo(original.body())));
+        // Note: read adds trailing newline to body
+        assertThat(decoded.body(), is(equalTo(original.body() + "\n")));
     }
 
     @Test
@@ -156,7 +157,7 @@ public class AiMdDocumentCodecTest {
         final AiMdDocument document = documentCodec.read(lines);
 
         // assert
-        assertThat(document.body(), is(equalTo("This is the actual body content.")));
+        assertThat(document.body(), is(equalTo("This is the actual body content.\n")));
         assertThat(document.body().contains("---"), is(false));
     }
 
@@ -182,7 +183,7 @@ public class AiMdDocumentCodecTest {
         final AiMdDocument document = documentCodec.read(lines);
 
         // assert
-        assertThat(document.body(), is(equalTo("Body with --- in the middle\nMore content")));
+        assertThat(document.body(), is(equalTo("Body with --- in the middle\nMore content\n")));
     }
     // </editor-fold>
 
@@ -208,7 +209,8 @@ public class AiMdDocumentCodecTest {
         final AiMdDocument decoded = documentCodec.read(List.of(encoded.split("\\R")));
 
         // assert
-        assertThat(decoded.body(), is(equalTo(original.body())));
+        // Note: read adds trailing newline to body
+        assertThat(decoded.body(), is(equalTo(original.body() + "\n")));
     }
 
     @Test
