@@ -60,6 +60,9 @@
         <ai.index.context.size>2048</ai.index.context.size>
         <ai.index.max.tokens>64</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
+        <ai.index.keywords.temperature>0.10</ai.index.keywords.temperature>
+        <!-- Increased from 64 to 512 for body generation which includes keywords + separator + summary -->
+        <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
         <ai.index.max.input.chars>20000</ai.index.max.input.chars>
     </properties>
@@ -186,40 +189,6 @@
                                 <configuration>
                                     <promptDefinitions>
                                         <promptDefinition>
-                                            <key>file-summary</key>
-                                            <template><![CDATA[
-You generate a concise but complete markdown summary for a Java source file.
-
-Rules:
-- Output markdown only.
-- Do not output explanations outside the summary.
-- Never return an empty response.
-- Start immediately with content (no leading whitespace or empty lines).
-- The summary may be multiple lines.
-- The length should adapt to the file size and complexity.
-- Small files -> short summary.
-- Large or complex files -> longer summary is allowed.
-- The surrounding file already uses '###' for the file header.
-- Therefore your markdown summary must start at heading level '####' or below.
-- Do not use '###' or higher-level headings.
-- Do not wrap the markdown in code fences.
-- Do not output ```markdown, ```java, or ``` .
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
-- Mention every directly extended class.
-- Mention every directly implemented interface.
-- Mention generic declarations and important generic types when present.
-- Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
-- Summarize recurring exception behavior across methods when relevant.
-- Focus on purpose, behavior, important abstractions, and search-relevant terms.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
-
-                                        <promptDefinition>
                                             <key>file-keywords</key>
                                             <template><![CDATA[
 You generate keywords for a Java source file.
@@ -305,7 +274,7 @@ Source:
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>0.10</temperature>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
@@ -319,7 +288,7 @@ Source:
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>512</maxTokens>
+                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
@@ -338,39 +307,6 @@ Source:
                                 </goals>
                                 <configuration>
                                     <promptDefinitions>
-                                        <promptDefinition>
-                                            <key>package-summary</key>
-                                            <template><![CDATA[
-You generate a concise but complete markdown summary for a Java package or package-like index containing many Java files.
-
-Rules:
-- Output markdown only.
-- Do not output explanations outside the summary.
-- Never return an empty response.
-- Start immediately with content (no leading whitespace or empty lines).
-- The summary may be multiple lines.
-- The length should adapt to the size and complexity of the package.
-- Small packages -> short summary.
-- Large packages -> more detailed summary is allowed.
-- The surrounding file already uses '###' for the package header.
-- Therefore your markdown summary must start at heading level '####' or below.
-- Do not use '###' or higher-level headings.
-- Do not wrap the markdown in code fences.
-- Do not output ```markdown, ```java, or ``` .
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
-- Focus on the overall purpose, structure, responsibilities, and collaboration of the contained files.
-- Mention important directly extended classes and directly implemented interfaces if they are central and repeatedly represented in the package content.
-- Mention important generic declarations or important generic type patterns if they are central to the package design.
-- Summarize recurring exception behavior across the package when relevant.
-- For larger packages, group contained files by responsibility instead of listing every file.
-
-File: %s
-
-Source:
-%s
-                                            ]]></template>
-                                        </promptDefinition>
-
                                         <promptDefinition>
                                             <key>package-keywords</key>
                                             <template><![CDATA[
@@ -457,7 +393,7 @@ Source:
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>0.10</temperature>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
@@ -471,7 +407,7 @@ Source:
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>512</maxTokens>
+                                                <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
