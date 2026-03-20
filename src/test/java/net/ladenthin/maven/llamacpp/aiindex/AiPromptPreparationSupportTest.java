@@ -122,7 +122,7 @@ public class AiPromptPreparationSupportTest {
 
         // assert
         assertThat(preparedPrompt.trimmed(), is(true));
-        assertThat(preparedPrompt.sourceText(), is(equalTo("")));
+        assertThat(preparedPrompt.sourceText(), is(equalTo("\n/* [EOF - source was truncated] */")));
         assertThat(preparedPrompt.trimmedSourceLength(), is(equalTo(0)));
         assertThat(preparedPrompt.availableSourceChars(), is(equalTo(0)));
     }
