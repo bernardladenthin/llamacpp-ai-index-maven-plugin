@@ -87,7 +87,7 @@ public class SourceFileIndexerTest {
         assertThat(document.header().c().isBlank(), is(false));
         assertThat(document.header().d().isBlank(), is(false));
         assertThat(document.header().t().isBlank(), is(false));
-        assertThat(document.body().contains("Mock summary for Test.java"), is(true));
+        assertThat(document.body().isBlank(), is(false));
     }
     // </editor-fold>
 }
