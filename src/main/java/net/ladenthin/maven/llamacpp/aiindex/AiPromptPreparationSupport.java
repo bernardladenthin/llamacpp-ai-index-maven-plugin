@@ -79,7 +79,7 @@ public class AiPromptPreparationSupport {
                 trimmedSourceWithMarker,
                 true,
                 originalSourceLength,
-                trimmedSourceWithMarker.length(),
+                trimmedSource.length(),
                 availableSourceChars
         );
     }
