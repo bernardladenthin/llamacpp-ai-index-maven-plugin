@@ -267,21 +267,6 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>keywords</fieldName>
-                                            <promptKey>file-keywords</promptKey>
-                                            <target>header.k</target>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>${ai.index.keywords.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                            </generation>
-                                        </fieldGeneration>
-
-                                        <fieldGeneration>
                                             <fieldName>body</fieldName>
                                             <promptKey>file-body-with-keywords</promptKey>
                                             <target>body</target>
@@ -290,6 +275,21 @@ Source:
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+
+                                        <fieldGeneration>
+                                            <fieldName>keywords</fieldName>
+                                            <promptKey>file-keywords</promptKey>
+                                            <target>header.k</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
@@ -386,21 +386,6 @@ Source:
 
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <fieldName>keywords</fieldName>
-                                            <promptKey>package-keywords</promptKey>
-                                            <target>header.k</target>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
-                                                <temperature>${ai.index.keywords.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                            </generation>
-                                        </fieldGeneration>
-
-                                        <fieldGeneration>
                                             <fieldName>body</fieldName>
                                             <promptKey>package-body-with-keywords</promptKey>
                                             <target>body</target>
@@ -409,6 +394,21 @@ Source:
                                                 <contextSize>${ai.index.context.size}</contextSize>
                                                 <maxTokens>${ai.index.body.max.tokens}</maxTokens>
                                                 <temperature>${ai.index.temperature}</temperature>
+                                                <threads>${ai.index.threads}</threads>
+                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
+                                                <warnOnTrim>true</warnOnTrim>
+                                            </generation>
+                                        </fieldGeneration>
+
+                                        <fieldGeneration>
+                                            <fieldName>keywords</fieldName>
+                                            <promptKey>package-keywords</promptKey>
+                                            <target>header.k</target>
+                                            <generation>
+                                                <modelPath>${ai.index.model.path}</modelPath>
+                                                <contextSize>${ai.index.context.size}</contextSize>
+                                                <maxTokens>${ai.index.max.tokens}</maxTokens>
+                                                <temperature>${ai.index.keywords.temperature}</temperature>
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
