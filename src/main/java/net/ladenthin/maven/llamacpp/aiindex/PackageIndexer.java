@@ -207,7 +207,6 @@ public class PackageIndexer {
                 pluginVersion,
                 aiVersion,
                 AiMdHeaderCodec.NODE_TYPE_PACKAGE,
-                "",
                 ""
         );
 

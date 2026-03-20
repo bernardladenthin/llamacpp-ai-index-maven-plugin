@@ -136,7 +136,6 @@ public class SourceFileIndexer {
                 pluginVersion,
                 aiVersion,
                 AiMdHeaderCodec.NODE_TYPE_FILE,
-                "",
                 ""
         );
 
