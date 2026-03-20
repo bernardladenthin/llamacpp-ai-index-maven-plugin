@@ -50,6 +50,10 @@ public class AiMdHeaderSupport {
             return true;
         }
 
+        if (actualDocument.body().isBlank()) {
+            return true;
+        }
+
         return !expectedHeader.h().equals(actualHeader.h())
                 || !expectedHeader.x().equals(actualHeader.x())
                 || !expectedHeader.title().equals(actualHeader.title())

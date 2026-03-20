@@ -34,6 +34,7 @@ public class AiMdHeaderSupportTest {
 
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdHeaderCodec headerCodec = new AiMdHeaderCodec();
+    private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
 
     /** Fixed title used across all shouldWrite tests to reduce duplication. */
     private static final String FIXED_TITLE = "Test.java";
@@ -85,17 +86,34 @@ public class AiMdHeaderSupportTest {
     }
 
     @Test
-    public void shouldWrite_matchingExistingHeader_returnsFalse() throws IOException {
+    public void shouldWrite_matchingExistingHeaderWithBody_returnsFalse() throws IOException {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader header = buildHeader("ABCDEF12", FIXED_G);
-        Files.writeString(target, headerCodec.write(header));
+        final AiMdDocument document = new AiMdDocument(header, "Existing body content.\n");
+        documentCodec.write(target, document);
 
         // act
         final boolean result = headerSupport.shouldWrite(false, target, header);
 
         // assert
         assertThat(result, is(false));
+    }
+
+    @Test
+    public void shouldWrite_matchingExistingHeaderEmptyBody_returnsTrue() throws IOException {
+        // arrange
+        final Path target = folder.getRoot().toPath().resolve("test.ai.md");
+        final AiMdHeader header = buildHeader("ABCDEF12", FIXED_G);
+        // write document with blank body to simulate a previously failed AI generation
+        final AiMdDocument document = new AiMdDocument(header, "");
+        documentCodec.write(target, document);
+
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, header);
+
+        // assert
+        assertThat(result, is(true));
     }
 
     @Test
