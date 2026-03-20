@@ -98,9 +98,9 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     @Parameter(property = "aiIndex.llama.modelPath")
     protected String llamaModelPath;
 
-    /** Maximum number of tokens the model may generate per request. */
-    @Parameter(property = "aiIndex.llama.maxTokens", defaultValue = "128")
-    protected int llamaMaxTokens;
+    /** Maximum number of output tokens the model may generate per request. */
+    @Parameter(property = "aiIndex.llama.maxOutputTokens", defaultValue = "128")
+    protected int llamaMaxOutputTokens;
 
     /** Sampling temperature for the llama.cpp model (lower = more deterministic). */
     @Parameter(property = "aiIndex.llama.temperature", defaultValue = "0.15")
@@ -175,7 +175,7 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
                 llamaLibraryPath,
                 llamaModelPath,
                 getLlamaContextSize(),
-                llamaMaxTokens,
+                llamaMaxOutputTokens,
                 llamaTemperature,
                 getLlamaThreads()
         );

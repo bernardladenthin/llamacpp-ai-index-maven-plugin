@@ -52,7 +52,7 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
 
         final InferenceParameters inferenceParameters = new InferenceParameters(prompt)
                 .setTemperature(config.temperature())
-                .setNPredict(config.maxTokens());
+                .setNPredict(config.maxOutputTokens());
 
         final String response = model.complete(inferenceParameters);
 
