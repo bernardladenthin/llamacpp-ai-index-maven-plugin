@@ -254,7 +254,7 @@ Source:
                                         <fieldGeneration>
                                             <fieldName>summary</fieldName>
                                             <promptKey>file-summary</promptKey>
-                                            <target>header.s</target>
+                                            <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
@@ -361,7 +361,7 @@ Source:
                                         <fieldGeneration>
                                             <fieldName>summary</fieldName>
                                             <promptKey>package-summary</promptKey>
-                                            <target>header.s</target>
+                                            <target>body</target>
                                             <generation>
                                                 <modelPath>${ai.index.model.path}</modelPath>
                                                 <contextSize>${ai.index.context.size}</contextSize>
