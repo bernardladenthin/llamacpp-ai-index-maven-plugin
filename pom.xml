@@ -61,9 +61,9 @@
 
         <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
         <ai.index.context.size>32768</ai.index.context.size>
-        <ai.index.max.tokens>256</ai.index.max.tokens>
+        <ai.index.max.tokens>1024</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
-        <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
+        <ai.index.body.max.tokens>1024</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
 
         <!--
@@ -77,14 +77,14 @@
             Overhead (conservative estimate):
             - Prompt template: ~500 chars
             - EOF marker: ~30 chars
-            - Max output (256 tokens × 4): ~1,024 chars
+            - Max output (1024 tokens × 4): ~4,096 chars
             - Safety margin: ~500 chars
-            - Subtotal overhead: ~2,000 chars
+            - Subtotal overhead: ~5,126 chars
 
-            Available for source: 131,072 - 2,000 = 129,072 chars
-            Set to: 128,000 (rounded, with additional safety)
+            Available for source: 131,072 - 5,126 = 125,946 chars
+            Set to: 125,000 (rounded, conservative)
         -->
-        <ai.index.max.input.chars>128000</ai.index.max.input.chars>
+        <ai.index.max.input.chars>125000</ai.index.max.input.chars>
     </properties>
 
     <dependencies>
