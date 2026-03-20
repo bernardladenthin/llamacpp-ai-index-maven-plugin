@@ -58,12 +58,33 @@
         <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
+
+        <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
         <ai.index.context.size>32768</ai.index.context.size>
         <ai.index.max.tokens>256</ai.index.max.tokens>
         <ai.index.temperature>0.15</ai.index.temperature>
         <ai.index.body.max.tokens>512</ai.index.body.max.tokens>
         <ai.index.threads>8</ai.index.threads>
-        <ai.index.max.input.chars>100000</ai.index.max.input.chars>
+
+        <!--
+            Maximum input characters for source code before trimming.
+            Calculated as: (context_size × 4) - overhead
+
+            Context: 32768 tokens
+            Chars per token: ~4
+            Total available: 32768 × 4 = 131,072 chars
+
+            Overhead (conservative estimate):
+            - Prompt template: ~500 chars
+            - EOF marker: ~30 chars
+            - Max output (256 tokens × 4): ~1,024 chars
+            - Safety margin: ~500 chars
+            - Subtotal overhead: ~2,000 chars
+
+            Available for source: 131,072 - 2,000 = 129,072 chars
+            Set to: 128,000 (rounded, with additional safety)
+        -->
+        <ai.index.max.input.chars>128000</ai.index.max.input.chars>
     </properties>
 
     <dependencies>
