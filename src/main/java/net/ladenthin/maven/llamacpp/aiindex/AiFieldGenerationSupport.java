@@ -45,6 +45,16 @@ public class AiFieldGenerationSupport {
      */
     private static final String TRIM_WARN_FIELD_LABEL = " field '";
 
+    /**
+     * Log message prefix for warnings emitted when the AI provider returns an empty body
+     * for a given field, ensuring a consistent sentence structure regardless of context type.
+     * An empty response typically indicates that the model produced an EOS token immediately,
+     * which can occur at low sampling temperatures for certain input patterns.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String EMPTY_OUTPUT_WARN_PREFIX = "AI provider returned empty body for ";
+
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
@@ -137,6 +147,10 @@ public class AiFieldGenerationSupport {
                     preparedPrompt.sourceText(),
                     baseHeader
             ));
+
+            if (body.isBlank()) {
+                log.warn(EMPTY_OUTPUT_WARN_PREFIX + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getPromptKey() + "': " + contextFile);
+            }
         }
 
         return new AiGenerationResult(body);
