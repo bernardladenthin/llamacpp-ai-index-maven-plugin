@@ -168,6 +168,9 @@
         -->
             <profile>
                 <id>Mistral-7B-instruct-v0.3-GGUF_C16k</id>
+                <activation>
+                    <activeByDefault>true</activeByDefault>
+                </activation>
                 <properties>
                     <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
                     <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf -->
@@ -180,22 +183,22 @@
                         [Total available]: 16384 × 4 = 65,536 chars
 
                         Overhead (conservative estimate):
-                        - Prompt template: ~500 chars
+                        - Prompt template: ~2500 chars
                         - EOF marker: ~30 chars
-                        - Max output (1024 tokens × 4): ~4,096 chars
+                        - Max output (2048 tokens × 4): ~8,192 chars
                         - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~5,126 chars
+                        - [Subtotal overhead]: ~11,222 chars
 
                         Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 65,536 - 5,126 = 60,410 chars
-                        Set to: 60,400 (rounded, conservative)
+                        Available for source: 65,536 - 11,222 = 54,314 chars
+                        Set to: 54,300 (rounded, conservative)
                     -->
                     <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
                     <ai.index.context.size>16384</ai.index.context.size>
-                    <ai.index.max.output.tokens>1024</ai.index.max.output.tokens>
+                    <ai.index.max.output.tokens>2048</ai.index.max.output.tokens>
                     <ai.index.temperature>0.10</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
-                    <ai.index.max.input.chars>60400</ai.index.max.input.chars>
+                    <ai.index.max.input.chars>54300</ai.index.max.input.chars>
                 </properties>
             </profile>
             <profile>
@@ -212,22 +215,22 @@
                         [Total available]: 32768 × 4 = 131,072 chars
 
                         Overhead (conservative estimate):
-                        - Prompt template: ~500 chars
+                        - Prompt template: ~2500 chars
                         - EOF marker: ~30 chars
                         - Max output (1536 tokens × 4): ~6,144 chars
                         - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~7,174 chars
+                        - [Subtotal overhead]: ~9,174 chars
 
                         Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 131,072 - 7,174 = 123,898 chars
-                        Set to: 123,800 (rounded, conservative)
+                        Available for source: 131,072 - 9,174 = 121,898 chars
+                        Set to: 121,800 (rounded, conservative)
                     -->
                     <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
                     <ai.index.context.size>32768</ai.index.context.size>
                     <ai.index.max.output.tokens>1536</ai.index.max.output.tokens>
                     <ai.index.temperature>0.10</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
-                    <ai.index.max.input.chars>123800</ai.index.max.input.chars>
+                    <ai.index.max.input.chars>121800</ai.index.max.input.chars>
                 </properties>
             </profile>
         <profile>
