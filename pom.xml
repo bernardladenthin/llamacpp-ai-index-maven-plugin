@@ -225,12 +225,13 @@ Rules for the entire output:
 - Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
 - First list the keywords as comma-separated values on the same line after "**Keywords:**".
 - Then output one blank line.
-- Then output the markdown summary starting at heading level '####' or below.
+- Then output the markdown summary as plain prose or structured text.
+- The summary is already rendered inside a '###' heading (the filename). Do NOT start the summary with another heading. Use '####' or deeper headings only for subsections within the summary when the content is long enough to warrant internal structure.
 - The summary may be multiple lines.
 - The length should adapt to the file size and complexity.
 - Small files -> short summary.
 - Large or complex files -> longer summary is allowed.
-- Do not use '###' or higher-level headings in the summary.
+- Do not use '###' or higher-level headings anywhere in the summary.
 - Do not wrap the summary in code fences.
 - Do not output ```markdown, ```java, or ```.
 - Do not output formatter comments like // @formatter:on or // @formatter:off.
@@ -299,12 +300,13 @@ Rules for the entire output:
 - Start immediately with "**Keywords:**" (no leading whitespace or empty lines).
 - First list the keywords as comma-separated values on the same line after "**Keywords:**".
 - Then output one blank line.
-- Then output the markdown summary starting at heading level '####' or below.
+- Then output the markdown summary as plain prose or structured text.
+- The summary is already rendered inside a '###' heading (the package name). Do NOT start the summary with another heading. Use '####' or deeper headings only for subsections within the summary when the content is long enough to warrant internal structure.
 - The summary may be multiple lines.
 - The length should adapt to the size and complexity of the package.
 - Small packages -> short summary.
 - Large packages -> more detailed summary is allowed.
-- Do not use '###' or higher-level headings in the summary.
+- Do not use '###' or higher-level headings anywhere in the summary.
 - Do not wrap the summary in code fences.
 - Do not output ```markdown, ```java, or ```.
 - Do not output formatter comments like // @formatter:on or // @formatter:off.
