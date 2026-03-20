@@ -54,6 +54,7 @@
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
 
+        <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF -->
         <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
         <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
