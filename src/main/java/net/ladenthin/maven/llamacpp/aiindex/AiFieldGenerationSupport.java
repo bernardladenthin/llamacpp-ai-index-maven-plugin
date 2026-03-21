@@ -198,9 +198,6 @@ public class AiFieldGenerationSupport {
                     // - Attempt 3: 0.4 + (3 × 0.2) = 1.0
                     final float retryTemperature = generationConfig.getTemperature()
                             + attempt * generationConfig.getRetryTemperatureIncrement();
-                    log.info("Temperature escalation: baseTemp=" + generationConfig.getTemperature()
-                            + " + (attempt " + attempt + " × increment " + generationConfig.getRetryTemperatureIncrement()
-                            + ") = " + retryTemperature);
                     log.info(RETRY_ATTEMPT_INFO_PREFIX + attempt + RETRY_OF_INFIX + maxRetries
                             + RETRY_FIELD_INFIX + fieldGeneration.getPromptKey()
                             + RETRY_TEMPERATURE_INFIX + retryTemperature
