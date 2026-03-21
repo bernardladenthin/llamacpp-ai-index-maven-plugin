@@ -199,6 +199,7 @@
                     <ai.index.temperature>0.40</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>54300</ai.index.max.input.chars>
+                    <ai.index.retry.temperature.increment>0.2</ai.index.retry.temperature.increment>
                 </properties>
             </profile>
             <profile>
@@ -231,6 +232,7 @@
                     <ai.index.temperature>0.40</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>121800</ai.index.max.input.chars>
+                    <ai.index.retry.temperature.increment>0.2</ai.index.retry.temperature.increment>
                 </properties>
             </profile>
         <profile>
@@ -255,7 +257,7 @@
                             <llamaMaxOutputTokens>${ai.index.max.output.tokens}</llamaMaxOutputTokens>
                             <llamaTemperature>${ai.index.temperature}</llamaTemperature>
                             <llamaThreads>${ai.index.threads}</llamaThreads>
-                            <retryTemperatureIncrement>0.2</retryTemperatureIncrement>
+                            <retryTemperatureIncrement>${ai.index.retry.temperature.increment}</retryTemperatureIncrement>
                         </configuration>
 
                         <executions>
