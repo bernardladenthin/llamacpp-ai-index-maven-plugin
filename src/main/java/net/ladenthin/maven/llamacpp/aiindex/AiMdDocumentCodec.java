@@ -31,6 +31,8 @@ public class AiMdDocumentCodec {
      */
     public static final String HEADER_BODY_SEPARATOR = "---";
 
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
     public AiMdDocument read(final Path file) throws IOException {
         return read(Files.readAllLines(file, StandardCharsets.UTF_8));
     }
@@ -48,7 +50,7 @@ public class AiMdDocumentCodec {
                     continue;
                 }
 
-                if (Java8CompatibilityHelper.isBlank(line)) {
+                if (compatibilityHelper.isBlank(line)) {
                     headerFinished = true;
                     continue;
                 }
@@ -57,7 +59,7 @@ public class AiMdDocumentCodec {
             }
 
             if (!bodyStarted) {
-                if (Java8CompatibilityHelper.isBlank(line) || HEADER_BODY_SEPARATOR.equals(line)) {
+                if (compatibilityHelper.isBlank(line) || HEADER_BODY_SEPARATOR.equals(line)) {
                     continue;
                 }
                 bodyStarted = true;
@@ -73,7 +75,7 @@ public class AiMdDocumentCodec {
         final StringBuilder builder = new StringBuilder();
         builder.append(new AiMdHeaderCodec().write(document.header()));
 
-        if (!Java8CompatibilityHelper.isBlank(document.body())) {
+        if (!compatibilityHelper.isBlank(document.body())) {
             builder.append(HEADER_BODY_SEPARATOR).append('\n');
             builder.append(document.body());
             if (!document.body().endsWith("\n")) {
@@ -85,6 +87,6 @@ public class AiMdDocumentCodec {
     }
 
     public void write(final Path file, final AiMdDocument document) throws IOException {
-        Java8CompatibilityHelper.writeString(file, write(document), StandardCharsets.UTF_8);
+        compatibilityHelper.writeString(file, write(document), StandardCharsets.UTF_8);
     }
 }

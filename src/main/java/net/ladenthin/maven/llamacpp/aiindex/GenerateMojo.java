@@ -52,6 +52,8 @@ public class GenerateMojo extends AbstractAiIndexMojo {
     @Parameter(property = "aiIndex.llama.threads", defaultValue = "2")
     private int llamaThreads;
 
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
     @Override
     protected int getLlamaContextSize() {
         return llamaContextSize;
@@ -100,7 +102,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
                 int count = 0;
 
                 for (Path subtree : resolvedSubtrees.isEmpty()
-                        ? Java8CompatibilityHelper.listOf(basePath.resolve("src/main/java"))
+                        ? compatibilityHelper.listOf(basePath.resolve("src/main/java"))
                         : resolvedSubtrees) {
 
                     if (!subtree.toFile().exists()) {
@@ -123,7 +125,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
 
     private List<String> resolveFileExtensions() {
         if (fileExtensions == null || fileExtensions.isEmpty()) {
-            return Java8CompatibilityHelper.listOf(DEFAULT_FILE_EXTENSION);
+            return compatibilityHelper.listOf(DEFAULT_FILE_EXTENSION);
         }
         return fileExtensions;
     }

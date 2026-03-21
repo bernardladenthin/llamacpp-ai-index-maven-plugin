@@ -30,13 +30,9 @@ import java.util.stream.Stream;
 
 /**
  * Wrapper methods for Java 9+ APIs to provide Java 1.8 compatibility.
- * This class centralizes all compatibility layer logic.
+ * This class centralizes all compatibility layer logic and can be mocked for testing.
  */
-public final class Java8CompatibilityHelper {
-
-    private Java8CompatibilityHelper() {
-        // Utility class, no instantiation
-    }
+public class Java8CompatibilityHelper {
 
     /**
      * Wrapper for {@link String#isBlank()} (Java 11+).
@@ -47,7 +43,7 @@ public final class Java8CompatibilityHelper {
      * @return {@code true} if the string is empty or blank, {@code false} otherwise
      * @throws NullPointerException if {@code str} is {@code null}
      */
-    public static boolean isBlank(final String str) {
+    public boolean isBlank(final String str) {
         return str.isEmpty() || str.trim().isEmpty();
     }
 
@@ -59,7 +55,7 @@ public final class Java8CompatibilityHelper {
      * @param args   the arguments referenced by the format specifiers in the format string
      * @return a formatted string
      */
-    public static String formatted(final String format, final Object... args) {
+    public String formatted(final String format, final Object... args) {
         return String.format(format, args);
     }
 
@@ -71,7 +67,7 @@ public final class Java8CompatibilityHelper {
      * @return the file content as a string
      * @throws IOException if an I/O error occurs reading from the file
      */
-    public static String readString(final Path path) throws IOException {
+    public String readString(final Path path) throws IOException {
         return new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
     }
 
@@ -84,7 +80,7 @@ public final class Java8CompatibilityHelper {
      * @param charset the charset to encode the content with; defaults to UTF-8 if {@code null}
      * @throws IOException if an I/O error occurs writing to the file
      */
-    public static void writeString(final Path path, final String content, final Charset charset) throws IOException {
+    public void writeString(final Path path, final String content, final Charset charset) throws IOException {
         final Charset targetCharset = charset != null ? charset : StandardCharsets.UTF_8;
         Files.write(path, content.getBytes(targetCharset));
     }
@@ -97,7 +93,7 @@ public final class Java8CompatibilityHelper {
      * @param <T>    the element type
      * @return a list containing the stream elements
      */
-    public static <T> List<T> toList(final Stream<T> stream) {
+    public <T> List<T> toList(final Stream<T> stream) {
         return stream.collect(Collectors.toList());
     }
 
@@ -110,7 +106,7 @@ public final class Java8CompatibilityHelper {
      * @return a list containing the specified elements
      */
     @SafeVarargs
-    public static <T> List<T> listOf(final T... elements) {
+    public <T> List<T> listOf(final T... elements) {
         return Arrays.asList(elements);
     }
 }

@@ -108,6 +108,8 @@ public class AiMdHeaderCodec {
      */
     public static final String GENERATED_BY_PREFIX = ".generated-by-";
 
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
     public AiMdHeader read(final List<String> lines) {
         String title = null;
         final Map<String, String> values = new HashMap<>();
@@ -145,7 +147,7 @@ public class AiMdHeaderCodec {
     }
 
     public String write(final AiMdHeader header) {
-        return Java8CompatibilityHelper.formatted("### %s\n" +
+        return compatibilityHelper.formatted("### %s\n" +
                 "- H: %s\n" +
                 "- C: %s\n" +
                 "- D: %s\n" +

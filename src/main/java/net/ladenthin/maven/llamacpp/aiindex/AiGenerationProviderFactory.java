@@ -20,12 +20,14 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 public class AiGenerationProviderFactory {
 
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
     public AiGenerationProvider create(
             final String providerName,
             final LlamaCppJniConfig llamaConfig,
             final AiPromptSupport promptSupport
     ) {
-        if (providerName == null || Java8CompatibilityHelper.isBlank(providerName)) {
+        if (providerName == null || compatibilityHelper.isBlank(providerName)) {
             return new MockAiGenerationProvider();
         }
 

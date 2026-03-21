@@ -50,6 +50,7 @@ public class SourceFileIndexer {
     private final AiChecksumSupport checksumSupport = new AiChecksumSupport();
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     private final AiFieldGenerationSupport fieldGenerationSupport;
 
@@ -83,7 +84,7 @@ public class SourceFileIndexer {
         int count = 0;
 
         try (Stream<Path> stream = Files.walk(sourceRoot)) {
-            for (Path path : Java8CompatibilityHelper.toList(stream.filter(Files::isRegularFile))) {
+            for (Path path : compatibilityHelper.toList(stream.filter(Files::isRegularFile))) {
                 if (!matchesExtension(path)) {
                     continue;
                 }
@@ -143,7 +144,7 @@ public class SourceFileIndexer {
             return;
         }
 
-        final String sourceText = Java8CompatibilityHelper.readString(sourceFile);
+        final String sourceText = compatibilityHelper.readString(sourceFile);
 
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, sourceFile, CONTEXT_TYPE_FILE, sourceText, baseHeader);

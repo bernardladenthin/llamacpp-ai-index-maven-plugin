@@ -30,6 +30,8 @@ public class AiMdHeaderSupport {
      */
     private static final char CHECKSUM_LINE_SEPARATOR = '|';
 
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
     public boolean shouldWrite(
             final boolean force,
             final Path targetFile,
@@ -50,7 +52,7 @@ public class AiMdHeaderSupport {
             return true;
         }
 
-        if (Java8CompatibilityHelper.isBlank(actualDocument.body())) {
+        if (compatibilityHelper.isBlank(actualDocument.body())) {
             return true;
         }
 
