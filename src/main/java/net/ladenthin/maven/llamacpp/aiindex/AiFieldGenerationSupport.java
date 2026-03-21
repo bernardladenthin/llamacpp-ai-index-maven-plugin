@@ -188,6 +188,12 @@ public class AiFieldGenerationSupport {
 
             if (body.isBlank()) {
                 final int maxRetries = generationConfig.getMaxRetries();
+                // DIAGNOSTIC: Log configuration values on first empty body
+                if (maxRetries > 0) {
+                    log.warn("DIAGNOSTIC - Temperature config: baseTemp=" + generationConfig.getTemperature()
+                            + ", retryIncrement=" + generationConfig.getRetryTemperatureIncrement()
+                            + ", maxRetries=" + maxRetries);
+                }
                 for (int attempt = 1; attempt <= maxRetries && body.isBlank(); attempt++) {
                     // Escalate temperature with each retry to break out of EOS-early failure modes.
                     // Formula: baseTemp + (attempt * increment)
@@ -197,9 +203,6 @@ public class AiFieldGenerationSupport {
                     // - Attempt 3: 0.4 + (3 × 0.2) = 1.0
                     final float retryTemperature = generationConfig.getTemperature()
                             + attempt * generationConfig.getRetryTemperatureIncrement();
-                    log.debug("Temperature escalation: baseTemp=" + generationConfig.getTemperature()
-                            + " + (attempt " + attempt + " × increment " + generationConfig.getRetryTemperatureIncrement()
-                            + ") = " + retryTemperature);
                     log.info(RETRY_ATTEMPT_INFO_PREFIX + attempt + RETRY_OF_INFIX + maxRetries
                             + RETRY_FIELD_INFIX + fieldGeneration.getPromptKey()
                             + RETRY_TEMPERATURE_INFIX + retryTemperature
