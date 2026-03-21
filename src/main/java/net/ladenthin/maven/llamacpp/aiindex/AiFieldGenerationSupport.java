@@ -86,6 +86,21 @@ public class AiFieldGenerationSupport {
      */
     private static final String RETRY_TEMPERATURE_INFIX = "' temperature=";
 
+    /**
+     * Log message suffix appended after temperature data in retry-attempt info messages.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_CONTEXT_SUFFIX = " for ";
+
+    /**
+     * Log message fragment showing the temperature escalation calculation formula in
+     * retry-attempt info messages (e.g., " (baseTemp=0.15 + attempt 1 × 0.15)").
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_TEMPERATURE_CALCULATION_TEMPLATE = " (baseTemp={0} + attempt {1} × {2})";
+
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
@@ -198,10 +213,15 @@ public class AiFieldGenerationSupport {
                     // - Attempt 3: 0.4 + (3 × 0.2) = 1.0
                     final float retryTemperature = generationConfig.getTemperature()
                             + attempt * generationConfig.getRetryTemperatureIncrement();
+                    final String temperatureCalculation = RETRY_TEMPERATURE_CALCULATION_TEMPLATE
+                            .replace("{0}", String.valueOf(generationConfig.getTemperature()))
+                            .replace("{1}", String.valueOf(attempt))
+                            .replace("{2}", String.valueOf(generationConfig.getRetryTemperatureIncrement()));
                     log.info(RETRY_ATTEMPT_INFO_PREFIX + attempt + RETRY_OF_INFIX + maxRetries
                             + RETRY_FIELD_INFIX + fieldGeneration.getPromptKey()
                             + RETRY_TEMPERATURE_INFIX + retryTemperature
-                            + " for " + contextFile);
+                            + temperatureCalculation
+                            + RETRY_CONTEXT_SUFFIX + contextFile);
                     body = generationProvider.generate(generationRequest, retryTemperature);
                 }
                 if (compatibilityHelper.isBlank(body)) {
