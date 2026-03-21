@@ -257,7 +257,6 @@
                             <llamaMaxOutputTokens>${ai.index.max.output.tokens}</llamaMaxOutputTokens>
                             <llamaTemperature>${ai.index.temperature}</llamaTemperature>
                             <llamaThreads>${ai.index.threads}</llamaThreads>
-                            <retryTemperatureIncrement>${ai.index.retry.temperature.increment}</retryTemperatureIncrement>
                         </configuration>
 
                         <executions>
@@ -317,6 +316,7 @@ Source:
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
+                                                <retryTemperatureIncrement>${ai.index.retry.temperature.increment}</retryTemperatureIncrement>
                                             </generation>
                                         </fieldGeneration>
                                     </fieldGenerations>
@@ -378,6 +378,7 @@ Source:
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
+                                                <retryTemperatureIncrement>${ai.index.retry.temperature.increment}</retryTemperatureIncrement>
                                             </generation>
                                         </fieldGeneration>
                                     </fieldGenerations>

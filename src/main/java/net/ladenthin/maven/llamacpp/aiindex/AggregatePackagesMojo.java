@@ -72,7 +72,6 @@ public class AggregatePackagesMojo extends AbstractAiIndexMojo {
         }
 
         try {
-            applyRetryTemperatureIncrementConfig();
             final AiPromptSupport promptSupport = buildPromptSupport();
             final AiGenerationProviderFactory providerFactory = new AiGenerationProviderFactory();
 
