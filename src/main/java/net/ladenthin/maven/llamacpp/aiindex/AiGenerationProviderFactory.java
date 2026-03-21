@@ -25,7 +25,7 @@ public class AiGenerationProviderFactory {
             final LlamaCppJniConfig llamaConfig,
             final AiPromptSupport promptSupport
     ) {
-        if (Java8CompatibilityHelper.isBlank(providerName)) {
+        if (providerName == null || Java8CompatibilityHelper.isBlank(providerName)) {
             return new MockAiGenerationProvider();
         }
 

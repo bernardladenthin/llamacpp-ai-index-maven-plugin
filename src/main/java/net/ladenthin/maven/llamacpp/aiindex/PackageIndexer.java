@@ -218,7 +218,7 @@ public class PackageIndexer {
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, packageFile, CONTEXT_TYPE_PACKAGE, sourceText, baseHeader);
 
-        final String body = Java8CompatibilityHelper.isBlank(result.body())
+        final String body = (result.body() == null || Java8CompatibilityHelper.isBlank(result.body()))
                 ? buildDefaultPackageBody(contents)
                 : result.body();
 

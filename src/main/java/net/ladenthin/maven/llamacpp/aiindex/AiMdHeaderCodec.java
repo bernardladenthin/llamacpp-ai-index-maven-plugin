@@ -133,7 +133,7 @@ public class AiMdHeaderCodec {
         }
 
         return new AiMdHeader(
-                Java8CompatibilityHelper.requireNonNullElse(title, ""),
+                title != null ? title : "",
                 valueOrEmpty(values, FIELD_KEY_H),
                 valueOrEmpty(values, FIELD_KEY_C),
                 valueOrEmpty(values, FIELD_KEY_D),
@@ -165,7 +165,8 @@ public class AiMdHeaderCodec {
     }
 
     private String valueOrEmpty(final Map<String, String> values, final String key) {
-        return Java8CompatibilityHelper.requireNonNullElse(values.get(key), "");
+        final String value = values.get(key);
+        return value != null ? value : "";
     }
 
     public AiMdHeader read(final Path file) throws IOException {

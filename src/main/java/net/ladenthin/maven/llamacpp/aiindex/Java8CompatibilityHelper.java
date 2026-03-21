@@ -43,11 +43,12 @@ public final class Java8CompatibilityHelper {
      * Returns {@code true} if the string is empty or contains only whitespace,
      * {@code false} otherwise.
      *
-     * @param str the string to check; may be {@code null}
+     * @param str the string to check; must not be {@code null}
      * @return {@code true} if the string is empty or blank, {@code false} otherwise
+     * @throws NullPointerException if {@code str} is {@code null}
      */
     public static boolean isBlank(final String str) {
-        return str == null || str.isEmpty() || str.trim().isEmpty();
+        return str.isEmpty() || str.trim().isEmpty();
     }
 
     /**
@@ -111,18 +112,5 @@ public final class Java8CompatibilityHelper {
     @SafeVarargs
     public static <T> List<T> listOf(final T... elements) {
         return Arrays.asList(elements);
-    }
-
-    /**
-     * Wrapper for {@link java.util.Objects#requireNonNullElse(Object, Object)} (Java 9+).
-     * Returns the first argument if it is non-{@code null}, otherwise returns the second argument.
-     *
-     * @param obj      the object to check
-     * @param fallback the fallback value if {@code obj} is {@code null}
-     * @param <T>      the type of the objects
-     * @return {@code obj} if it is non-{@code null}, otherwise {@code fallback}
-     */
-    public static <T> T requireNonNullElse(final T obj, final T fallback) {
-        return obj != null ? obj : fallback;
     }
 }
