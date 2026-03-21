@@ -106,7 +106,7 @@ public class Java8CompatibilityHelper {
      * @return a list containing the specified elements
      */
     @SafeVarargs
-    public <T> List<T> listOf(final T... elements) {
+    public final <T> List<T> listOf(final T... elements) {
         return Arrays.asList(elements);
     }
 }
