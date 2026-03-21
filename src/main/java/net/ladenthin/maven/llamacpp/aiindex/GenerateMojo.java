@@ -80,6 +80,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
 
         try {
             final AiPromptSupport promptSupport = buildPromptSupport();
+            final AiModelDefinitionSupport modelDefinitionSupport = buildAiModelDefinitionSupport();
             final AiGenerationProviderFactory providerFactory = new AiGenerationProviderFactory();
 
             try (AiGenerationProvider generationProvider =
@@ -96,7 +97,8 @@ public class GenerateMojo extends AbstractAiIndexMojo {
                         force,
                         generationProvider,
                         fieldGenerations,
-                        promptSupport
+                        promptSupport,
+                        modelDefinitionSupport
                 );
 
                 int count = 0;

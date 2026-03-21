@@ -19,6 +19,7 @@
 package net.ladenthin.maven.llamacpp.aiindex;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -33,6 +34,12 @@ public class CommonTestFixtures {
      * Prompt key for the file-level body prompt, used in file summarizer and source file indexer tests.
      */
     public static final String PROMPT_KEY_FILE_BODY = "file-body";
+
+    /**
+     * AI definition key used for the default model definition in tests.
+     * Matches the prompt key convention so that a single definition suffices for most tests.
+     */
+    public static final String AI_DEFINITION_KEY_DEFAULT = "default";
 
     /**
      * Prompt key for the package-level body prompt, used in package indexer and summarizer tests.
@@ -109,9 +116,33 @@ public class CommonTestFixtures {
     }
 
     /**
-     * Creates a single {@link AiFieldGenerationConfig} with the given prompt key.
-     * The {@link AiGenerationConfig} uses its default values ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
-     * characters max input and {@link AiGenerationConfig#DEFAULT_WARN_ON_TRIM} for trim warnings).
+     * Creates the standard default {@link AiModelDefinition} list for tests.
+     *
+     * <p>Provides a single definition keyed {@link #AI_DEFINITION_KEY_DEFAULT} that uses
+     * all {@link AiGenerationConfig} default values. Tests that need custom values
+     * (e.g. different {@code maxRetries}) should build their own list.</p>
+     *
+     * @return list with one default model definition
+     */
+    public static List<AiModelDefinition> createDefaultAiModelDefinitions() {
+        final AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey(AI_DEFINITION_KEY_DEFAULT);
+        return Arrays.asList(definition);
+    }
+
+    /**
+     * Creates an {@link AiModelDefinitionSupport} backed by the default definition list.
+     *
+     * @return model definition support using the default test definitions
+     * @see #createDefaultAiModelDefinitions()
+     */
+    public static AiModelDefinitionSupport createDefaultAiModelDefinitionSupport() {
+        return new AiModelDefinitionSupport(createDefaultAiModelDefinitions());
+    }
+
+    /**
+     * Creates a single {@link AiFieldGenerationConfig} with the given prompt key and the
+     * default AI definition key {@link #AI_DEFINITION_KEY_DEFAULT}.
      *
      * @param promptKey key that identifies the prompt template in the prompt support
      * @return a fully configured {@link AiFieldGenerationConfig}
@@ -119,6 +150,7 @@ public class CommonTestFixtures {
     private static AiFieldGenerationConfig createFieldConfig(final String promptKey) {
         final AiFieldGenerationConfig field = new AiFieldGenerationConfig();
         field.setPromptKey(promptKey);
+        field.setAiDefinitionKey(AI_DEFINITION_KEY_DEFAULT);
         return field;
     }
 

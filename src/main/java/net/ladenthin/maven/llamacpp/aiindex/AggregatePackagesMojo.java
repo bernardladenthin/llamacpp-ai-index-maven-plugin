@@ -73,6 +73,7 @@ public class AggregatePackagesMojo extends AbstractAiIndexMojo {
 
         try {
             final AiPromptSupport promptSupport = buildPromptSupport();
+            final AiModelDefinitionSupport modelDefinitionSupport = buildAiModelDefinitionSupport();
             final AiGenerationProviderFactory providerFactory = new AiGenerationProviderFactory();
 
             try (AiGenerationProvider generationProvider = providerFactory.create(summaryProvider, buildLlamaCppJniConfig(), promptSupport)) {
@@ -86,7 +87,8 @@ public class AggregatePackagesMojo extends AbstractAiIndexMojo {
                         force,
                         generationProvider,
                         fieldGenerations,
-                        promptSupport
+                        promptSupport,
+                        modelDefinitionSupport
                 );
 
                 final int aggregated = packageIndexer.aggregate(outputPath);

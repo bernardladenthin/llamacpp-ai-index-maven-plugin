@@ -104,6 +104,7 @@ public class AiFieldGenerationSupport {
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
+    private final AiModelDefinitionSupport modelDefinitionSupport;
     private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     /**
@@ -112,15 +113,18 @@ public class AiFieldGenerationSupport {
      * @param log                      Maven logger for trim warnings and diagnostics
      * @param generationProvider       AI backend used to generate text for each field
      * @param promptPreparationSupport helper that resolves and prepares prompt templates
+     * @param modelDefinitionSupport   lookup for {@link AiGenerationConfig} by key
      */
     public AiFieldGenerationSupport(
             final Log log,
             final AiGenerationProvider generationProvider,
-            final AiPromptPreparationSupport promptPreparationSupport
+            final AiPromptPreparationSupport promptPreparationSupport,
+            final AiModelDefinitionSupport modelDefinitionSupport
     ) {
         this.log = log;
         this.generationProvider = generationProvider;
         this.promptPreparationSupport = promptPreparationSupport;
+        this.modelDefinitionSupport = modelDefinitionSupport;
     }
 
     /**
@@ -152,7 +156,8 @@ public class AiFieldGenerationSupport {
      *                         {@link AiGenerationRequest}
      * @return an {@link AiGenerationResult} with the generated body; defaults to empty string
      * @throws IOException              if the AI provider throws during generation
-     * @throws IllegalArgumentException if a field's {@link AiGenerationConfig} is {@code null}
+     * @throws IllegalArgumentException if a field's {@link AiFieldGenerationConfig#getAiDefinitionKey()}
+     *                                  does not match any registered {@link AiModelDefinition}
      */
     public AiGenerationResult processFieldGenerations(
             final List<AiFieldGenerationConfig> fieldGenerations,
@@ -168,10 +173,8 @@ public class AiFieldGenerationSupport {
                 continue;
             }
 
-            final AiGenerationConfig generationConfig = fieldGeneration.getGeneration();
-            if (generationConfig == null) {
-                throw new IllegalArgumentException("Missing generation config for body field");
-            }
+            final AiGenerationConfig generationConfig =
+                    modelDefinitionSupport.getConfig(fieldGeneration.getAiDefinitionKey());
 
             final AiGenerationRequest request = new AiGenerationRequest(
                     fieldGeneration.getPromptKey(),

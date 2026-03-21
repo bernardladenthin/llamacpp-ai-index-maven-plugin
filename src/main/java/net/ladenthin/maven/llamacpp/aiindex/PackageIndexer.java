@@ -85,7 +85,8 @@ public class PackageIndexer {
             final boolean force,
             final AiGenerationProvider generationProvider,
             final List<AiFieldGenerationConfig> fieldGenerations,
-            final AiPromptSupport promptSupport
+            final AiPromptSupport promptSupport,
+            final AiModelDefinitionSupport modelDefinitionSupport
     ) {
         this.log = log;
         this.baseDirectory = baseDirectory;
@@ -97,7 +98,8 @@ public class PackageIndexer {
         this.force = force;
         this.fieldGenerations = fieldGenerations;
         this.fieldGenerationSupport = new AiFieldGenerationSupport(
-                log, generationProvider, new AiPromptPreparationSupport(promptSupport));
+                log, generationProvider, new AiPromptPreparationSupport(promptSupport),
+                modelDefinitionSupport);
     }
 
     public int aggregate(final Path rootDirectory) throws IOException {
