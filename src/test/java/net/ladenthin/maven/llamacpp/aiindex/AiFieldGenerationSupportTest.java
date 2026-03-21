@@ -256,12 +256,28 @@ public class AiFieldGenerationSupportTest {
                 CommonTestFixtures.createFileFieldGenerations(),
                 contextFile, "file", "public class Test {}", header);
 
-        // assert — one INFO log per retry attempt
-        assertThat(capturingLog.getCapturedInfos().size(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_RETRIES)));
-        for (final String infoMsg : capturingLog.getCapturedInfos()) {
-            assertThat(infoMsg, containsString(CommonTestFixtures.PROMPT_KEY_FILE_BODY));
+        // assert — one INFO log per retry attempt + one for the initial generation attempt
+        final List<String> infos = capturingLog.getCapturedInfos();
+        assertThat(infos.size(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_RETRIES + 1)));
+
+        // First message: initial generation attempt with config details
+        final String firstMsg = infos.get(0);
+        assertThat(firstMsg, containsString("Generating field '" + CommonTestFixtures.PROMPT_KEY_FILE_BODY + "'"));
+        assertThat(firstMsg, containsString("temperature=0.15"));
+        assertThat(firstMsg, containsString("maxRetries=3"));
+        assertThat(firstMsg, containsString("retryTemperatureIncrement=0.1"));
+        assertThat(firstMsg, containsString("maxInputChars="));
+
+        // Remaining messages: retry attempts
+        for (int i = 1; i < infos.size(); i++) {
+            final String retryMsg = infos.get(i);
+            assertThat(retryMsg, containsString("Retrying AI generation (attempt " + i + "/3)"));
+            assertThat(retryMsg, containsString("field '" + CommonTestFixtures.PROMPT_KEY_FILE_BODY + "'"));
+            assertThat(retryMsg, containsString("temperature="));
+            assertThat(retryMsg, containsString("baseTemp=0.15"));
         }
     }
+
 
     @Test
     public void processFieldGenerations_zeroMaxRetries_providerCalledOnce() throws Exception {

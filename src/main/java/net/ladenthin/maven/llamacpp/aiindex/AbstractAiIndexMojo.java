@@ -220,5 +220,7 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
         }
         getLog().info("Force           : " + force);
         getLog().info("Provider        : " + summaryProvider);
+        getLog().info("LlamaCpp Temperature: " + llamaTemperature);
+        getLog().info("LlamaCpp Max Output Tokens: " + llamaMaxOutputTokens);
     }
 }

@@ -200,6 +200,11 @@ public class AiFieldGenerationSupport {
                     baseHeader
             );
 
+            log.info("Generating field '" + fieldGeneration.getPromptKey() +
+                    "' with temperature=" + generationConfig.getTemperature() +
+                    ", maxRetries=" + generationConfig.getMaxRetries() +
+                    ", retryTemperatureIncrement=" + generationConfig.getRetryTemperatureIncrement() +
+                    ", maxInputChars=" + generationConfig.getMaxInputChars());
             body = generationProvider.generate(generationRequest);
 
             if (compatibilityHelper.isBlank(body)) {

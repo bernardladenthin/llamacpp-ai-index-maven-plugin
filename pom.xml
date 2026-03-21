@@ -196,7 +196,8 @@
                     <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
                     <ai.index.context.size>16384</ai.index.context.size>
                     <ai.index.max.output.tokens>2048</ai.index.max.output.tokens>
-                    <ai.index.temperature>0.40</ai.index.temperature>
+                    <ai.index.temperature>1.00</ai.index.temperature>
+                    <ai.index.temperature.increment>0.0</ai.index.temperature.increment>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>54300</ai.index.max.input.chars>
                 </properties>
@@ -228,7 +229,8 @@
                     <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
                     <ai.index.context.size>32768</ai.index.context.size>
                     <ai.index.max.output.tokens>1536</ai.index.max.output.tokens>
-                    <ai.index.temperature>0.40</ai.index.temperature>
+                    <ai.index.temperature>1.0</ai.index.temperature>
+                    <ai.index.temperature.increment>0.0</ai.index.temperature.increment>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>121800</ai.index.max.input.chars>
                 </properties>
@@ -314,7 +316,7 @@ Source:
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
-                                                <retryTemperatureIncrement>0.2</retryTemperatureIncrement>
+                                                <retryTemperatureIncrement>${ai.index.temperature.increment}</retryTemperatureIncrement>
                                             </generation>
                                         </fieldGeneration>
                                     </fieldGenerations>
@@ -376,7 +378,7 @@ Source:
                                                 <threads>${ai.index.threads}</threads>
                                                 <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
                                                 <warnOnTrim>true</warnOnTrim>
-                                                <retryTemperatureIncrement>0.2</retryTemperatureIncrement>
+                                                <retryTemperatureIncrement>${ai.index.temperature.increment}</retryTemperatureIncrement>
                                             </generation>
                                         </fieldGeneration>
                                     </fieldGenerations>
