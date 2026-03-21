@@ -96,7 +96,9 @@ llamacpp-ai-index-maven-plugin/
 │   │       ├── AiMdDocumentCodec.java      # Encode/decode full documents
 │   │       ├── AiMdHeaderSupport.java      # Header manipulation utilities
 │   │       ├── AiGenerationConfig.java     # Configuration for a generation step
-│   │       ├── AiFieldGenerationConfig.java# Per-field generation config
+│   │       ├── AiModelDefinition.java      # POJO for a named AI model definition (Maven @Parameter)
+│   │       ├── AiModelDefinitionSupport.java# Key-indexed lookup: AiModelDefinition -> AiGenerationConfig
+│   │       ├── AiFieldGenerationConfig.java# Per-field generation config (references model def by key)
 │   │       ├── AiFieldGenerationSupport.java# Shared field-generation loop (summary/keywords/body)
 │   │       ├── AiGenerationKind.java       # Enum: generation types
 │   │       ├── AiGenerationRequest.java    # Request object
@@ -161,6 +163,8 @@ The plugin operates in two logical phases:
 | `AiGenerationProvider` | Interface for AI backends (llama.cpp JNI or mock) |
 | `AiFieldGenerationSupport` | Shared field-generation loop extracted from both indexers |
 | `AiGenerationResult` | Record carrying `summary`, `keywords`, and `body` out of the loop |
+| `AiModelDefinition` | Maven `@Parameter` POJO for a named AI model definition |
+| `AiModelDefinitionSupport` | Key-indexed lookup: converts `AiModelDefinition` → `AiGenerationConfig` |
 | `AiMdDocumentCodec` | Reads and writes `.ai.md` files |
 | `AiMdHeaderCodec` | Encodes/decodes the YAML-like metadata header |
 | `AiPromptSupport` | Looks up prompt templates by key |

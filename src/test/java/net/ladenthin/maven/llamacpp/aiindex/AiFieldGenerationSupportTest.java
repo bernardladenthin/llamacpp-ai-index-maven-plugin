@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +82,8 @@ public class AiFieldGenerationSupportTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiGenerationProvider nonEmptyProvider = request -> "A real summary.";
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, nonEmptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, nonEmptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         support.processFieldGenerations(
@@ -104,7 +104,8 @@ public class AiFieldGenerationSupportTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiGenerationProvider emptyProvider = request -> "";
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         support.processFieldGenerations(
@@ -126,7 +127,8 @@ public class AiFieldGenerationSupportTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiGenerationProvider emptyProvider = request -> "";
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         support.processFieldGenerations(
@@ -149,7 +151,8 @@ public class AiFieldGenerationSupportTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiGenerationProvider emptyProvider = request -> "";
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, emptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         final AiGenerationResult result = support.processFieldGenerations(
@@ -184,7 +187,8 @@ public class AiFieldGenerationSupportTest {
             }
         };
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, eventualProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, eventualProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         final AiGenerationResult result = support.processFieldGenerations(
@@ -218,7 +222,8 @@ public class AiFieldGenerationSupportTest {
             }
         };
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         support.processFieldGenerations(
@@ -249,7 +254,8 @@ public class AiFieldGenerationSupportTest {
             }
         };
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport),
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport());
 
         // act
         support.processFieldGenerations(
@@ -278,7 +284,6 @@ public class AiFieldGenerationSupportTest {
         }
     }
 
-
     @Test
     public void processFieldGenerations_zeroMaxRetries_providerCalledOnce() throws Exception {
         // arrange
@@ -300,15 +305,20 @@ public class AiFieldGenerationSupportTest {
                 return "";
             }
         };
-        // Build a field generation config with maxRetries=0
+        // Build a model definition with maxRetries=0 and reference it by key
+        final String zeroRetriesKey = "zero-retries";
+        final AiModelDefinition zeroRetriesDef = new AiModelDefinition();
+        zeroRetriesDef.setKey(zeroRetriesKey);
+        zeroRetriesDef.setMaxRetries(0);
+        final AiModelDefinitionSupport modelSupport = new AiModelDefinitionSupport(Arrays.asList(zeroRetriesDef));
+
         final AiFieldGenerationConfig fieldConfig = new AiFieldGenerationConfig();
         fieldConfig.setPromptKey(CommonTestFixtures.PROMPT_KEY_FILE_BODY);
-        final AiGenerationConfig genConfig = new AiGenerationConfig();
-        genConfig.setMaxRetries(0);
-        fieldConfig.setGeneration(genConfig);
+        fieldConfig.setAiDefinitionKey(zeroRetriesKey);
 
         final AiFieldGenerationSupport support = new AiFieldGenerationSupport(
-                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport));
+                capturingLog, alwaysEmptyProvider, new AiPromptPreparationSupport(promptSupport),
+                modelSupport);
 
         // act
         support.processFieldGenerations(

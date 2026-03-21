@@ -65,7 +65,8 @@ public class SourceFileIndexer {
             final boolean force,
             final AiGenerationProvider generationProvider,
             final List<AiFieldGenerationConfig> fieldGenerations,
-            final AiPromptSupport promptSupport
+            final AiPromptSupport promptSupport,
+            final AiModelDefinitionSupport modelDefinitionSupport
     ) {
         this.log = log;
         this.baseDirectory = baseDirectory;
@@ -77,7 +78,8 @@ public class SourceFileIndexer {
         this.force = force;
         this.fieldGenerations = fieldGenerations;
         this.fieldGenerationSupport = new AiFieldGenerationSupport(
-                log, generationProvider, new AiPromptPreparationSupport(promptSupport));
+                log, generationProvider, new AiPromptPreparationSupport(promptSupport),
+                modelDefinitionSupport);
     }
 
     public int indexSourceRoot(final Path sourceRoot) throws IOException {

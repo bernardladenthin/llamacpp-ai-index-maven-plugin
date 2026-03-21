@@ -83,9 +83,33 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     @Parameter
     protected List<AiPromptDefinition> promptDefinitions;
 
-    /** Per-field AI generation configurations controlling which prompt and target to use. */
+    /**
+     * AI model definitions that pair a lookup key with a complete set of model parameters.
+     * Field-generation entries and the provider configuration reference these definitions
+     * by key rather than embedding the full parameter set inline.
+     *
+     * @see AiModelDefinition
+     * @see AiModelDefinitionSupport
+     */
+    @Parameter
+    protected List<AiModelDefinition> aiDefinitions;
+
+    /** Per-field AI generation configurations controlling which prompt and AI definition to use. */
     @Parameter
     protected List<AiFieldGenerationConfig> fieldGenerations;
+
+    /**
+     * Key of the {@link AiModelDefinition} to use when creating the AI generation provider.
+     * When set, the model path, context size, output tokens, temperature, and thread count
+     * are all taken from the referenced definition instead of the individual
+     * {@code llama*} parameters.
+     *
+     * <p>When not set (the default), the individual {@code llamaModelPath},
+     * {@code llamaContextSize}, {@code llamaMaxOutputTokens}, {@code llamaTemperature},
+     * and {@code llamaThreads} parameters are used as before.</p>
+     */
+    @Parameter(property = "aiIndex.summaryProviderDefinitionKey")
+    protected String summaryProviderDefinitionKey;
 
     /**
      * Optional native library path passed to the llama.cpp JNI provider.
@@ -165,12 +189,29 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     }
 
     /**
-     * Builds a {@link LlamaCppJniConfig} from the common llama parameters declared on
-     * this class, plus the context size and thread count supplied by the concrete subclass.
+     * Builds a {@link LlamaCppJniConfig} for the AI generation provider.
+     *
+     * <p>When {@link #summaryProviderDefinitionKey} is set, all model parameters
+     * (model path, context size, max output tokens, temperature, threads) are taken from
+     * the {@link AiModelDefinition} identified by that key. Otherwise, the individual
+     * {@code llama*} mojo parameters are used.</p>
      *
      * @return fully populated llama.cpp configuration
+     * @throws IllegalArgumentException if {@link #summaryProviderDefinitionKey} is set but
+     *                                  does not match any registered definition
      */
     protected LlamaCppJniConfig buildLlamaCppJniConfig() {
+        if (summaryProviderDefinitionKey != null) {
+            final AiGenerationConfig config = buildAiModelDefinitionSupport().getConfig(summaryProviderDefinitionKey);
+            return new LlamaCppJniConfig(
+                    llamaLibraryPath,
+                    config.getModelPath(),
+                    config.getContextSize(),
+                    config.getMaxOutputTokens(),
+                    config.getTemperature(),
+                    config.getThreads()
+            );
+        }
         return new LlamaCppJniConfig(
                 llamaLibraryPath,
                 llamaModelPath,
@@ -188,6 +229,15 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
      */
     protected AiPromptSupport buildPromptSupport() {
         return new AiPromptSupport(promptDefinitions);
+    }
+
+    /**
+     * Builds an {@link AiModelDefinitionSupport} from the configured {@link #aiDefinitions}.
+     *
+     * @return model definition support instance backed by the configured definitions
+     */
+    protected AiModelDefinitionSupport buildAiModelDefinitionSupport() {
+        return new AiModelDefinitionSupport(aiDefinitions);
     }
 
     /**

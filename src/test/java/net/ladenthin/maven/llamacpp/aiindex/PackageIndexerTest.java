@@ -57,7 +57,8 @@ public class PackageIndexerTest {
         final PackageIndexer indexer = new PackageIndexer(
                 new SystemStreamLog(), baseDirectory, outputRoot,
                 "1.0.0", "0.0.0", Collections.<Path>emptyList(), false, new MockAiGenerationProvider(),
-                CommonTestFixtures.createPackageFieldGenerations(), promptSupport
+                CommonTestFixtures.createPackageFieldGenerations(), promptSupport,
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport()
         );
 
         // act

@@ -60,7 +60,8 @@ public class SourceFileIndexerTest {
                 new SystemStreamLog(), baseDirectory, outputRoot,
                 Arrays.asList(".java"), "1.0.0", "0.0.0", Collections.<Path>emptyList(), false,
                 new MockAiGenerationProvider(),
-                CommonTestFixtures.createFileFieldGenerations(), promptSupport
+                CommonTestFixtures.createFileFieldGenerations(), promptSupport,
+                CommonTestFixtures.createDefaultAiModelDefinitionSupport()
         );
 
         // act

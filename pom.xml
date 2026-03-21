@@ -54,7 +54,6 @@
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
 
-        <ai.index.summary.provider>llamacpp-jni</ai.index.summary.provider>
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
 
     </properties>
@@ -147,94 +146,6 @@
     </build>
 
     <profiles>
-        <!--
-            Maximum input characters for source code before trimming.
-            Calculated as: (context_size × 4) - overhead
-
-            Context: ${CONTEXT_SIZE} tokens
-            Chars per token: ~4
-            [Total available]: ${CONTEXT_SIZE} × 4 = ${TOTAL_CHARS} chars
-
-            Overhead (conservative estimate):
-            - Prompt template: ~${PROMPT_CHARS} chars
-            - EOF marker: ~${EOF_CHARS} chars
-            - Max output tokens (${MAX_OUTPUT_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
-            - Safety margin: ~${SAFETY_CHARS} chars
-            - [Subtotal overhead]: ~${OVERHEAD_TOTAL} chars
-
-            Available for source: [Total available] - [Subtotal overhead]
-            Available for source: ${TOTAL_CHARS} - ${OVERHEAD_TOTAL} = ${AVAILABLE_CHARS} chars
-            Set to: ${FINAL_CHARS} (rounded, conservative)
-        -->
-            <profile>
-                <id>Mistral-7B-instruct-v0.3-GGUF_C16k</id>
-                <activation>
-                    <activeByDefault>true</activeByDefault>
-                </activation>
-                <properties>
-                    <!-- llama.cpp context configuration for Mistral 7B Instruct v0.3 (max 32K context) -->
-                    <!-- https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf -->
-                    <!--
-                        Maximum input characters for source code before trimming.
-                        Calculated as: (context_size × 4) - overhead
-
-                        Context: 16384 tokens
-                        Chars per token: ~4
-                        [Total available]: 16384 × 4 = 65,536 chars
-
-                        Overhead (conservative estimate):
-                        - Prompt template: ~2500 chars
-                        - EOF marker: ~30 chars
-                        - Max output (2048 tokens × 4): ~8,192 chars
-                        - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~11,222 chars
-
-                        Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 65,536 - 11,222 = 54,314 chars
-                        Set to: 54,300 (rounded, conservative)
-                    -->
-                    <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
-                    <ai.index.context.size>16384</ai.index.context.size>
-                    <ai.index.max.output.tokens>2048</ai.index.max.output.tokens>
-                    <ai.index.temperature>1.00</ai.index.temperature>
-                    <ai.index.temperature.increment>0.0</ai.index.temperature.increment>
-                    <ai.index.threads>8</ai.index.threads>
-                    <ai.index.max.input.chars>54300</ai.index.max.input.chars>
-                </properties>
-            </profile>
-            <profile>
-                <id>Codestral-22B-v0.1-GGUF_C32k</id>
-                <properties>
-                    <!-- llama.cpp context configuration for Codestral 22B v0.1 (max 32K context) -->
-                    <!-- https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf -->
-                    <!--
-                        Maximum input characters for source code before trimming.
-                        Calculated as: (context_size × 4) - overhead
-
-                        Context: 32768 tokens
-                        Chars per token: ~4
-                        [Total available]: 32768 × 4 = 131,072 chars
-
-                        Overhead (conservative estimate):
-                        - Prompt template: ~2500 chars
-                        - EOF marker: ~30 chars
-                        - Max output (1536 tokens × 4): ~6,144 chars
-                        - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~9,174 chars
-
-                        Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 131,072 - 9,174 = 121,898 chars
-                        Set to: 121,800 (rounded, conservative)
-                    -->
-                    <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
-                    <ai.index.context.size>32768</ai.index.context.size>
-                    <ai.index.max.output.tokens>1536</ai.index.max.output.tokens>
-                    <ai.index.temperature>1.0</ai.index.temperature>
-                    <ai.index.temperature.increment>0.0</ai.index.temperature.increment>
-                    <ai.index.threads>8</ai.index.threads>
-                    <ai.index.max.input.chars>121800</ai.index.max.input.chars>
-                </properties>
-            </profile>
         <profile>
             <id>ai-index-selftest</id>
             <build>
@@ -250,13 +161,50 @@
                                 <subtree>src/main/java/net/ladenthin/maven/llamacpp/aiindex</subtree>
                             </subtrees>
 
-                            <summaryProvider>${ai.index.summary.provider}</summaryProvider>
+                            <summaryProvider>llamacpp-jni</summaryProvider>
 
-                            <llamaModelPath>${ai.index.model.path}</llamaModelPath>
-                            <llamaContextSize>${ai.index.context.size}</llamaContextSize>
-                            <llamaMaxOutputTokens>${ai.index.max.output.tokens}</llamaMaxOutputTokens>
-                            <llamaTemperature>${ai.index.temperature}</llamaTemperature>
-                            <llamaThreads>${ai.index.threads}</llamaThreads>
+                            <!--
+                                AI model definitions: define each model once and reference it by key.
+                                No Maven profiles or properties are needed for model configuration.
+
+                                maxInputChars calculation:
+                                  (context_size × 4) − prompt_overhead − (max_output_tokens × 4) − safety_margin
+
+                                Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context):
+                                  16384×4 = 65536 − 2500 − (2048×4) − 500 = 54300 chars
+                                  https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF
+
+                                Codestral-22B-v0.1-Q6_K (32 K context):
+                                  32768×4 = 131072 − 2500 − (1536×4) − 500 = 121900 chars (set to 121800 conservatively)
+                                  https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF
+                            -->
+                            <aiDefinitions>
+                                <aiDefinition>
+                                    <key>Mistral-7B-Instruct-v0.3-Q4_K_M-C16k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</modelPath>
+                                    <contextSize>16384</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>54300</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <aiDefinition>
+                                    <key>Codestral-22B-v0.1-Q6_K-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>1536</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>121800</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                            </aiDefinitions>
+
+                            <!-- References the AI definition used to create the generation provider -->
+                            <summaryProviderDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</summaryProviderDefinitionKey>
                         </configuration>
 
                         <executions>
@@ -308,16 +256,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>file-body</promptKey>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxOutputTokens>${ai.index.max.output.tokens}</maxOutputTokens>
-                                                <temperature>${ai.index.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                                <retryTemperatureIncrement>${ai.index.temperature.increment}</retryTemperatureIncrement>
-                                            </generation>
+                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
@@ -370,16 +309,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>
-                                            <generation>
-                                                <modelPath>${ai.index.model.path}</modelPath>
-                                                <contextSize>${ai.index.context.size}</contextSize>
-                                                <maxOutputTokens>${ai.index.max.output.tokens}</maxOutputTokens>
-                                                <temperature>${ai.index.temperature}</temperature>
-                                                <threads>${ai.index.threads}</threads>
-                                                <maxInputChars>${ai.index.max.input.chars}</maxInputChars>
-                                                <warnOnTrim>true</warnOnTrim>
-                                                <retryTemperatureIncrement>${ai.index.temperature.increment}</retryTemperatureIncrement>
-                                            </generation>
+                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
