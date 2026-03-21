@@ -21,11 +21,9 @@ package net.ladenthin.maven.llamacpp.aiindex;
 import org.apache.maven.plugin.logging.Log;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SourceFileIndexer {
@@ -85,7 +83,7 @@ public class SourceFileIndexer {
         int count = 0;
 
         try (Stream<Path> stream = Files.walk(sourceRoot)) {
-            for (Path path : stream.filter(Files::isRegularFile).collect(Collectors.toList())) {
+            for (Path path : Java8CompatibilityHelper.toList(stream.filter(Files::isRegularFile))) {
                 if (!matchesExtension(path)) {
                     continue;
                 }
@@ -145,7 +143,7 @@ public class SourceFileIndexer {
             return;
         }
 
-        final String sourceText = new String(Files.readAllBytes(sourceFile), StandardCharsets.UTF_8);
+        final String sourceText = Java8CompatibilityHelper.readString(sourceFile);
 
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, sourceFile, CONTEXT_TYPE_FILE, sourceText, baseHeader);

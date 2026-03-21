@@ -24,7 +24,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 @Mojo(name = "generate", threadSafe = true)
@@ -101,7 +100,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
                 int count = 0;
 
                 for (Path subtree : resolvedSubtrees.isEmpty()
-                        ? Arrays.asList(basePath.resolve("src/main/java"))
+                        ? Java8CompatibilityHelper.listOf(basePath.resolve("src/main/java"))
                         : resolvedSubtrees) {
 
                     if (!subtree.toFile().exists()) {
@@ -124,7 +123,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
 
     private List<String> resolveFileExtensions() {
         if (fileExtensions == null || fileExtensions.isEmpty()) {
-            return Arrays.asList(DEFAULT_FILE_EXTENSION);
+            return Java8CompatibilityHelper.listOf(DEFAULT_FILE_EXTENSION);
         }
         return fileExtensions;
     }

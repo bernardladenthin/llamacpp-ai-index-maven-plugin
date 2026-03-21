@@ -186,9 +186,9 @@ public class AiFieldGenerationSupport {
 
             body = generationProvider.generate(generationRequest);
 
-            if (body.isEmpty() || body.trim().isEmpty()) {
+            if (Java8CompatibilityHelper.isBlank(body)) {
                 final int maxRetries = generationConfig.getMaxRetries();
-                for (int attempt = 1; attempt <= maxRetries && (body.isEmpty() || body.trim().isEmpty()); attempt++) {
+                for (int attempt = 1; attempt <= maxRetries && Java8CompatibilityHelper.isBlank(body); attempt++) {
                     // Escalate temperature with each retry to break out of EOS-early failure modes.
                     // Formula: baseTemp + (attempt * increment)
                     // Example with baseTemp=0.4, increment=0.2:
@@ -206,7 +206,7 @@ public class AiFieldGenerationSupport {
                             + " for " + contextFile);
                     body = generationProvider.generate(generationRequest, retryTemperature);
                 }
-                if (body.isEmpty() || body.trim().isEmpty()) {
+                if (Java8CompatibilityHelper.isBlank(body)) {
                     log.warn(EMPTY_OUTPUT_WARN_PREFIX + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getPromptKey() + "': " + contextFile);
                 }
             }

@@ -50,7 +50,7 @@ public class AiMdHeaderSupport {
             return true;
         }
 
-        if (actualDocument.body().isEmpty() || actualDocument.body().trim().isEmpty()) {
+        if (Java8CompatibilityHelper.isBlank(actualDocument.body())) {
             return true;
         }
 
