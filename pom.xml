@@ -48,8 +48,8 @@
     </distributionManagement>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.plugin.tools.version>3.15.1</maven.plugin.tools.version>
         <maven.version>3.9.13</maven.version>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>de.kherud</groupId>
             <artifactId>llama</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
         </dependency>
 
         <dependency>
@@ -196,7 +196,7 @@
                     <ai.index.model.path>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</ai.index.model.path>
                     <ai.index.context.size>16384</ai.index.context.size>
                     <ai.index.max.output.tokens>2048</ai.index.max.output.tokens>
-                    <ai.index.temperature>0.10</ai.index.temperature>
+                    <ai.index.temperature>0.30</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>54300</ai.index.max.input.chars>
                 </properties>
@@ -228,7 +228,7 @@
                     <ai.index.model.path>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</ai.index.model.path>
                     <ai.index.context.size>32768</ai.index.context.size>
                     <ai.index.max.output.tokens>1536</ai.index.max.output.tokens>
-                    <ai.index.temperature>0.10</ai.index.temperature>
+                    <ai.index.temperature>0.30</ai.index.temperature>
                     <ai.index.threads>8</ai.index.threads>
                     <ai.index.max.input.chars>121800</ai.index.max.input.chars>
                 </properties>

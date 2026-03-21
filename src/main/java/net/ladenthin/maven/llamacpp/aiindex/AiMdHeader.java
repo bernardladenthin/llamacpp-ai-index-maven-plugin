@@ -59,27 +59,20 @@ import java.util.Objects;
  *   <li>The generator should preserve the body when the structural state did not change.</li>
  * </ul>
  *
- * @param title display title of the node
- * @param h header format version
- * @param c checksum of the represented node state
- * @param d source date of the represented node state
- * @param t generation timestamp of this {@code .ai.md}
- * @param g generator version
- * @param a AI generation version
- * @param x node type, e.g. {@code file} or {@code package}
  */
-public record AiMdHeader(
-        String title,
-        String h,
-        String c,
-        String d,
-        String t,
-        String g,
-        String a,
-        String x
-) {
+@ConvertToRecord
+public final class AiMdHeader {
+    private final String title;
+    private final String h;
+    private final String c;
+    private final String d;
+    private final String t;
+    private final String g;
+    private final String a;
+    private final String x;
 
-    public AiMdHeader {
+
+    public AiMdHeader(String title, String h, String c, String d, String t, String g, String a, String x) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(h, "h");
         Objects.requireNonNull(c, "c");
@@ -88,5 +81,79 @@ public record AiMdHeader(
         Objects.requireNonNull(g, "g");
         Objects.requireNonNull(a, "a");
         Objects.requireNonNull(x, "x");
+        this.title = title;
+        this.h = h;
+        this.c = c;
+        this.d = d;
+        this.t = t;
+        this.g = g;
+        this.a = a;
+        this.x = x;
     }
+
+    public String title() {
+        return title;
+    }
+
+    public String h() {
+        return h;
+    }
+
+    public String c() {
+        return c;
+    }
+
+    public String d() {
+        return d;
+    }
+
+    public String t() {
+        return t;
+    }
+
+    public String g() {
+        return g;
+    }
+
+    public String a() {
+        return a;
+    }
+
+    public String x() {
+        return x;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        AiMdHeader that = (AiMdHeader) obj;
+        return Objects.equals(this.title, that.title) &&
+                Objects.equals(this.h, that.h) &&
+                Objects.equals(this.c, that.c) &&
+                Objects.equals(this.d, that.d) &&
+                Objects.equals(this.t, that.t) &&
+                Objects.equals(this.g, that.g) &&
+                Objects.equals(this.a, that.a) &&
+                Objects.equals(this.x, that.x);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, h, c, d, t, g, a, x);
+    }
+
+    @Override
+    public String toString() {
+        return "AiMdHeader[" +
+                "title=" + title + ", " +
+                "h=" + h + ", " +
+                "c=" + c + ", " +
+                "d=" + d + ", " +
+                "t=" + t + ", " +
+                "g=" + g + ", " +
+                "a=" + a + ", " +
+                "x=" + x + ']';
+    }
+
 }

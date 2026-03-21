@@ -45,15 +45,13 @@ public class SourceFileIndexerTest {
         final Path aiFile = outputRoot.resolve("main/java/com/example/Test.java.ai.md");
 
         Files.createDirectories(sourceFile.getParent());
-        Files.writeString(sourceFile, """
-                package com.example;
-
-                public class Test {
-                    public String hello(final String name) {
-                        return "Hello " + name;
-                    }
-                }
-                """, StandardCharsets.UTF_8);
+        Files.writeString(sourceFile, "package com.example;\n" +
+                                      "\n" +
+                                      "public class Test {\n" +
+                                      "    public String hello(final String name) {\n" +
+                                      "        return \"Hello \" + name;\n" +
+                                      "    }\n" +
+                                      "}\n", StandardCharsets.UTF_8);
 
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final SourceFileIndexer indexer = new SourceFileIndexer(

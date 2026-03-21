@@ -50,14 +50,12 @@ public class CommonTestFixtures {
     public static List<AiPromptDefinition> createFilePromptDefinitions() {
         final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
         bodyPrompt.setKey(PROMPT_KEY_FILE_BODY);
-        bodyPrompt.setTemplate("""
-                Summarize this Java file and include relevant keywords in your response.
-
-                File: %s
-
-                Source:
-                %s
-                """);
+        bodyPrompt.setTemplate("Summarize this Java file and include relevant keywords in your response.\n" +
+                               "\n" +
+                               "File: %s\n" +
+                               "\n" +
+                               "Source:\n" +
+                               "%s\n");
 
         return List.of(bodyPrompt);
     }
@@ -86,14 +84,12 @@ public class CommonTestFixtures {
     public static List<AiPromptDefinition> createPackagePromptDefinitions() {
         final AiPromptDefinition bodyPrompt = new AiPromptDefinition();
         bodyPrompt.setKey(PROMPT_KEY_PACKAGE_BODY);
-        bodyPrompt.setTemplate("""
-                Summarize this Java package and include relevant keywords in your response.
-
-                File: %s
-
-                Source:
-                %s
-                """);
+        bodyPrompt.setTemplate("Summarize this Java package and include relevant keywords in your response.\n" +
+                               "\n" +
+                               "File: %s\n" +
+                               "\n" +
+                               "Source:\n" +
+                               "%s\n");
 
         return List.of(bodyPrompt);
     }

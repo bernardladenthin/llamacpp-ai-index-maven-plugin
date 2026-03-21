@@ -31,14 +31,12 @@ public class AiPromptPreparationSupportTest {
     private AiPromptSupport createPromptSupport() {
         final AiPromptDefinition promptDefinition = new AiPromptDefinition();
         promptDefinition.setKey("file-summary");
-        promptDefinition.setTemplate("""
-                Prompt header
-
-                File: %s
-
-                Source:
-                %s
-                """);
+        promptDefinition.setTemplate("Prompt header\n" +
+                                     "\n" +
+                                     "File: %s\n" +
+                                     "\n" +
+                                     "Source:\n" +
+                                     "%s\n");
 
         return new AiPromptSupport(List.of(promptDefinition));
     }
@@ -61,10 +59,8 @@ public class AiPromptPreparationSupportTest {
     public void preparePrompt_promptFitsWithinLimit_notTrimmed() {
         // arrange
         final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
-        final String sourceText = """
-                public class Test {
-                }
-                """;
+        final String sourceText = "public class Test {\n" +
+                                  "}\n";
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
                 Path.of("Test.java"),

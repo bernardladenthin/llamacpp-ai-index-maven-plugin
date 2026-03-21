@@ -18,6 +18,8 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.Objects;
+
 /**
  * Immutable result produced by {@link AiFieldGenerationSupport#processFieldGenerations}.
  *
@@ -25,8 +27,40 @@ package net.ladenthin.maven.llamacpp.aiindex;
  * Defaults to an empty string when no body target is present in the field generation
  * configuration.</p>
  *
- * @param body AI-generated body text destined for {@link AiMdDocument#body()}
  */
-public record AiGenerationResult(
-        String body
-) {}
+@ConvertToRecord
+public class AiGenerationResult {
+    private final String body;
+
+    /**
+     * @param body AI-generated body text destined for {@link AiMdDocument#body()}
+     */
+    public AiGenerationResult(
+            String body
+    ) {
+        this.body = body;
+    }
+
+    public String body() {
+        return body;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        AiGenerationResult that = (AiGenerationResult) obj;
+        return Objects.equals(this.body, that.body);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(body);
+    }
+
+    @Override
+    public String toString() {
+        return "AiGenerationResult[" +
+                "body=" + body + ']';
+    }
+}

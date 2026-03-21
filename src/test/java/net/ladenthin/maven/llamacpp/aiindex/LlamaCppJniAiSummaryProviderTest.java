@@ -54,16 +54,14 @@ public class LlamaCppJniAiSummaryProviderTest {
                 "0.1.0-SNAPSHOT", "0.0.0",
                 AiMdHeaderCodec.NODE_TYPE_FILE
         );
-        final String source = """
-                package com.example;
-
-                public class Test {
-
-                    public String hello(final String name) {
-                        return "Hello " + name;
-                    }
-                }
-                """;
+        final String source = "package com.example;\n" +
+                              "\n" +
+                              "public class Test {\n" +
+                              "\n" +
+                              "    public String hello(final String name) {\n" +
+                              "        return \"Hello \" + name;\n" +
+                              "    }\n" +
+                              "}\n";
 
         final AiGenerationRequest bodyRequest = new AiGenerationRequest(
                 CommonTestFixtures.PROMPT_KEY_FILE_BODY, Path.of("Test.java"), source, header

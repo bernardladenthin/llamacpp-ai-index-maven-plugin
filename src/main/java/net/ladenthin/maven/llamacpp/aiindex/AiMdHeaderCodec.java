@@ -145,16 +145,14 @@ public class AiMdHeaderCodec {
     }
 
     public String write(final AiMdHeader header) {
-        return """
-                ### %s
-                - H: %s
-                - C: %s
-                - D: %s
-                - T: %s
-                - G: %s
-                - A: %s
-                - X: %s
-                """.formatted(
+        return ("### %s\n" +
+                "- H: %s\n" +
+                "- C: %s\n" +
+                "- D: %s\n" +
+                "- T: %s\n" +
+                "- G: %s\n" +
+                "- A: %s\n" +
+                "- X: %s\n").formatted(
                 header.title(),
                 header.h(),
                 header.c(),

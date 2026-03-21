@@ -29,10 +29,13 @@ public class AiGenerationProviderFactory {
             return new MockAiGenerationProvider();
         }
 
-        return switch (providerName) {
-            case "mock" -> new MockAiGenerationProvider();
-            case "llamacpp-jni" -> new LlamaCppJniAiSummaryProvider(llamaConfig, promptSupport);
-            default -> throw new IllegalArgumentException("Unsupported AI provider: " + providerName);
-        };
+        switch (providerName) {
+            case "mock":
+                return new MockAiGenerationProvider();
+            case "llamacpp-jni":
+                return new LlamaCppJniAiSummaryProvider(llamaConfig, promptSupport);
+            default:
+                throw new IllegalArgumentException("Unsupported AI provider: " + providerName);
+        }
     }
 }
