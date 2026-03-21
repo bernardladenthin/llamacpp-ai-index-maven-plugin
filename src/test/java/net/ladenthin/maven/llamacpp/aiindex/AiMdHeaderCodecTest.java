@@ -18,6 +18,7 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -45,7 +46,7 @@ public class AiMdHeaderCodecTest {
 
         // act
         final String encoded = headerCodec.write(original);
-        final AiMdHeader decoded = headerCodec.read(List.of(encoded.split("\\R")));
+        final AiMdHeader decoded = headerCodec.read(Arrays.asList(encoded.split("\\R")));
 
         // assert
         assertThat(decoded, is(equalTo(original)));
@@ -67,7 +68,7 @@ public class AiMdHeaderCodecTest {
 
         // act
         final String encoded = headerCodec.write(original);
-        final List<String> lines = List.of(encoded.split("\\R"));
+        final List<String> lines = Arrays.asList(encoded.split("\\R"));
         final AiMdHeader decoded = headerCodec.read(lines);
 
         // assert

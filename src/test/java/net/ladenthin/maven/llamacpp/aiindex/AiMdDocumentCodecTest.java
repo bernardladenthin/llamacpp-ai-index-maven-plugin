@@ -18,6 +18,7 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -127,7 +128,7 @@ public class AiMdDocumentCodecTest {
 
         // act
         final String encoded = documentCodec.write(original);
-        final List<String> lines = List.of(encoded.split("\\R"));
+        final List<String> lines = Arrays.asList(encoded.split("\\R"));
         final AiMdDocument decoded = documentCodec.read(lines);
 
         // assert
@@ -139,7 +140,7 @@ public class AiMdDocumentCodecTest {
     @Test
     public void read_documentWithSeparator_separatorNotIncludedInBody() {
         // arrange
-        final List<String> lines = List.of(
+        final List<String> lines = Arrays.asList(
                 "### Example.java",
                 "- H: 1.0",
                 "- C: ABC123",
@@ -164,7 +165,7 @@ public class AiMdDocumentCodecTest {
     @Test
     public void read_documentWithMultipleLineSeparator_onlyExactSeparatorSkipped() {
         // arrange
-        final List<String> lines = List.of(
+        final List<String> lines = Arrays.asList(
                 "### Example.java",
                 "- H: 1.0",
                 "- C: ABC123",
@@ -206,7 +207,7 @@ public class AiMdDocumentCodecTest {
 
         // act
         final String encoded = documentCodec.write(original);
-        final AiMdDocument decoded = documentCodec.read(List.of(encoded.split("\\R")));
+        final AiMdDocument decoded = documentCodec.read(Arrays.asList(encoded.split("\\R")));
 
         // assert
         // Note: read adds trailing newline to body
@@ -216,7 +217,7 @@ public class AiMdDocumentCodecTest {
     @Test
     public void read_documentWithEmptyBody_parsesCorrectly() {
         // arrange
-        final List<String> lines = List.of(
+        final List<String> lines = Arrays.asList(
                 "### Empty.java",
                 "- H: 1.0",
                 "- C: ABC123",

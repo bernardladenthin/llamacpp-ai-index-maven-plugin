@@ -30,7 +30,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class LlamaCppJniAiSummaryProviderTest {
 
     private static final String MODEL_PATH =
-            Path.of("src", "test", "resources", "SmolLM2-135M-Instruct-Q3_K_M.gguf")
+            Paths.get("src", "test", "resources", "SmolLM2-135M-Instruct-Q3_K_M.gguf")
                     .toAbsolutePath()
                     .toString();
 
@@ -64,7 +64,7 @@ public class LlamaCppJniAiSummaryProviderTest {
                               "}\n";
 
         final AiGenerationRequest bodyRequest = new AiGenerationRequest(
-                CommonTestFixtures.PROMPT_KEY_FILE_BODY, Path.of("Test.java"), source, header
+                CommonTestFixtures.PROMPT_KEY_FILE_BODY, Paths.get("Test.java"), source, header
         );
 
         // act
@@ -73,7 +73,7 @@ public class LlamaCppJniAiSummaryProviderTest {
 
             // assert
             assertThat(body, is(notNullValue()));
-            assertThat(body.isBlank(), is(false));
+            assertThat(body.trim().isEmpty(), is(false));
         }
     }
     // </editor-fold>
