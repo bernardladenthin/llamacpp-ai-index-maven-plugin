@@ -77,6 +77,7 @@ public class GenerateMojo extends AbstractAiIndexMojo {
         logExecutionParameters("Starting AI index generation", basePath, outputPath, resolvedSubtrees, resolvedExtensions);
 
         try {
+            applyRetryTemperatureIncrementConfig();
             final AiPromptSupport promptSupport = buildPromptSupport();
             final AiGenerationProviderFactory providerFactory = new AiGenerationProviderFactory();
 

@@ -88,6 +88,17 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     protected List<AiFieldGenerationConfig> fieldGenerations;
 
     /**
+     * Temperature increment applied on each retry when the AI provider returns empty output.
+     * If set here, this value overrides any nested retryTemperatureIncrement in fieldGenerations.
+     * Default is 0.1 (as defined in {@link AiGenerationConfig#DEFAULT_RETRY_TEMPERATURE_INCREMENT}).
+     *
+     * <p>This parameter exists to work around limitations in Maven's Plexus configuration system
+     * which does not properly deserialize nested complex objects within lists.</p>
+     */
+    @Parameter(property = "aiIndex.retryTemperatureIncrement")
+    protected Float retryTemperatureIncrement;
+
+    /**
      * Optional native library path passed to the llama.cpp JNI provider.
      * Leave unset to use the bundled native library.
      */
@@ -188,6 +199,29 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
      */
     protected AiPromptSupport buildPromptSupport() {
         return new AiPromptSupport(promptDefinitions);
+    }
+
+    /**
+     * Applies the retry temperature increment configuration to all field generation configs.
+     *
+     * <p>This method works around a limitation in Maven's Plexus configuration system which
+     * does not properly deserialize nested complex objects within lists. If
+     * {@link #retryTemperatureIncrement} is set, it will be applied to all field generation
+     * configs, overriding any values that may have been (improperly) deserialized from the
+     * nested XML structure.</p>
+     *
+     * @see #retryTemperatureIncrement
+     */
+    protected void applyRetryTemperatureIncrementConfig() {
+        if (retryTemperatureIncrement != null && fieldGenerations != null) {
+            for (AiFieldGenerationConfig fieldGen : fieldGenerations) {
+                if (fieldGen != null && fieldGen.getGeneration() != null) {
+                    fieldGen.getGeneration().setRetryTemperatureIncrement(retryTemperatureIncrement);
+                    getLog().debug("Applied retryTemperatureIncrement=" + retryTemperatureIncrement
+                            + " to field generation: " + fieldGen.getPromptKey());
+                }
+            }
+        }
     }
 
     /**
