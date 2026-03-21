@@ -48,7 +48,7 @@ public class AiMdDocumentCodec {
                     continue;
                 }
 
-                if (line.isBlank()) {
+                if (line.isEmpty() || line.trim().isEmpty()) {
                     headerFinished = true;
                     continue;
                 }
@@ -57,7 +57,7 @@ public class AiMdDocumentCodec {
             }
 
             if (!bodyStarted) {
-                if (line.isBlank() || HEADER_BODY_SEPARATOR.equals(line)) {
+                if ((line.isEmpty() || line.trim().isEmpty()) || HEADER_BODY_SEPARATOR.equals(line)) {
                     continue;
                 }
                 bodyStarted = true;
@@ -73,7 +73,7 @@ public class AiMdDocumentCodec {
         final StringBuilder builder = new StringBuilder();
         builder.append(new AiMdHeaderCodec().write(document.header()));
 
-        if (!document.body().isBlank()) {
+        if (!(document.body().isEmpty() || document.body().trim().isEmpty())) {
             builder.append(HEADER_BODY_SEPARATOR).append('\n');
             builder.append(document.body());
             if (!document.body().endsWith("\n")) {
@@ -85,6 +85,6 @@ public class AiMdDocumentCodec {
     }
 
     public void write(final Path file, final AiMdDocument document) throws IOException {
-        Files.writeString(file, write(document), StandardCharsets.UTF_8);
+        Files.write(file, write(document).getBytes(StandardCharsets.UTF_8));
     }
 }

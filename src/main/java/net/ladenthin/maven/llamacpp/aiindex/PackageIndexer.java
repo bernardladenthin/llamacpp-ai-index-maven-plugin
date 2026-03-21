@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PackageIndexer {
@@ -111,7 +112,7 @@ public class PackageIndexer {
             subDirectories = stream
                     .filter(Files::isDirectory)
                     .sorted()
-                    .toList();
+                    .collect(Collectors.toList());
         }
 
         for (Path subDirectory : subDirectories) {
@@ -219,7 +220,7 @@ public class PackageIndexer {
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, packageFile, CONTEXT_TYPE_PACKAGE, sourceText, baseHeader);
 
-        final String body = (result.body() == null || result.body().isBlank())
+        final String body = (result.body() == null || result.body().isEmpty() || result.body().trim().isEmpty())
                 ? buildDefaultPackageBody(contents)
                 : result.body();
 
@@ -233,7 +234,7 @@ public class PackageIndexer {
         final List<String> entries = new ArrayList<>();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).collect(Collectors.toList())) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
@@ -300,7 +301,7 @@ public class PackageIndexer {
         final StringBuilder builder = new StringBuilder();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).collect(Collectors.toList())) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
@@ -324,7 +325,7 @@ public class PackageIndexer {
         String latest = EPOCH_DATE;
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : stream.sorted(BY_FILE_NAME).collect(Collectors.toList())) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {

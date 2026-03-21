@@ -25,7 +25,7 @@ public class AiGenerationProviderFactory {
             final LlamaCppJniConfig llamaConfig,
             final AiPromptSupport promptSupport
     ) {
-        if (providerName == null || providerName.isBlank()) {
+        if (providerName == null || providerName.isEmpty() || providerName.trim().isEmpty()) {
             return new MockAiGenerationProvider();
         }
 

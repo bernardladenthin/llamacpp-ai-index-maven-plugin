@@ -50,7 +50,7 @@ public class AiMdHeaderSupport {
             return true;
         }
 
-        if (actualDocument.body().isBlank()) {
+        if (actualDocument.body().isEmpty() || actualDocument.body().trim().isEmpty()) {
             return true;
         }
 

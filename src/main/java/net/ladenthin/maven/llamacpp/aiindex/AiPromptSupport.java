@@ -38,11 +38,11 @@ public class AiPromptSupport {
 
     public String buildPrompt(final AiGenerationRequest request) {
         final String template = templates.get(request.promptKey());
-        if (template == null || template.isBlank()) {
+        if (template == null || template.isEmpty() || template.trim().isEmpty()) {
             throw new IllegalArgumentException("Missing prompt template for key: " + request.promptKey());
         }
 
-        return template.formatted(
+        return String.format(template,
                 request.sourceFile().getFileName(),
                 request.sourceText()
         );

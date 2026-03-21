@@ -133,7 +133,7 @@ public class AiMdHeaderCodec {
         }
 
         return new AiMdHeader(
-                Objects.requireNonNullElse(title, ""),
+                title != null ? title : "",
                 valueOrEmpty(values, FIELD_KEY_H),
                 valueOrEmpty(values, FIELD_KEY_C),
                 valueOrEmpty(values, FIELD_KEY_D),
@@ -145,14 +145,14 @@ public class AiMdHeaderCodec {
     }
 
     public String write(final AiMdHeader header) {
-        return ("### %s\n" +
-                "- H: %s\n" +
-                "- C: %s\n" +
-                "- D: %s\n" +
-                "- T: %s\n" +
-                "- G: %s\n" +
-                "- A: %s\n" +
-                "- X: %s\n").formatted(
+        return String.format("### %%s\n" +
+                "- H: %%s\n" +
+                "- C: %%s\n" +
+                "- D: %%s\n" +
+                "- T: %%s\n" +
+                "- G: %%s\n" +
+                "- A: %%s\n" +
+                "- X: %%s\n",
                 header.title(),
                 header.h(),
                 header.c(),
@@ -165,7 +165,8 @@ public class AiMdHeaderCodec {
     }
 
     private String valueOrEmpty(final Map<String, String> values, final String key) {
-        return Objects.requireNonNullElse(values.get(key), "");
+        final String value = values.get(key);
+        return value != null ? value : "";
     }
 
     public AiMdHeader read(final Path file) throws IOException {
