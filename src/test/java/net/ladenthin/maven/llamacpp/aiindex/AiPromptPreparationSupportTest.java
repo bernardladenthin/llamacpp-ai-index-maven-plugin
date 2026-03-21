@@ -19,6 +19,8 @@
 package net.ladenthin.maven.llamacpp.aiindex;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,7 +40,7 @@ public class AiPromptPreparationSupportTest {
                                      "Source:\n" +
                                      "%s\n");
 
-        return new AiPromptSupport(List.of(promptDefinition));
+        return new AiPromptSupport(Arrays.asList(promptDefinition));
     }
 
     private AiMdHeader buildHeader() {
@@ -63,7 +65,7 @@ public class AiPromptPreparationSupportTest {
                                   "}\n";
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
-                Path.of("Test.java"),
+                Paths.get("Test.java"),
                 sourceText,
                 buildHeader()
         );
@@ -77,7 +79,7 @@ public class AiPromptPreparationSupportTest {
         assertThat(preparedPrompt.originalSourceLength(), is(equalTo(sourceText.length())));
         assertThat(preparedPrompt.trimmedSourceLength(), is(equalTo(sourceText.length())));
         assertThat(preparedPrompt.prompt(), containsString("Test.java"));
-        assertThat(preparedPrompt.prompt(), containsString(sourceText.strip()));
+        assertThat(preparedPrompt.prompt(), containsString(sourceText.trim()));
     }
 
     @Test
@@ -87,7 +89,7 @@ public class AiPromptPreparationSupportTest {
         final String sourceText = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
-                Path.of("Test.java"),
+                Paths.get("Test.java"),
                 sourceText,
                 buildHeader()
         );
@@ -109,7 +111,7 @@ public class AiPromptPreparationSupportTest {
         final AiPromptPreparationSupport support = new AiPromptPreparationSupport(createPromptSupport());
         final AiGenerationRequest request = new AiGenerationRequest(
                 "file-summary",
-                Path.of("Test.java"),
+                Paths.get("Test.java"),
                 "abcdefghijklmnopqrstuvwxyz",
                 buildHeader()
         );

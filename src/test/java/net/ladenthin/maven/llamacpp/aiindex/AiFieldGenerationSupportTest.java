@@ -21,6 +21,7 @@ package net.ladenthin.maven.llamacpp.aiindex;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.maven.plugin.logging.Log;
@@ -295,7 +296,7 @@ public class AiFieldGenerationSupportTest {
 
         // act
         support.processFieldGenerations(
-                List.of(fieldConfig), contextFile, "file", "public class Test {}", header);
+                Arrays.asList(fieldConfig), contextFile, "file", "public class Test {}", header);
 
         // assert — no retry calls when maxRetries=0
         assertThat(retryCallCount.get(), is(equalTo(0)));

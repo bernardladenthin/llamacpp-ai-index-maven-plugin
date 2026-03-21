@@ -18,6 +18,7 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -57,7 +58,7 @@ public class CommonTestFixtures {
                                "Source:\n" +
                                "%s\n");
 
-        return List.of(bodyPrompt);
+        return Arrays.asList(bodyPrompt);
     }
 
     /**
@@ -68,7 +69,7 @@ public class CommonTestFixtures {
      * @return list with one field generation config for the body
      */
     public static List<AiFieldGenerationConfig> createFileFieldGenerations() {
-        return List.of(
+        return Arrays.asList(
                 createFieldConfig(PROMPT_KEY_FILE_BODY)
         );
     }
@@ -91,7 +92,7 @@ public class CommonTestFixtures {
                                "Source:\n" +
                                "%s\n");
 
-        return List.of(bodyPrompt);
+        return Arrays.asList(bodyPrompt);
     }
 
     /**
@@ -102,7 +103,7 @@ public class CommonTestFixtures {
      * @return list with one field generation config for the body
      */
     public static List<AiFieldGenerationConfig> createPackageFieldGenerations() {
-        return List.of(
+        return Arrays.asList(
                 createFieldConfig(PROMPT_KEY_PACKAGE_BODY)
         );
     }

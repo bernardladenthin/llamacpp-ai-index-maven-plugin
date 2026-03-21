@@ -165,3 +165,81 @@ if (!Files.exists(sourceFile)) {
     return false;
 }
 ```
+
+---
+
+## 6. Helper Classes — Instance Methods Over Static Utilities
+
+Helper classes should be designed for mockability and testability, not as static utility classes.
+
+### Rules
+
+- **Prefer instance methods over static methods.** Helper classes like `Java8CompatibilityHelper` must be regular classes (not `final`), with **instance methods** (not `static`).
+- **No private constructor.** Do not enforce non-instantiation; allow normal object creation.
+- **Dependency injection.** Store an instance as a field in classes that use the helper, making the dependency explicit and testable.
+- **Easy to mock.** Instance methods can be overridden or mocked in tests, enabling better test isolation.
+
+### Motivation
+
+Static utility methods are hard to mock and don't reflect actual dependencies. Using instance fields makes the dependency graph explicit and enables test-time substitution.
+
+### Example
+
+**Before (static utility, not mockable):**
+```java
+public final class Java8CompatibilityHelper {
+    private Java8CompatibilityHelper() { }
+
+    public static boolean isBlank(final String str) {
+        return str.isEmpty() || str.trim().isEmpty();
+    }
+}
+
+// Hard to mock — uses static method directly
+if (providerName == null || Java8CompatibilityHelper.isBlank(providerName)) { }
+```
+
+**After (instance method, mockable):**
+```java
+public class Java8CompatibilityHelper {
+
+    public boolean isBlank(final String str) {
+        return str.isEmpty() || str.trim().isEmpty();
+    }
+}
+
+// In the class that uses it:
+public class AiGenerationProviderFactory {
+    private final Java8CompatibilityHelper compatibilityHelper =
+        new Java8CompatibilityHelper();
+
+    public AiGenerationProvider create(final String providerName, ...) {
+        // Easy to test — can inject a mock
+        if (providerName == null || compatibilityHelper.isBlank(providerName)) { }
+    }
+}
+
+// In tests — inject a mock
+AiGenerationProviderFactory factory = new AiGenerationProviderFactory(
+    mockLog,
+    mockLlamaCppConfig,
+    mockPromptSupport,
+    mockCompatibilityHelper  // Can now be mocked!
+);
+```
+
+### When to Use Instance Methods
+
+- **Compatibility adapters** (e.g., `Java8CompatibilityHelper`) that wrap external APIs
+- **Support utilities** that collaborators need to substitute or mock in tests
+- **Cross-cutting utilities** used by many classes and likely to change
+- Any utility that might be enhanced, extended, or replaced with a mock
+
+### When Static Methods Are Acceptable
+
+Static methods are acceptable **only** for:
+- Pure mathematical functions with no side effects
+- Trivial string/number formatting that never needs to be mocked
+- Constant lookup functions that have no external dependencies
+
+---

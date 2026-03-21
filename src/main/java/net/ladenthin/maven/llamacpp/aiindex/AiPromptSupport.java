@@ -25,6 +25,7 @@ import java.util.Map;
 public class AiPromptSupport {
 
     private final Map<String, String> templates = new HashMap<>();
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     public AiPromptSupport(final List<AiPromptDefinition> promptDefinitions) {
         if (promptDefinitions != null) {
@@ -38,11 +39,11 @@ public class AiPromptSupport {
 
     public String buildPrompt(final AiGenerationRequest request) {
         final String template = templates.get(request.promptKey());
-        if (template == null || template.isBlank()) {
+        if (template == null || compatibilityHelper.isBlank(template)) {
             throw new IllegalArgumentException("Missing prompt template for key: " + request.promptKey());
         }
 
-        return template.formatted(
+        return compatibilityHelper.formatted(template,
                 request.sourceFile().getFileName(),
                 request.sourceText()
         );

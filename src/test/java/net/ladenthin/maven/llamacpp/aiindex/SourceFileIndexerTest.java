@@ -21,6 +21,8 @@ package net.ladenthin.maven.llamacpp.aiindex;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Test;
@@ -45,18 +47,18 @@ public class SourceFileIndexerTest {
         final Path aiFile = outputRoot.resolve("main/java/com/example/Test.java.ai.md");
 
         Files.createDirectories(sourceFile.getParent());
-        Files.writeString(sourceFile, "package com.example;\n" +
+        Files.write(sourceFile, ("package com.example;\n" +
                                       "\n" +
                                       "public class Test {\n" +
                                       "    public String hello(final String name) {\n" +
                                       "        return \"Hello \" + name;\n" +
                                       "    }\n" +
-                                      "}\n", StandardCharsets.UTF_8);
+                                      "}\n").getBytes(StandardCharsets.UTF_8));
 
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final SourceFileIndexer indexer = new SourceFileIndexer(
                 new SystemStreamLog(), baseDirectory, outputRoot,
-                List.of(".java"), "1.0.0", "0.0.0", List.of(), false,
+                Arrays.asList(".java"), "1.0.0", "0.0.0", Collections.<Path>emptyList(), false,
                 new MockAiGenerationProvider(),
                 CommonTestFixtures.createFileFieldGenerations(), promptSupport
         );
@@ -81,10 +83,10 @@ public class SourceFileIndexerTest {
         assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_FILE)));
         assertThat(document.header().g(), is(equalTo("1.0.0")));
         assertThat(document.header().a(), is(equalTo("0.0.0")));
-        assertThat(document.header().c().isBlank(), is(false));
-        assertThat(document.header().d().isBlank(), is(false));
-        assertThat(document.header().t().isBlank(), is(false));
-        assertThat(document.body().isBlank(), is(false));
+        assertThat(document.header().c().trim().isEmpty(), is(false));
+        assertThat(document.header().d().trim().isEmpty(), is(false));
+        assertThat(document.header().t().trim().isEmpty(), is(false));
+        assertThat(document.body().trim().isEmpty(), is(false));
     }
     // </editor-fold>
 }

@@ -19,6 +19,7 @@
 package net.ladenthin.maven.llamacpp.aiindex;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Rule;
@@ -121,7 +122,7 @@ public class AiMdHeaderSupportTest {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader original = buildHeader("AAAAAAAA", FIXED_G);
-        Files.writeString(target, headerCodec.write(original));
+        Files.write(target, headerCodec.write(original).getBytes(StandardCharsets.UTF_8));
 
         final AiMdHeader changed = buildHeader("BBBBBBBB", FIXED_G);
 
@@ -137,7 +138,7 @@ public class AiMdHeaderSupportTest {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader original = buildHeader(FIXED_CHECKSUM, FIXED_G);
-        Files.writeString(target, headerCodec.write(original));
+        Files.write(target, headerCodec.write(original).getBytes(StandardCharsets.UTF_8));
 
         final AiMdHeader changed = buildHeader(FIXED_CHECKSUM, "2.0.0");
 
@@ -153,7 +154,7 @@ public class AiMdHeaderSupportTest {
         // arrange
         final Path target = folder.getRoot().toPath().resolve("test.ai.md");
         final AiMdHeader header = buildHeader(FIXED_CHECKSUM, FIXED_G);
-        Files.writeString(target, headerCodec.write(header));
+        Files.write(target, headerCodec.write(header).getBytes(StandardCharsets.UTF_8));
 
         // act
         final boolean result = headerSupport.shouldWrite(true, target, header);

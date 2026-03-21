@@ -89,6 +89,7 @@ public class AiFieldGenerationSupport {
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     /**
      * Creates a new {@code AiFieldGenerationSupport}.
@@ -186,9 +187,9 @@ public class AiFieldGenerationSupport {
 
             body = generationProvider.generate(generationRequest);
 
-            if (body.isBlank()) {
+            if (compatibilityHelper.isBlank(body)) {
                 final int maxRetries = generationConfig.getMaxRetries();
-                for (int attempt = 1; attempt <= maxRetries && body.isBlank(); attempt++) {
+                for (int attempt = 1; attempt <= maxRetries && compatibilityHelper.isBlank(body); attempt++) {
                     // Escalate temperature with each retry to break out of EOS-early failure modes.
                     // Formula: baseTemp + (attempt * increment)
                     // Example with baseTemp=0.4, increment=0.2:
@@ -197,16 +198,13 @@ public class AiFieldGenerationSupport {
                     // - Attempt 3: 0.4 + (3 × 0.2) = 1.0
                     final float retryTemperature = generationConfig.getTemperature()
                             + attempt * generationConfig.getRetryTemperatureIncrement();
-                    log.info("Temperature escalation: baseTemp=" + generationConfig.getTemperature()
-                            + " + (attempt " + attempt + " × increment " + generationConfig.getRetryTemperatureIncrement()
-                            + ") = " + retryTemperature);
                     log.info(RETRY_ATTEMPT_INFO_PREFIX + attempt + RETRY_OF_INFIX + maxRetries
                             + RETRY_FIELD_INFIX + fieldGeneration.getPromptKey()
                             + RETRY_TEMPERATURE_INFIX + retryTemperature
                             + " for " + contextFile);
                     body = generationProvider.generate(generationRequest, retryTemperature);
                 }
-                if (body.isBlank()) {
+                if (compatibilityHelper.isBlank(body)) {
                     log.warn(EMPTY_OUTPUT_WARN_PREFIX + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getPromptKey() + "': " + contextFile);
                 }
             }

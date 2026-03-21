@@ -71,6 +71,7 @@ public class PackageIndexer {
     private final AiChecksumSupport checksumSupport = new AiChecksumSupport();
     private final AiMdHeaderSupport headerSupport = new AiMdHeaderSupport();
     private final AiMdDocumentCodec documentCodec = new AiMdDocumentCodec();
+    private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     private final AiFieldGenerationSupport fieldGenerationSupport;
 
@@ -108,10 +109,9 @@ public class PackageIndexer {
 
         final List<Path> subDirectories;
         try (Stream<Path> stream = Files.list(directory)) {
-            subDirectories = stream
+            subDirectories = compatibilityHelper.toList(stream
                     .filter(Files::isDirectory)
-                    .sorted()
-                    .toList();
+                    .sorted());
         }
 
         for (Path subDirectory : subDirectories) {
@@ -219,7 +219,7 @@ public class PackageIndexer {
         final AiGenerationResult result = fieldGenerationSupport.processFieldGenerations(
                 fieldGenerations, packageFile, CONTEXT_TYPE_PACKAGE, sourceText, baseHeader);
 
-        final String body = (result.body() == null || result.body().isBlank())
+        final String body = (result.body() == null || compatibilityHelper.isBlank(result.body()))
                 ? buildDefaultPackageBody(contents)
                 : result.body();
 
@@ -233,7 +233,7 @@ public class PackageIndexer {
         final List<String> entries = new ArrayList<>();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : compatibilityHelper.toList(stream.sorted(BY_FILE_NAME))) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
@@ -300,7 +300,7 @@ public class PackageIndexer {
         final StringBuilder builder = new StringBuilder();
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : compatibilityHelper.toList(stream.sorted(BY_FILE_NAME))) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {
@@ -324,7 +324,7 @@ public class PackageIndexer {
         String latest = EPOCH_DATE;
 
         try (Stream<Path> stream = Files.list(directory)) {
-            for (Path path : stream.sorted(BY_FILE_NAME).toList()) {
+            for (Path path : compatibilityHelper.toList(stream.sorted(BY_FILE_NAME))) {
                 final String name = path.getFileName().toString();
 
                 if (Files.isDirectory(path)) {

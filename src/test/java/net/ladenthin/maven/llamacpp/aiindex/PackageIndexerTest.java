@@ -20,6 +20,7 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Test;
@@ -55,7 +56,7 @@ public class PackageIndexerTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createPackagePromptDefinitions());
         final PackageIndexer indexer = new PackageIndexer(
                 new SystemStreamLog(), baseDirectory, outputRoot,
-                "1.0.0", "0.0.0", List.of(), false, new MockAiGenerationProvider(),
+                "1.0.0", "0.0.0", Collections.<Path>emptyList(), false, new MockAiGenerationProvider(),
                 CommonTestFixtures.createPackageFieldGenerations(), promptSupport
         );
 
@@ -79,10 +80,10 @@ public class PackageIndexerTest {
         assertThat(document.header().x(), is(equalTo(AiMdHeaderCodec.NODE_TYPE_PACKAGE)));
         assertThat(document.header().g(), is(equalTo("1.0.0")));
         assertThat(document.header().a(), is(equalTo("0.0.0")));
-        assertThat(document.header().c().isBlank(), is(false));
-        assertThat(document.header().d().isBlank(), is(false));
-        assertThat(document.header().t().isBlank(), is(false));
-        assertThat(document.body().isBlank(), is(false));
+        assertThat(document.header().c().trim().isEmpty(), is(false));
+        assertThat(document.header().d().trim().isEmpty(), is(false));
+        assertThat(document.header().t().trim().isEmpty(), is(false));
+        assertThat(document.body().trim().isEmpty(), is(false));
     }
     // </editor-fold>
 }
