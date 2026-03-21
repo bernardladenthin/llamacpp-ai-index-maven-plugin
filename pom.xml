@@ -166,19 +166,30 @@
                             <!--
                                 AI model definitions: define each model once and reference it by key.
                                 No Maven profiles or properties are needed for model configuration.
-
-                                maxInputChars calculation:
-                                  (context_size × 4) − prompt_overhead − (max_output_tokens × 4) − safety_margin
-
-                                Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context):
-                                  16384×4 = 65536 − 2500 − (2048×4) − 500 = 54300 chars
-                                  https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF
-
-                                Codestral-22B-v0.1-Q6_K (32 K context):
-                                  32768×4 = 131072 − 2500 − (1536×4) − 500 = 121900 chars (set to 121800 conservatively)
-                                  https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF
                             -->
                             <aiDefinitions>
+                                <!--
+                                    Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context)
+                                    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF
+
+                                    Maximum input characters for source code before trimming.
+                                    Calculated as: (context_size × 4) - overhead
+
+                                    Context: 16384 tokens
+                                    Chars per token: ~4
+                                    [Total available]: 16384 × 4 = 65,536 chars
+
+                                    Overhead (conservative estimate):
+                                    - Prompt template: ~2500 chars
+                                    - EOF marker: ~30 chars
+                                    - Max output tokens (2048 tokens × 4): ~8,192 chars
+                                    - Safety margin: ~500 chars
+                                    - [Subtotal overhead]: ~11,222 chars
+
+                                    Available for source: [Total available] - [Subtotal overhead]
+                                    Available for source: 65,536 - 11,222 = 54,314 chars
+                                    Set to: 54,300 (rounded, conservative)
+                                -->
                                 <aiDefinition>
                                     <key>Mistral-7B-Instruct-v0.3-Q4_K_M-C16k</key>
                                     <modelPath>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</modelPath>
@@ -190,6 +201,28 @@
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
+                                <!--
+                                    Codestral-22B-v0.1-Q6_K (32 K context)
+                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF
+
+                                    Maximum input characters for source code before trimming.
+                                    Calculated as: (context_size × 4) - overhead
+
+                                    Context: 32768 tokens
+                                    Chars per token: ~4
+                                    [Total available]: 32768 × 4 = 131,072 chars
+
+                                    Overhead (conservative estimate):
+                                    - Prompt template: ~2500 chars
+                                    - EOF marker: ~30 chars
+                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
+                                    - Safety margin: ~500 chars
+                                    - [Subtotal overhead]: ~9,174 chars
+
+                                    Available for source: [Total available] - [Subtotal overhead]
+                                    Available for source: 131,072 - 9,174 = 121,898 chars
+                                    Set to: 121,800 (rounded, conservative)
+                                -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q6_K-C32k</key>
                                     <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
