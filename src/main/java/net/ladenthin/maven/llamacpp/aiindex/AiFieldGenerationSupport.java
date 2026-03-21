@@ -55,6 +55,37 @@ public class AiFieldGenerationSupport {
      */
     private static final String EMPTY_OUTPUT_WARN_PREFIX = "AI provider returned empty body for ";
 
+    /**
+     * Log message prefix for info messages emitted at the start of each retry attempt,
+     * showing the attempt number and the escalated sampling temperature.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_ATTEMPT_INFO_PREFIX = "Retrying AI generation (attempt ";
+
+    /**
+     * Log message fragment inserted between the attempt index and the maximum retry count
+     * in retry-attempt info messages.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_OF_INFIX = "/";
+
+    /**
+     * Log message fragment inserted before the prompt key in retry-attempt info messages.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_FIELD_INFIX = ") for field '";
+
+    /**
+     * Log message fragment inserted before the escalated temperature value in retry-attempt
+     * info messages.
+     *
+     * @see #processFieldGenerations
+     */
+    private static final String RETRY_TEMPERATURE_INFIX = "' temperature=";
+
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
@@ -86,6 +117,11 @@ public class AiFieldGenerationSupport {
      *   <li>A trim warning is logged if the source was truncated and
      *       {@link AiGenerationConfig#isWarnOnTrim()} is {@code true}.</li>
      *   <li>The AI provider generates a value for the trimmed source.</li>
+     *   <li>If the provider returns a blank body, up to {@link AiGenerationConfig#getMaxRetries()}
+     *       retry attempts are made, each using a temperature of
+     *       {@code temperature + attempt * retryTemperatureIncrement} to escape
+     *       EOS-early failure modes. Each retry is logged at INFO level.
+     *       A warning is only emitted after all retries are exhausted.</li>
      *   <li>The generated value is stored as the document body.</li>
      * </ol>
      *
@@ -141,15 +177,29 @@ public class AiFieldGenerationSupport {
                         + ", max input chars " + generationConfig.getMaxInputChars() + ")");
             }
 
-            body = generationProvider.generate(new AiGenerationRequest(
+            final AiGenerationRequest generationRequest = new AiGenerationRequest(
                     fieldGeneration.getPromptKey(),
                     contextFile,
                     preparedPrompt.sourceText(),
                     baseHeader
-            ));
+            );
+
+            body = generationProvider.generate(generationRequest);
 
             if (body.isBlank()) {
-                log.warn(EMPTY_OUTPUT_WARN_PREFIX + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getPromptKey() + "': " + contextFile);
+                final int maxRetries = generationConfig.getMaxRetries();
+                for (int attempt = 1; attempt <= maxRetries && body.isBlank(); attempt++) {
+                    final float retryTemperature = generationConfig.getTemperature()
+                            + attempt * generationConfig.getRetryTemperatureIncrement();
+                    log.info(RETRY_ATTEMPT_INFO_PREFIX + attempt + RETRY_OF_INFIX + maxRetries
+                            + RETRY_FIELD_INFIX + fieldGeneration.getPromptKey()
+                            + RETRY_TEMPERATURE_INFIX + retryTemperature
+                            + " for " + contextFile);
+                    body = generationProvider.generate(generationRequest, retryTemperature);
+                }
+                if (body.isBlank()) {
+                    log.warn(EMPTY_OUTPUT_WARN_PREFIX + contextType + TRIM_WARN_FIELD_LABEL + fieldGeneration.getPromptKey() + "': " + contextFile);
+                }
             }
         }
 

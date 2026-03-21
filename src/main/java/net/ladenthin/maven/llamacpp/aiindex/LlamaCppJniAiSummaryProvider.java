@@ -48,10 +48,15 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
 
     @Override
     public String generate(final AiGenerationRequest request) throws IOException {
+        return generate(request, config.temperature());
+    }
+
+    @Override
+    public String generate(final AiGenerationRequest request, final float temperatureOverride) throws IOException {
         final String prompt = promptSupport.buildPrompt(request);
 
         final InferenceParameters inferenceParameters = new InferenceParameters(prompt)
-                .setTemperature(config.temperature())
+                .setTemperature(temperatureOverride)
                 .setNPredict(config.maxOutputTokens());
 
         final String response = model.complete(inferenceParameters);
