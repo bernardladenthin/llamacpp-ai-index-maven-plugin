@@ -288,19 +288,18 @@
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
                                 <!--
-                                    Llama-3.1-8B-Instruct-Q4_K_M (32 K context, CPU-optimized)
-                                    IMPORTANT: This model must be converted from HuggingFace to GGUF format first.
-                                    https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct
+                                    Meta-Llama-3.1-8B-Instruct-Q4_K_M (32 K context, CPU-default)
+                                    https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
 
-                                    Conversion steps:
-                                    1. Download the model from HuggingFace (requires license agreement)
-                                    2. Use llama.cpp/quantize tool to convert to Q4_K_M:
-                                       ./quantize /path/to/model Q4_K_M /output/path/model.gguf
-                                    3. Place the resulting .gguf file in the modelPath location
+                                    Download:
+                                    huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
+                                      --include "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf" --local-dir ./
 
-                                    File size: ~13.34GB (Q4_K_M quantization)
-                                    CPU Performance: ~2-3x faster than Q6_K on CPU
-                                    Recommended for: CPU-only systems with >16GB RAM
+                                    File size: 4.92GB (Q4_K_M quantization)
+                                    Quality: "Good quality, default size for must use cases, recommended"
+                                    CPU Performance: Excellent balance for CPU inference
+                                    RAM required: ~8-10GB (context + model)
+                                    Recommended for: CPU-only systems (default choice)
 
                                     Maximum input characters for source code before trimming.
                                     Calculated as: (context_size × 4) - overhead
@@ -322,12 +321,67 @@
                                 -->
                                 <aiDefinition>
                                     <key>Llama-3.1-8B-Instruct-Q4_K_M-C32k</key>
-                                    <modelPath>path/to/llama-3.1-8b-instruct-q4_k_m.gguf</modelPath>
+                                    <modelPath>/path/to/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>512</maxOutputTokens>
                                     <temperature>0.25</temperature>
                                     <threads>8</threads>
                                     <maxInputChars>125900</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!--
+                                    Meta-Llama-3.1-8B-Instruct-Q5_K_M (32 K context, CPU-high quality)
+                                    https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
+
+                                    Download:
+                                    huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
+                                      --include "Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf" --local-dir ./
+
+                                    File size: 5.73GB (Q5_K_M quantization)
+                                    Quality: "High quality, recommended"
+                                    CPU Performance: Slower than Q4_K_M (~20-30%), better quality
+                                    RAM required: ~9-11GB (context + model)
+                                    Recommended for: CPU systems with >12GB RAM wanting higher quality
+
+                                    Maximum input characters: 125,900 chars (same as Q4_K_M)
+                                -->
+                                <aiDefinition>
+                                    <key>Llama-3.1-8B-Instruct-Q5_K_M-C32k</key>
+                                    <modelPath>/path/to/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>512</maxOutputTokens>
+                                    <temperature>0.25</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>125900</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!--
+                                    Meta-Llama-3.1-8B-Instruct-Q3_K_M (32 K context, low RAM)
+                                    https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
+
+                                    Download:
+                                    huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
+                                      --include "Meta-Llama-3.1-8B-Instruct-Q3_K_M.gguf" --local-dir ./
+
+                                    File size: 4.02GB (Q3_K_M quantization)
+                                    Quality: "Low quality"
+                                    CPU Performance: Fastest, but lower quality
+                                    RAM required: ~6-8GB (context + model)
+                                    Recommended for: CPU systems with <12GB RAM
+                                    Note: Reduced maxInputChars due to quality constraints
+
+                                    Available for source: 125,900 chars (reduced to 100,000 for safety)
+                                -->
+                                <aiDefinition>
+                                    <key>Llama-3.1-8B-Instruct-Q3_K_M-C32k</key>
+                                    <modelPath>/path/to/Meta-Llama-3.1-8B-Instruct-Q3_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>512</maxOutputTokens>
+                                    <temperature>0.25</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>100000</maxInputChars>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
@@ -384,7 +438,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>file-body</promptKey>
-                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Llama-3.1-8B-Instruct-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
@@ -437,7 +491,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>
-                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Llama-3.1-8B-Instruct-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
