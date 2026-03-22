@@ -235,6 +235,39 @@
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
+                                <!-- Ministral-3-8B-Instruct-2512-Q4_K_M (32 K context)
+                                     8.4B language model + 0.4B vision encoder; supports 256k context window.
+                                     Temperature < 0.1 recommended for production (mistral.ai/news/mistral-3).
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF -->
+                                <aiDefinition>
+                                    <key>Ministral-3-8B-Instruct-2512-Q4_K_M-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Ministral-3-8B-Instruct-2512-Q4_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>0.1</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!-- Ministral-3-14B-Instruct-2512-Q4_K_M (32 K context)
+                                     13.5B language model + 0.4B vision encoder; supports 256k context window.
+                                     Comparable performance to Mistral Small 3.2 24B at lower resource cost.
+                                     Temperature < 0.1 recommended for production (mistral.ai/news/mistral-3).
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512-GGUF -->
+                                <aiDefinition>
+                                    <key>Ministral-3-14B-Instruct-2512-Q4_K_M-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Ministral-3-14B-Instruct-2512-Q4_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>0.1</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
                             </aiDefinitions>
 
                             <!--
