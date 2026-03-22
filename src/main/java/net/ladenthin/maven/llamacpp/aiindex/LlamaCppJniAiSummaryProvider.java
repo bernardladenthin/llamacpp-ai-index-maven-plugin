@@ -43,7 +43,24 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
                 .setCtxSize(config.contextSize())
                 .setThreads(config.threads());
 
-        this.model = new LlamaModel(modelParameters);
+        try {
+            this.model = new LlamaModel(modelParameters);
+        } catch (final RuntimeException e) {
+            // Provide helpful error message for unsupported model architectures
+            final String modelPath = config.modelPath();
+            if (e.getMessage() != null && e.getMessage().contains("unknown model architecture")) {
+                throw new RuntimeException(
+                    "Failed to load model: " + modelPath + "\n" +
+                    "The model architecture is not supported by the bundled llama.cpp library.\n" +
+                    "Possible causes:\n" +
+                    "- Model uses a newer architecture (e.g., mistral3) not yet supported in de.kherud:llama\n" +
+                    "- Consider using an older model version or a different AI provider\n" +
+                    "Original error: " + e.getMessage(),
+                    e
+                );
+            }
+            throw e;
+        }
     }
 
     @Override
