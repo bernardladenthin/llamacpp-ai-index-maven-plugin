@@ -166,49 +166,12 @@
                             <!--
                                 AI model definitions: define each model once and reference it by key.
                                 No Maven profiles or properties are needed for model configuration.
-                            -->
-                            <!--
-                                Maximum input characters for source code before trimming.
-                                Calculated as: (context_size × 4) - overhead
-
-                                Context: ${CONTEXT_SIZE} tokens
-                                Chars per token: ~4
-                                [Total available]: ${CONTEXT_SIZE} × 4 = ${TOTAL_CHARS} chars
-
-                                Overhead (conservative estimate):
-                                - Prompt template: ~${PROMPT_CHARS} chars
-                                - EOF marker: ~${EOF_CHARS} chars
-                                - Max output (${MAX_OUTPUT_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
-                                - Safety margin: ~${SAFETY_CHARS} chars
-                                - [Subtotal overhead]: ~${OVERHEAD_TOTAL} chars
-
-                                Available for source: [Total available] - [Subtotal overhead]
-                                Available for source: ${TOTAL_CHARS} - ${OVERHEAD_TOTAL} = ${AVAILABLE_CHARS} chars
-                                Set to: ${FINAL_CHARS} (rounded, conservative)
+                                maxInputChars is calculated automatically from contextSize,
+                                maxOutputTokens, charsPerToken, and the prompt template length.
                             -->
                             <aiDefinitions>
-                                <!--
-                                    Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context)
-                                    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf
-
-                                    Maximum input characters for source code before trimming.
-                                    Calculated as: (context_size × 4) - overhead
-
-                                    Context: 16384 tokens
-                                    Chars per token: ~4
-                                    [Total available]: 16384 × 4 = 65,536 chars
-
-                                    Overhead (conservative estimate):
-                                    - Prompt template: ~2500 chars
-                                    - EOF marker: ~30 chars
-                                    - Max output tokens (2048 tokens × 4): ~8,192 chars
-                                    - Safety margin: ~500 chars
-                                    - [Subtotal overhead]: ~11,222 chars
-
-                                    Available for source: [Total available] - [Subtotal overhead]
-                                    Available for source: 65,536 - 11,222 = 54,314 chars
-                                    Set to: 54,300 (rounded, conservative)
-                                -->
+                                <!-- Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context)
+                                     https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf -->
                                 <aiDefinition>
                                     <key>Mistral-7B-Instruct-v0.3-Q4_K_M-C16k</key>
                                     <modelPath>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</modelPath>
@@ -216,32 +179,12 @@
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
-                                    <maxInputChars>54300</maxInputChars>
+                                    <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
-                                <!--
-                                    bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
-                                    https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf
-
-                        Maximum input characters for source code before trimming.
-                        Calculated as: (context_size × 4) - overhead
-
-                        Context: 32768 tokens
-                        Chars per token: ~4
-                        [Total available]: 32768 × 4 = 131,072 chars
-
-                        Overhead (conservative estimate):
-                        - Prompt template: ~2500 chars
-                        - EOF marker: ~30 chars
-                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
-                        - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~9,174 chars
-
-                        Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 131,072 - 9,174 = 121,898 chars
-                        Set to: 121,800 (rounded, conservative)
-                    -->
+                                <!-- bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
+                                     https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf -->
                                 <aiDefinition>
                                     <key>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</key>
                                     <modelPath>C:/Users/berna/Downloads/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
@@ -249,32 +192,12 @@
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
-                                    <maxInputChars>121800</maxInputChars>
+                                    <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
-                                <!--
-                                    Codestral-22B-v0.1-Q4_K (32 K context)
-                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q4_K.gguf
-
-                        Maximum input characters for source code before trimming.
-                        Calculated as: (context_size × 4) - overhead
-
-                        Context: 32768 tokens
-                        Chars per token: ~4
-                        [Total available]: 32768 × 4 = 131,072 chars
-
-                        Overhead (conservative estimate):
-                        - Prompt template: ~2500 chars
-                        - EOF marker: ~30 chars
-                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
-                        - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~9,174 chars
-
-                        Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 131,072 - 9,174 = 121,898 chars
-                        Set to: 121,800 (rounded, conservative)
-                    -->
+                                <!-- Codestral-22B-v0.1-Q4_K (32 K context)
+                                     https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q4_K.gguf -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q4_K-C32k</key>
                                     <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q4_K.gguf</modelPath>
@@ -282,32 +205,12 @@
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
-                                    <maxInputChars>121800</maxInputChars>
+                                    <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
-                                <!--
-                                    Codestral-22B-v0.1-Q6_K (32 K context)
-                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf
-
-                        Maximum input characters for source code before trimming.
-                        Calculated as: (context_size × 4) - overhead
-
-                        Context: 32768 tokens
-                        Chars per token: ~4
-                        [Total available]: 32768 × 4 = 131,072 chars
-
-                        Overhead (conservative estimate):
-                        - Prompt template: ~2500 chars
-                        - EOF marker: ~30 chars
-                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
-                        - Safety margin: ~500 chars
-                        - [Subtotal overhead]: ~9,174 chars
-
-                        Available for source: [Total available] - [Subtotal overhead]
-                        Available for source: 131,072 - 9,174 = 121,898 chars
-                        Set to: 121,800 (rounded, conservative)
-                    -->
+                                <!-- Codestral-22B-v0.1-Q6_K (32 K context)
+                                     https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q6_K-C32k</key>
                                     <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
@@ -315,33 +218,12 @@
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
-                                    <maxInputChars>121800</maxInputChars>
+                                    <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
-                                <!--
-                                    Qwen2.5-Coder-7B-Instruct-Q5_K_M (16 K context)
-                                    https://ollama.com/library/qwen2.5-coder:7b-instruct-q4_K_M
-                                    https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/blob/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf
-
-                                    Maximum input characters for source code before trimming.
-                                    Calculated as: (context_size × 4) - overhead
-
-                                    Context: 16384 tokens
-                                    Chars per token: ~4
-                                    [Total available]: 16384 × 4 = 65,536 chars
-
-                                    Overhead (conservative estimate):
-                                    - Prompt template: ~2500 chars
-                                    - EOF marker: ~30 chars
-                                    - Max output tokens (2048 tokens × 4): ~8,192 chars
-                                    - Safety margin: ~500 chars
-                                    - [Subtotal overhead]: ~11,222 chars
-
-                                    Available for source: [Total available] - [Subtotal overhead]
-                                    Available for source: 65,536 - 11,222 = 54,314 chars
-                                    Set to: 54,300 (rounded, conservative)
-                                -->
+                                <!-- Qwen2.5-Coder-7B-Instruct-Q5_K_M (16 K context)
+                                     https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/blob/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf -->
                                 <aiDefinition>
                                     <key>Qwen2.5-Coder-7B-Instruct-Q5_K_M-C16k</key>
                                     <modelPath>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q5_k_m.gguf</modelPath>
@@ -349,26 +231,20 @@
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
-                                    <maxInputChars>54300</maxInputChars>
+                                    <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
                             </aiDefinitions>
 
-                        </configuration>
-
-                        <executions>
-                            <execution>
-                                <id>ai-generate</id>
-                                <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
-                                <configuration>
-                                    <promptDefinitions>
-                                        <promptDefinition>
-                                            <key>file-body</key>
-                                            <template><![CDATA[
+                            <!--
+                                Prompt template definitions shared across all executions.
+                                Each promptKey is referenced from fieldGenerations in the executions below.
+                            -->
+                            <promptDefinitions>
+                                <promptDefinition>
+                                    <key>file-body</key>
+                                    <template><![CDATA[
 You generate a detailed markdown body section for a Java source file. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
 
 Rules for the entire output:
@@ -399,30 +275,11 @@ File: %s
 
 Source:
 %s
-                                            ]]></template>
-                                        </promptDefinition>
-                                    </promptDefinitions>
-
-                                    <fieldGenerations>
-                                        <fieldGeneration>
-                                            <promptKey>file-body</promptKey>
-                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
-                                        </fieldGeneration>
-                                    </fieldGenerations>
-                                </configuration>
-                            </execution>
-
-                            <execution>
-                                <id>ai-aggregate-packages</id>
-                                <phase>process-resources</phase>
-                                <goals>
-                                    <goal>aggregate-packages</goal>
-                                </goals>
-                                <configuration>
-                                    <promptDefinitions>
-                                        <promptDefinition>
-                                            <key>package-body</key>
-                                            <template><![CDATA[
+                                    ]]></template>
+                                </promptDefinition>
+                                <promptDefinition>
+                                    <key>package-body</key>
+                                    <template><![CDATA[
 You generate a detailed markdown body section for a Java package or package-like index. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
 
 Rules for the entire output:
@@ -452,10 +309,36 @@ File: %s
 
 Source:
 %s
-                                            ]]></template>
-                                        </promptDefinition>
-                                    </promptDefinitions>
+                                    ]]></template>
+                                </promptDefinition>
+                            </promptDefinitions>
 
+                        </configuration>
+
+                        <executions>
+                            <execution>
+                                <id>ai-generate</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <fieldGenerations>
+                                        <fieldGeneration>
+                                            <promptKey>file-body</promptKey>
+                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
+                                        </fieldGeneration>
+                                    </fieldGenerations>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <id>ai-aggregate-packages</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>aggregate-packages</goal>
+                                </goals>
+                                <configuration>
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>

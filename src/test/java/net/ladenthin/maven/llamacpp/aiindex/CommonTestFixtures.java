@@ -127,6 +127,9 @@ public class CommonTestFixtures {
     public static List<AiModelDefinition> createDefaultAiModelDefinitions() {
         final AiModelDefinition definition = new AiModelDefinition();
         definition.setKey(AI_DEFINITION_KEY_DEFAULT);
+        // Disable automatic maxInputChars calculation in tests so that test assertions
+        // about log message counts and content are not affected by the calculation log output.
+        definition.setCharsPerToken(0);
         return Arrays.asList(definition);
     }
 

@@ -37,9 +37,28 @@ public class AiGenerationConfig {
 
     /**
      * Default maximum number of characters of source text fed into the prompt.
-     * Prompts exceeding this limit are trimmed before being sent to the AI provider.
+     * Used as a fallback when {@link #charsPerToken} is zero (e.g. in mock-based tests).
+     * When {@link #charsPerToken} is greater than zero, {@code maxInputChars} is calculated
+     * automatically from context size, output tokens, prompt overhead, and safety margin.
      */
     public static final int DEFAULT_MAX_INPUT_CHARS = 120000;
+
+    /**
+     * Default number of characters per token used in the automatic {@code maxInputChars}
+     * calculation. A value of {@code 4} is a conventional conservative estimate that works
+     * well across most Latin-script source code.
+     *
+     * <p>Set to {@code 0} to disable automatic calculation and fall back to
+     * {@link #DEFAULT_MAX_INPUT_CHARS}.</p>
+     */
+    public static final int DEFAULT_CHARS_PER_TOKEN = 4;
+
+    /**
+     * Default safety margin in characters subtracted from the total available budget
+     * during automatic {@code maxInputChars} calculation. Provides headroom for
+     * tokenisation overhead and minor prompt expansions.
+     */
+    public static final int DEFAULT_SAFETY_MARGIN_CHARS = 500;
 
     /**
      * Default setting for whether to emit a warning when the prompt source text is trimmed
@@ -69,6 +88,7 @@ public class AiGenerationConfig {
     private int maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS;
     private float temperature = DEFAULT_TEMPERATURE;
     private int threads = DEFAULT_THREADS;
+    private int charsPerToken = DEFAULT_CHARS_PER_TOKEN;
     private int maxInputChars = DEFAULT_MAX_INPUT_CHARS;
     private boolean warnOnTrim = DEFAULT_WARN_ON_TRIM;
     private int maxRetries = DEFAULT_MAX_RETRIES;
@@ -112,6 +132,26 @@ public class AiGenerationConfig {
 
     public void setThreads(final int threads) {
         this.threads = threads;
+    }
+
+    /**
+     * Returns the number of characters per token used in automatic {@code maxInputChars}
+     * calculation.
+     *
+     * @return chars-per-token ratio; {@code 0} disables automatic calculation
+     */
+    public int getCharsPerToken() {
+        return charsPerToken;
+    }
+
+    /**
+     * Sets the number of characters per token.
+     *
+     * @param charsPerToken approximate characters per token; use {@code 0} to disable
+     *                      automatic calculation and fall back to {@link #getMaxInputChars()}
+     */
+    public void setCharsPerToken(final int charsPerToken) {
+        this.charsPerToken = charsPerToken;
     }
 
     public int getMaxInputChars() {

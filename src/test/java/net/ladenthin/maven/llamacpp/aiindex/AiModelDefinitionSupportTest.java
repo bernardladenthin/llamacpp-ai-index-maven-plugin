@@ -58,7 +58,7 @@ public class AiModelDefinitionSupportTest {
         definition.setMaxOutputTokens(512);
         definition.setTemperature(0.8f);
         definition.setThreads(4);
-        definition.setMaxInputChars(50000);
+        definition.setCharsPerToken(3);
         definition.setWarnOnTrim(false);
         definition.setMaxRetries(5);
         definition.setRetryTemperatureIncrement(0.2f);
@@ -73,7 +73,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.getMaxOutputTokens(), is(equalTo(512)));
         assertThat(config.getTemperature(), is(equalTo(0.8f)));
         assertThat(config.getThreads(), is(equalTo(4)));
-        assertThat(config.getMaxInputChars(), is(equalTo(50000)));
+        assertThat(config.getCharsPerToken(), is(equalTo(3)));
         assertThat(config.isWarnOnTrim(), is(false));
         assertThat(config.getMaxRetries(), is(equalTo(5)));
         assertThat(config.getRetryTemperatureIncrement(), is(equalTo(0.2f)));
@@ -95,6 +95,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.getMaxOutputTokens(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_OUTPUT_TOKENS)));
         assertThat(config.getTemperature(), is(equalTo(AiGenerationConfig.DEFAULT_TEMPERATURE)));
         assertThat(config.getThreads(), is(equalTo(AiGenerationConfig.DEFAULT_THREADS)));
+        assertThat(config.getCharsPerToken(), is(equalTo(AiGenerationConfig.DEFAULT_CHARS_PER_TOKEN)));
         assertThat(config.getMaxInputChars(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_INPUT_CHARS)));
         assertThat(config.isWarnOnTrim(), is(AiGenerationConfig.DEFAULT_WARN_ON_TRIM));
         assertThat(config.getMaxRetries(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_RETRIES)));

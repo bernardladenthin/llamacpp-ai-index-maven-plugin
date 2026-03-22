@@ -97,7 +97,7 @@ public class AiModelDefinitionSupport {
         config.setMaxOutputTokens(definition.getMaxOutputTokens());
         config.setTemperature(definition.getTemperature());
         config.setThreads(definition.getThreads());
-        config.setMaxInputChars(definition.getMaxInputChars());
+        config.setCharsPerToken(definition.getCharsPerToken());
         config.setWarnOnTrim(definition.isWarnOnTrim());
         config.setMaxRetries(definition.getMaxRetries());
         config.setRetryTemperatureIncrement(definition.getRetryTemperatureIncrement());

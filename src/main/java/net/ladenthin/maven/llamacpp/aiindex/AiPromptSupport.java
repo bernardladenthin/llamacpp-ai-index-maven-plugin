@@ -38,14 +38,29 @@ public class AiPromptSupport {
     }
 
     public String buildPrompt(final AiGenerationRequest request) {
-        final String template = templates.get(request.promptKey());
+        return buildPrompt(request.promptKey(), request.sourceFile(), request.sourceText());
+    }
+
+    /**
+     * Builds the prompt string for the given key, file, and source text without
+     * requiring a full {@link AiGenerationRequest}. Useful when only template
+     * length measurement is needed and no {@link AiMdHeader} is available.
+     *
+     * @param promptKey  the key identifying the prompt template
+     * @param sourceFile the file path substituted as the filename argument
+     * @param sourceText the source text substituted into the template
+     * @return the rendered prompt string
+     * @throws IllegalArgumentException if no template is registered for {@code promptKey}
+     */
+    public String buildPrompt(final String promptKey, final java.nio.file.Path sourceFile, final String sourceText) {
+        final String template = templates.get(promptKey);
         if (template == null || compatibilityHelper.isBlank(template)) {
-            throw new IllegalArgumentException("Missing prompt template for key: " + request.promptKey());
+            throw new IllegalArgumentException("Missing prompt template for key: " + promptKey);
         }
 
         return compatibilityHelper.formatted(template,
-                request.sourceFile().getFileName(),
-                request.sourceText()
+                sourceFile.getFileName(),
+                sourceText
         );
     }
 }
