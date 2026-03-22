@@ -99,19 +99,6 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     protected List<AiFieldGenerationConfig> fieldGenerations;
 
     /**
-     * Key of the {@link AiModelDefinition} to use when creating the AI generation provider.
-     * When set, the model path, context size, output tokens, temperature, and thread count
-     * are all taken from the referenced definition instead of the individual
-     * {@code llama*} parameters.
-     *
-     * <p>When not set (the default), the individual {@code llamaModelPath},
-     * {@code llamaContextSize}, {@code llamaMaxOutputTokens}, {@code llamaTemperature},
-     * and {@code llamaThreads} parameters are used as before.</p>
-     */
-    @Parameter(property = "aiIndex.summaryProviderDefinitionKey")
-    protected String summaryProviderDefinitionKey;
-
-    /**
      * Optional native library path passed to the llama.cpp JNI provider.
      * Leave unset to use the bundled native library.
      */
@@ -191,18 +178,25 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     /**
      * Builds a {@link LlamaCppJniConfig} for the AI generation provider.
      *
-     * <p>When {@link #summaryProviderDefinitionKey} is set, all model parameters
+     * <p>When {@link #fieldGenerations} is non-empty, all model parameters
      * (model path, context size, max output tokens, temperature, threads) are taken from
-     * the {@link AiModelDefinition} identified by that key. Otherwise, the individual
-     * {@code llama*} mojo parameters are used.</p>
+     * the {@link AiModelDefinition} referenced by the first entry's
+     * {@link AiFieldGenerationConfig#getAiDefinitionKey()}. This ensures the provider is
+     * always configured from the same definition that drives field generation.</p>
+     *
+     * <p>When {@link #fieldGenerations} is {@code null} or empty, the individual
+     * {@code llamaModelPath}, {@code llamaContextSize}, {@code llamaMaxOutputTokens},
+     * {@code llamaTemperature}, and {@code llamaThreads} parameters are used as a fallback.</p>
      *
      * @return fully populated llama.cpp configuration
-     * @throws IllegalArgumentException if {@link #summaryProviderDefinitionKey} is set but
+     * @throws IllegalArgumentException if the first field generation's
+     *                                  {@link AiFieldGenerationConfig#getAiDefinitionKey()}
      *                                  does not match any registered definition
      */
     protected LlamaCppJniConfig buildLlamaCppJniConfig() {
-        if (summaryProviderDefinitionKey != null) {
-            final AiGenerationConfig config = buildAiModelDefinitionSupport().getConfig(summaryProviderDefinitionKey);
+        if (fieldGenerations != null && !fieldGenerations.isEmpty()) {
+            final AiFieldGenerationConfig first = fieldGenerations.get(0);
+            final AiGenerationConfig config = buildAiModelDefinitionSupport().getConfig(first.getAiDefinitionKey());
             return new LlamaCppJniConfig(
                     llamaLibraryPath,
                     config.getModelPath(),

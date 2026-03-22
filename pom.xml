@@ -289,8 +289,6 @@
                                 </aiDefinition>
                             </aiDefinitions>
 
-                            <!-- References the AI definition used to create the generation provider -->
-                            <summaryProviderDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</summaryProviderDefinitionKey>
                         </configuration>
 
                         <executions>
