@@ -287,6 +287,50 @@
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
+                                <!--
+                                    Llama-3.1-8B-Instruct-Q4_K_M (32 K context, CPU-optimized)
+                                    IMPORTANT: This model must be converted from HuggingFace to GGUF format first.
+                                    https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct
+
+                                    Conversion steps:
+                                    1. Download the model from HuggingFace (requires license agreement)
+                                    2. Use llama.cpp/quantize tool to convert to Q4_K_M:
+                                       ./quantize /path/to/model Q4_K_M /output/path/model.gguf
+                                    3. Place the resulting .gguf file in the modelPath location
+
+                                    File size: ~13.34GB (Q4_K_M quantization)
+                                    CPU Performance: ~2-3x faster than Q6_K on CPU
+                                    Recommended for: CPU-only systems with >16GB RAM
+
+                                    Maximum input characters for source code before trimming.
+                                    Calculated as: (context_size × 4) - overhead
+
+                                    Context: 32768 tokens
+                                    Chars per token: ~4
+                                    [Total available]: 32768 × 4 = 131,072 chars
+
+                                    Overhead (conservative estimate):
+                                    - Prompt template: ~2500 chars
+                                    - EOF marker: ~30 chars
+                                    - Max output tokens (512 tokens × 4): ~2,048 chars
+                                    - Safety margin: ~500 chars
+                                    - [Subtotal overhead]: ~5,078 chars
+
+                                    Available for source: [Total available] - [Subtotal overhead]
+                                    Available for source: 131,072 - 5,078 = 125,994 chars
+                                    Set to: 125,900 (rounded, conservative)
+                                -->
+                                <aiDefinition>
+                                    <key>Llama-3.1-8B-Instruct-Q4_K_M-C32k</key>
+                                    <modelPath>path/to/llama-3.1-8b-instruct-q4_k_m.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>512</maxOutputTokens>
+                                    <temperature>0.25</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>125900</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
                             </aiDefinitions>
 
                         </configuration>
