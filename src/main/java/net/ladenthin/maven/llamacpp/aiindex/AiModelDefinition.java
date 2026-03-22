@@ -24,9 +24,8 @@ package net.ladenthin.maven.llamacpp.aiindex;
  *
  * <p>Instances are registered in the {@code <aiDefinitions>} list of the plugin
  * configuration and referenced by their {@link #key} from
- * {@link AiFieldGenerationConfig#aiDefinitionKey} and from the mojo parameter
- * {@code summaryProviderDefinitionKey}. This allows a single model configuration to be
- * defined once and reused across multiple field-generation entries and goals.</p>
+ * {@link AiFieldGenerationConfig#aiDefinitionKey}. This allows a single model configuration
+ * to be defined once and reused across multiple field-generation entries and goals.</p>
  *
  * <p>All numeric fields default to the same values as {@link AiGenerationConfig} so that
  * a minimal definition only needs to supply a {@link #key} and a {@link #modelPath}.</p>
