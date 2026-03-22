@@ -167,10 +167,29 @@
                                 AI model definitions: define each model once and reference it by key.
                                 No Maven profiles or properties are needed for model configuration.
                             -->
+                            <!--
+                                Maximum input characters for source code before trimming.
+                                Calculated as: (context_size × 4) - overhead
+
+                                Context: ${CONTEXT_SIZE} tokens
+                                Chars per token: ~4
+                                [Total available]: ${CONTEXT_SIZE} × 4 = ${TOTAL_CHARS} chars
+
+                                Overhead (conservative estimate):
+                                - Prompt template: ~${PROMPT_CHARS} chars
+                                - EOF marker: ~${EOF_CHARS} chars
+                                - Max output (${MAX_OUTPUT_TOKENS} tokens × 4): ~${OUTPUT_CHARS} chars
+                                - Safety margin: ~${SAFETY_CHARS} chars
+                                - [Subtotal overhead]: ~${OVERHEAD_TOTAL} chars
+
+                                Available for source: [Total available] - [Subtotal overhead]
+                                Available for source: ${TOTAL_CHARS} - ${OVERHEAD_TOTAL} = ${AVAILABLE_CHARS} chars
+                                Set to: ${FINAL_CHARS} (rounded, conservative)
+                            -->
                             <aiDefinitions>
                                 <!--
                                     Mistral-7B-Instruct-v0.3-Q4_K_M (16 K context)
-                                    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF
+                                    https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf
 
                                     Maximum input characters for source code before trimming.
                                     Calculated as: (context_size × 4) - overhead
@@ -203,26 +222,26 @@
                                 </aiDefinition>
                                 <!--
                                     Codestral-22B-v0.1-Q6_K (32 K context)
-                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF
+                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf
 
-                                    Maximum input characters for source code before trimming.
-                                    Calculated as: (context_size × 4) - overhead
+                        Maximum input characters for source code before trimming.
+                        Calculated as: (context_size × 4) - overhead
 
-                                    Context: 32768 tokens
-                                    Chars per token: ~4
-                                    [Total available]: 32768 × 4 = 131,072 chars
+                        Context: 32768 tokens
+                        Chars per token: ~4
+                        [Total available]: 32768 × 4 = 131,072 chars
 
-                                    Overhead (conservative estimate):
-                                    - Prompt template: ~2500 chars
-                                    - EOF marker: ~30 chars
+                        Overhead (conservative estimate):
+                        - Prompt template: ~2500 chars
+                        - EOF marker: ~30 chars
                                     - Max output tokens (1536 tokens × 4): ~6,144 chars
-                                    - Safety margin: ~500 chars
-                                    - [Subtotal overhead]: ~9,174 chars
+                        - Safety margin: ~500 chars
+                        - [Subtotal overhead]: ~9,174 chars
 
-                                    Available for source: [Total available] - [Subtotal overhead]
-                                    Available for source: 131,072 - 9,174 = 121,898 chars
-                                    Set to: 121,800 (rounded, conservative)
-                                -->
+                        Available for source: [Total available] - [Subtotal overhead]
+                        Available for source: 131,072 - 9,174 = 121,898 chars
+                        Set to: 121,800 (rounded, conservative)
+                    -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q6_K-C32k</key>
                                     <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
