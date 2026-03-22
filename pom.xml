@@ -253,6 +253,40 @@
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
+                                <!--
+                                    Qwen2.5-Coder-7B-Instruct-Q5_K_M (16 K context)
+                                    https://ollama.com/library/qwen2.5-coder:7b-instruct-q4_K_M
+                                    https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/blob/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf
+
+                                    Maximum input characters for source code before trimming.
+                                    Calculated as: (context_size × 4) - overhead
+
+                                    Context: 16384 tokens
+                                    Chars per token: ~4
+                                    [Total available]: 16384 × 4 = 65,536 chars
+
+                                    Overhead (conservative estimate):
+                                    - Prompt template: ~2500 chars
+                                    - EOF marker: ~30 chars
+                                    - Max output tokens (2048 tokens × 4): ~8,192 chars
+                                    - Safety margin: ~500 chars
+                                    - [Subtotal overhead]: ~11,222 chars
+
+                                    Available for source: [Total available] - [Subtotal overhead]
+                                    Available for source: 65,536 - 11,222 = 54,314 chars
+                                    Set to: 54,300 (rounded, conservative)
+                                -->
+                                <aiDefinition>
+                                    <key>Qwen2.5-Coder-7B-Instruct-Q5_K_M-C16k</key>
+                                    <modelPath>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q5_k_m.gguf</modelPath>
+                                    <contextSize>16384</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>54300</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
                             </aiDefinitions>
 
                             <!-- References the AI definition used to create the generation provider -->
