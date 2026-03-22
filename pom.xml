@@ -221,6 +221,72 @@
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
                                 <!--
+                                    bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
+                                    https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf
+
+                        Maximum input characters for source code before trimming.
+                        Calculated as: (context_size × 4) - overhead
+
+                        Context: 32768 tokens
+                        Chars per token: ~4
+                        [Total available]: 32768 × 4 = 131,072 chars
+
+                        Overhead (conservative estimate):
+                        - Prompt template: ~2500 chars
+                        - EOF marker: ~30 chars
+                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
+                        - Safety margin: ~500 chars
+                        - [Subtotal overhead]: ~9,174 chars
+
+                        Available for source: [Total available] - [Subtotal overhead]
+                        Available for source: 131,072 - 9,174 = 121,898 chars
+                        Set to: 121,800 (rounded, conservative)
+                    -->
+                                <aiDefinition>
+                                    <key>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</key>
+                                    <modelPath>C:/Users/berna/Downloads/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>1536</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>121800</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!--
+                                    Codestral-22B-v0.1-Q4_K (32 K context)
+                                    https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q4_K.gguf
+
+                        Maximum input characters for source code before trimming.
+                        Calculated as: (context_size × 4) - overhead
+
+                        Context: 32768 tokens
+                        Chars per token: ~4
+                        [Total available]: 32768 × 4 = 131,072 chars
+
+                        Overhead (conservative estimate):
+                        - Prompt template: ~2500 chars
+                        - EOF marker: ~30 chars
+                                    - Max output tokens (1536 tokens × 4): ~6,144 chars
+                        - Safety margin: ~500 chars
+                        - [Subtotal overhead]: ~9,174 chars
+
+                        Available for source: [Total available] - [Subtotal overhead]
+                        Available for source: 131,072 - 9,174 = 121,898 chars
+                        Set to: 121,800 (rounded, conservative)
+                    -->
+                                <aiDefinition>
+                                    <key>Codestral-22B-v0.1-Q4_K-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q4_K.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>1536</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <maxInputChars>121800</maxInputChars>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!--
                                     Codestral-22B-v0.1-Q6_K (32 K context)
                                     https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf
 
@@ -340,7 +406,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>file-body</promptKey>
-                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
@@ -393,7 +459,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>
-                                            <aiDefinitionKey>Codestral-22B-v0.1-Q6_K-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
