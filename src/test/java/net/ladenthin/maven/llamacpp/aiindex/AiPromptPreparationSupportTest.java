@@ -100,8 +100,8 @@ public class AiPromptPreparationSupportTest {
         // assert
         assertThat(preparedPrompt.trimmed(), is(true));
         assertThat(preparedPrompt.trimmedSourceLength() < preparedPrompt.originalSourceLength(), is(true));
-        // sourceText includes EOF marker (35 chars), so it's longer than trimmedSourceLength
-        assertThat(preparedPrompt.sourceText().length(), is(equalTo(preparedPrompt.trimmedSourceLength() + 35)));
+        // sourceText includes EOF marker, so it's longer than trimmedSourceLength
+        assertThat(preparedPrompt.sourceText().length(), is(equalTo(preparedPrompt.trimmedSourceLength() + AiPromptPreparationSupport.EOF_MARKER_LENGTH)));
         assertThat(preparedPrompt.availableSourceChars() >= 0, is(true));
     }
 

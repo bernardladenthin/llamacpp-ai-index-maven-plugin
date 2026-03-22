@@ -26,6 +26,13 @@ public class AiPromptPreparationSupport {
      */
     private static final String EOF_MARKER = "\n/* [EOF - source was truncated] */";
 
+    /**
+     * Character length of {@link #EOF_MARKER}. Exposed so that callers calculating
+     * the maximum input character budget can account for this overhead without
+     * duplicating the constant.
+     */
+    public static final int EOF_MARKER_LENGTH = EOF_MARKER.length();
+
     private final AiPromptSupport promptSupport;
 
     public AiPromptPreparationSupport(final AiPromptSupport promptSupport) {
@@ -82,6 +89,23 @@ public class AiPromptPreparationSupport {
                 trimmedSource.length(),
                 availableSourceChars
         );
+    }
+
+    /**
+     * Returns the character length of the prompt template for the given key when the source
+     * text substitution is empty. This gives callers a reliable measure of the fixed
+     * overhead introduced by the prompt template itself (excluding the source code),
+     * which is used in the automatic {@code maxInputChars} calculation.
+     *
+     * @param promptKey  the key identifying the prompt template to measure
+     * @param contextFile the file path substituted as the {@code %s} filename argument
+     * @return character count of the rendered prompt with an empty source body
+     * @throws IllegalArgumentException if no template is registered for {@code promptKey}
+     */
+    public int getBasePromptLength(final String promptKey, final java.nio.file.Path contextFile) {
+        final AiGenerationRequest emptySourceRequest = new AiGenerationRequest(
+                promptKey, contextFile, "", null);
+        return promptSupport.buildPrompt(emptySourceRequest).length();
     }
 
     /**

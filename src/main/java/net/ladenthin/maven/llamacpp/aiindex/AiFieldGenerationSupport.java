@@ -22,7 +22,9 @@ import org.apache.maven.plugin.logging.Log;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared field-generation logic used by both {@link SourceFileIndexer} and
@@ -101,11 +103,35 @@ public class AiFieldGenerationSupport {
      */
     private static final String RETRY_TEMPERATURE_CALCULATION_TEMPLATE = " (baseTemp={0} + attempt {1} × {2})";
 
+    /**
+     * Separator used to construct the cache key for the computed {@code maxInputChars}
+     * per {@code (aiDefinitionKey, promptKey)} pair.
+     *
+     * @see #computeMaxInputCharsKey
+     */
+    private static final String CACHE_KEY_SEPARATOR = ":";
+
+    /**
+     * Rounding granularity applied when computing the final {@code maxInputChars} value.
+     * The available character count is rounded DOWN to the nearest multiple of this value
+     * to produce a conservative, human-readable result.
+     *
+     * @see #calculateAndLogMaxInputChars
+     */
+    private static final int MAX_INPUT_CHARS_ROUNDING = 100;
+
     private final Log log;
     private final AiGenerationProvider generationProvider;
     private final AiPromptPreparationSupport promptPreparationSupport;
     private final AiModelDefinitionSupport modelDefinitionSupport;
     private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
+
+    /**
+     * Per-{@code (aiDefinitionKey, promptKey)} cache of the computed {@code maxInputChars}
+     * value. Populated on first use so that the calculation and its detailed log output
+     * are emitted exactly once per unique pair rather than once per processed file.
+     */
+    private final Map<String, Integer> maxInputCharsCache = new HashMap<>();
 
     /**
      * Creates a new {@code AiFieldGenerationSupport}.
@@ -176,6 +202,9 @@ public class AiFieldGenerationSupport {
             final AiGenerationConfig generationConfig =
                     modelDefinitionSupport.getConfig(fieldGeneration.getAiDefinitionKey());
 
+            final int effectiveMaxInputChars = resolveMaxInputChars(
+                    fieldGeneration, generationConfig, contextFile);
+
             final AiGenerationRequest request = new AiGenerationRequest(
                     fieldGeneration.getPromptKey(),
                     contextFile,
@@ -185,7 +214,7 @@ public class AiFieldGenerationSupport {
 
             final AiPreparedPrompt preparedPrompt = promptPreparationSupport.preparePrompt(
                     request,
-                    generationConfig.getMaxInputChars()
+                    effectiveMaxInputChars
             );
 
             if (preparedPrompt.trimmed() && generationConfig.isWarnOnTrim()) {
@@ -193,7 +222,7 @@ public class AiFieldGenerationSupport {
                         + " (source chars " + preparedPrompt.originalSourceLength()
                         + " -> " + preparedPrompt.trimmedSourceLength()
                         + ", available source chars " + preparedPrompt.availableSourceChars()
-                        + ", max input chars " + generationConfig.getMaxInputChars() + ")");
+                        + ", max input chars " + effectiveMaxInputChars + ")");
             }
 
             final AiGenerationRequest generationRequest = new AiGenerationRequest(
@@ -207,7 +236,7 @@ public class AiFieldGenerationSupport {
                     "' with temperature=" + generationConfig.getTemperature() +
                     ", maxRetries=" + generationConfig.getMaxRetries() +
                     ", retryTemperatureIncrement=" + generationConfig.getRetryTemperatureIncrement() +
-                    ", maxInputChars=" + generationConfig.getMaxInputChars());
+                    ", maxInputChars=" + effectiveMaxInputChars);
             body = generationProvider.generate(generationRequest);
 
             if (compatibilityHelper.isBlank(body)) {
@@ -239,5 +268,108 @@ public class AiFieldGenerationSupport {
         }
 
         return new AiGenerationResult(body);
+    }
+
+    /**
+     * Returns the effective {@code maxInputChars} for the given field generation entry.
+     *
+     * <p>When the {@link AiGenerationConfig#getCharsPerToken()} value is greater than zero,
+     * the maximum is computed once per unique {@code (aiDefinitionKey, promptKey)} pair,
+     * logged in detail, cached, and reused for all subsequent files. When
+     * {@code charsPerToken} is zero, the static {@link AiGenerationConfig#getMaxInputChars()}
+     * fallback is returned instead.</p>
+     *
+     * @param fieldGeneration  the field configuration identifying the definition and prompt keys
+     * @param generationConfig the resolved generation config carrying {@code charsPerToken} etc.
+     * @param contextFile      a representative file path used to render the base prompt length
+     * @return effective maximum input characters for this field generation step
+     */
+    private int resolveMaxInputChars(
+            final AiFieldGenerationConfig fieldGeneration,
+            final AiGenerationConfig generationConfig,
+            final Path contextFile
+    ) {
+        if (generationConfig.getCharsPerToken() <= 0) {
+            return generationConfig.getMaxInputChars();
+        }
+
+        final String cacheKey = computeMaxInputCharsKey(
+                fieldGeneration.getAiDefinitionKey(), fieldGeneration.getPromptKey());
+        final Integer cached = maxInputCharsCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        final int basePromptLength = promptPreparationSupport.getBasePromptLength(
+                fieldGeneration.getPromptKey(), contextFile);
+        final int computed = calculateAndLogMaxInputChars(generationConfig, basePromptLength);
+        maxInputCharsCache.put(cacheKey, computed);
+        return computed;
+    }
+
+    /**
+     * Computes and logs the detailed {@code maxInputChars} calculation for a given
+     * generation config and base prompt length.
+     *
+     * <p>The formula is:</p>
+     * <pre>
+     *   totalChars     = contextSize × charsPerToken
+     *   overheadTotal  = promptChars + eofChars + (maxOutputTokens × charsPerToken) + safetyChars
+     *   availableChars = totalChars - overheadTotal
+     *   finalChars     = floor(availableChars / 100) × 100   (rounded down conservatively)
+     * </pre>
+     *
+     * <p>All intermediate values are emitted at INFO level so that the calculation is
+     * transparent and reproducible from the build log alone.</p>
+     *
+     * @param config          the resolved generation config supplying {@code contextSize},
+     *                        {@code maxOutputTokens}, and {@code charsPerToken}
+     * @param basePromptLength character length of the prompt template rendered with empty source
+     * @return final (rounded) maximum input character count
+     */
+    private int calculateAndLogMaxInputChars(
+            final AiGenerationConfig config,
+            final int basePromptLength
+    ) {
+        final int contextSize = config.getContextSize();
+        final int charsPerToken = config.getCharsPerToken();
+        final int maxOutputTokens = config.getMaxOutputTokens();
+
+        final int totalChars = contextSize * charsPerToken;
+        final int promptChars = basePromptLength;
+        final int eofChars = AiPromptPreparationSupport.EOF_MARKER_LENGTH;
+        final int outputChars = maxOutputTokens * charsPerToken;
+        final int safetyChars = AiGenerationConfig.DEFAULT_SAFETY_MARGIN_CHARS;
+        final int overheadTotal = promptChars + eofChars + outputChars + safetyChars;
+        final int availableChars = totalChars - overheadTotal;
+        final int finalChars = Math.max(0, (availableChars / MAX_INPUT_CHARS_ROUNDING) * MAX_INPUT_CHARS_ROUNDING);
+
+        log.info("Maximum input characters for source code before trimming. Calculated as: (context_size x " + charsPerToken + ") - overhead");
+        log.info("  Context: " + contextSize + " tokens");
+        log.info("  Chars per token: ~" + charsPerToken);
+        log.info("  [Total available]: " + contextSize + " x " + charsPerToken + " = " + totalChars + " chars");
+        log.info("  Overhead (conservative estimate):");
+        log.info("  - Prompt template: ~" + promptChars + " chars");
+        log.info("  - EOF marker: ~" + eofChars + " chars");
+        log.info("  - Max output (" + maxOutputTokens + " tokens x " + charsPerToken + "): ~" + outputChars + " chars");
+        log.info("  - Safety margin: ~" + safetyChars + " chars");
+        log.info("  - [Subtotal overhead]: ~" + overheadTotal + " chars");
+        log.info("  Available for source: [Total available] - [Subtotal overhead]");
+        log.info("  Available for source: " + totalChars + " - " + overheadTotal + " = " + availableChars + " chars");
+        log.info("  Set to: " + finalChars + " (rounded, conservative)");
+
+        return finalChars;
+    }
+
+    /**
+     * Builds the cache key for the computed {@code maxInputChars} per
+     * {@code (aiDefinitionKey, promptKey)} pair.
+     *
+     * @param aiDefinitionKey the AI model definition key
+     * @param promptKey       the prompt template key
+     * @return a unique composite cache key
+     */
+    private String computeMaxInputCharsKey(final String aiDefinitionKey, final String promptKey) {
+        return aiDefinitionKey + CACHE_KEY_SEPARATOR + promptKey;
     }
 }

@@ -45,7 +45,7 @@ public class AiModelDefinition {
     private int maxOutputTokens = AiGenerationConfig.DEFAULT_MAX_OUTPUT_TOKENS;
     private float temperature = AiGenerationConfig.DEFAULT_TEMPERATURE;
     private int threads = AiGenerationConfig.DEFAULT_THREADS;
-    private int maxInputChars = AiGenerationConfig.DEFAULT_MAX_INPUT_CHARS;
+    private int charsPerToken = AiGenerationConfig.DEFAULT_CHARS_PER_TOKEN;
     private boolean warnOnTrim = AiGenerationConfig.DEFAULT_WARN_ON_TRIM;
     private int maxRetries = AiGenerationConfig.DEFAULT_MAX_RETRIES;
     private float retryTemperatureIncrement = AiGenerationConfig.DEFAULT_RETRY_TEMPERATURE_INCREMENT;
@@ -159,21 +159,28 @@ public class AiModelDefinition {
     }
 
     /**
-     * Returns the maximum number of source characters fed into the prompt.
+     * Returns the number of characters per token used to automatically calculate the
+     * maximum input characters for the source code.
      *
-     * @return max input chars, defaults to {@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}
+     * <p>Together with {@link #contextSize} and {@link #maxOutputTokens}, this value drives
+     * the runtime calculation of how many source characters may be fed into the prompt before
+     * trimming. Setting this to {@code 0} disables automatic calculation and falls back to
+     * the internal default ({@link AiGenerationConfig#DEFAULT_MAX_INPUT_CHARS}).</p>
+     *
+     * @return chars-per-token ratio; defaults to {@link AiGenerationConfig#DEFAULT_CHARS_PER_TOKEN}
      */
-    public int getMaxInputChars() {
-        return maxInputChars;
+    public int getCharsPerToken() {
+        return charsPerToken;
     }
 
     /**
-     * Sets the maximum number of source characters fed into the prompt.
+     * Sets the number of characters per token for automatic max-input-chars calculation.
      *
-     * @param maxInputChars source text exceeding this limit is trimmed before inference
+     * @param charsPerToken approximate characters per token (typically {@code 4} for
+     *                      Latin-script source code); {@code 0} disables auto-calculation
      */
-    public void setMaxInputChars(final int maxInputChars) {
-        this.maxInputChars = maxInputChars;
+    public void setCharsPerToken(final int charsPerToken) {
+        this.charsPerToken = charsPerToken;
     }
 
     /**
