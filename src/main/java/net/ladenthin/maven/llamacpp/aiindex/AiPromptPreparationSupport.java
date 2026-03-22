@@ -103,9 +103,7 @@ public class AiPromptPreparationSupport {
      * @throws IllegalArgumentException if no template is registered for {@code promptKey}
      */
     public int getBasePromptLength(final String promptKey, final java.nio.file.Path contextFile) {
-        final AiGenerationRequest emptySourceRequest = new AiGenerationRequest(
-                promptKey, contextFile, "", null);
-        return promptSupport.buildPrompt(emptySourceRequest).length();
+        return promptSupport.buildPrompt(promptKey, contextFile, "").length();
     }
 
     /**
