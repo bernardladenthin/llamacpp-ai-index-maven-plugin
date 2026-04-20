@@ -174,7 +174,7 @@
                                      https://huggingface.co/lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF/blob/main/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf -->
                                 <aiDefinition>
                                     <key>Mistral-7B-Instruct-v0.3-Q4_K_M-C16k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf</modelPath>
                                     <contextSize>16384</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -187,7 +187,7 @@
                                      https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf -->
                                 <aiDefinition>
                                     <key>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</key>
-                                    <modelPath>C:/Users/berna/Downloads/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -200,7 +200,7 @@
                                      https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q4_K.gguf -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q4_K-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q4_K.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Codestral-22B-v0.1-Q4_K.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -213,7 +213,7 @@
                                      https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf -->
                                 <aiDefinition>
                                     <key>Codestral-22B-v0.1-Q6_K-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Codestral-22B-v0.1-Q6_K.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>1536</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -226,7 +226,7 @@
                                      https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/blob/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf -->
                                 <aiDefinition>
                                     <key>Qwen2.5-Coder-7B-Instruct-Q5_K_M-C16k</key>
-                                    <modelPath>C:/Users/berna/Downloads/qwen2.5-coder-7b-instruct-q5_k_m.gguf</modelPath>
+                                    <modelPath>X:/Modelle/qwen2.5-coder-7b-instruct-q5_k_m.gguf</modelPath>
                                     <contextSize>16384</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -242,7 +242,7 @@
                                      https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF -->
                                 <aiDefinition>
                                     <key>Ministral-3-8B-Instruct-2512-Q4_K_M-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Ministral-3-8B-Instruct-2512-Q4_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Ministral-3-8B-Instruct-2512-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>0.1</temperature>
@@ -259,7 +259,40 @@
                                      https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512-GGUF -->
                                 <aiDefinition>
                                     <key>Ministral-3-14B-Instruct-2512-Q4_K_M-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Ministral-3-14B-Instruct-2512-Q4_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Ministral-3-14B-Instruct-2512-Q4_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>0.1</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!-- Ministral-3-8B-Instruct-2512-Q5_K_M (32 K context)
+                                     8.4B language model + 0.4B vision encoder; supports 256k context window.
+                                     Temperature < 0.1 recommended for production (mistral.ai/news/mistral-3).
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF -->
+                                <aiDefinition>
+                                    <key>Ministral-3-8B-Instruct-2512-Q5_K_M-C32k</key>
+                                    <modelPath>X:/Modelle/Ministral-3-8B-Instruct-2512-Q5_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>0.1</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!-- Ministral-3-14B-Instruct-2512-Q5_K_M (32 K context)
+                                     13.5B language model + 0.4B vision encoder; supports 256k context window.
+                                     Comparable performance to Mistral Small 3.2 24B at lower resource cost.
+                                     Temperature < 0.1 recommended for production (mistral.ai/news/mistral-3).
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/mistralai/Ministral-3-14B-Instruct-2512-GGUF -->
+                                <aiDefinition>
+                                    <key>Ministral-3-14B-Instruct-2512-Q5_K_M-C32k</key>
+                                    <modelPath>X:/Modelle/Ministral-3-14B-Instruct-2512-Q5_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>0.1</temperature>
@@ -276,7 +309,7 @@
                                      https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF -->
                                 <aiDefinition>
                                     <key>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -292,7 +325,7 @@
                                      https://huggingface.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive -->
                                 <aiDefinition>
                                     <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -310,7 +343,7 @@
                                      https://huggingface.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive -->
                                 <aiDefinition>
                                     <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P-C32k</key>
-                                    <modelPath>C:/Users/berna/Downloads/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P.gguf</modelPath>
+                                    <modelPath>X:/Modelle/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
                                     <temperature>1.0</temperature>
@@ -410,7 +443,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>file-body</promptKey>
-                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
+                                            <aiDefinitionKey>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
@@ -426,7 +459,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>
-                                            <aiDefinitionKey>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</aiDefinitionKey>
+                                            <aiDefinitionKey>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
