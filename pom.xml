@@ -268,6 +268,57 @@
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
                                 </aiDefinition>
+                                <!-- gemma-4-26B-A4B-it-UD-Q4_K_M (32 K context)
+                                     26B total / ~4B active parameters (MoE: 128 experts, 8+1 active per token).
+                                     Runs at the computational cost of a ~4B dense model; quality near 27B dense.
+                                     Temperature 1.0 is critical for Gemma 4 — lowering degrades quality.
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF -->
+                                <aiDefinition>
+                                    <key>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!-- Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M (32 K context)
+                                     ~4B effective parameters (MoE); uncensored derivative of gemma-4-E4B-it.
+                                     Temperature 1.0 is critical for Gemma 4 — lowering degrades quality.
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive -->
+                                <aiDefinition>
+                                    <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
+                                <!-- Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P (32 K context)
+                                     Same model as Q4_K_M above; Q6_K_P is a custom lossless quantization by HauhauCS
+                                     that preserves quality where it matters most (effectively 1-2 quant levels higher
+                                     at only 5-15 % larger file size).
+                                     Temperature 1.0 is critical for Gemma 4 — lowering degrades quality.
+                                     32k context is a practical sweet spot for code summarization on local hardware.
+                                     https://huggingface.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive -->
+                                <aiDefinition>
+                                    <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P-C32k</key>
+                                    <modelPath>C:/Users/berna/Downloads/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P.gguf</modelPath>
+                                    <contextSize>32768</contextSize>
+                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <temperature>1.0</temperature>
+                                    <threads>8</threads>
+                                    <charsPerToken>4</charsPerToken>
+                                    <warnOnTrim>true</warnOnTrim>
+                                    <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                </aiDefinition>
                             </aiDefinitions>
 
                             <!--
