@@ -20,9 +20,12 @@ package net.ladenthin.maven.llamacpp.aiindex;
 
 import de.kherud.llama.InferenceParameters;
 import de.kherud.llama.LlamaModel;
+import de.kherud.llama.LlamaOutput;
 import de.kherud.llama.ModelParameters;
+import de.kherud.llama.Pair;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -64,7 +67,12 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
     public String generate(final AiGenerationRequest request, final float temperatureOverride) throws IOException {
         final String prompt = promptSupport.buildPrompt(request);
 
-        final InferenceParameters inferenceParameters = new InferenceParameters(prompt)
+        final List<Pair<String, String>> messages = new ArrayList<>();
+        messages.add(new Pair<>("user", prompt));
+
+        final InferenceParameters inferenceParameters = new InferenceParameters("")
+                .setMessages(null, messages)
+                .setUseChatTemplate(true)
                 .setTemperature(temperatureOverride)
                 .setNPredict(config.maxOutputTokens())
                 .setTopP(config.topP())
@@ -76,9 +84,11 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
             inferenceParameters.setStopStrings(stops.toArray(new String[0]));
         }
 
-        final String response = model.complete(inferenceParameters);
-
-        return normalize(response);
+        final StringBuilder sb = new StringBuilder();
+        for (final LlamaOutput output : model.generate(inferenceParameters)) {
+            sb.append(output.text);
+        }
+        return normalize(sb.toString());
     }
 
     private String normalize(final String response) {

@@ -446,79 +446,6 @@ Source:
 %s
                                     ]]></template>
                                 </promptDefinition>
-                                <promptDefinition>
-                                    <key>file-body-gemma</key>
-                                    <template><![CDATA[<start_of_turn>user
-You generate a detailed markdown body section for a Java source file. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
-
-Rules for the entire output:
-- Output markdown only.
-- Do not output explanations outside the body content.
-- Never return an empty response.
-- Start immediately with prose (no leading whitespace or empty lines).
-- The summary is already rendered inside a '###' heading (the filename). Do NOT start the summary with another heading. Use '####' or deeper headings only for subsections within the summary when the content is long enough to warrant internal structure.
-- The summary may be multiple lines.
-- The length should adapt to the file size and complexity.
-- Small files -> short summary.
-- Large or complex files -> longer, more detailed summary is allowed.
-- Do not use '###' or higher-level headings anywhere in the summary.
-- Do not wrap the summary in code fences.
-- Do not output ```markdown, ```java, or ```.
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
-- For each public or protected method, include a brief one-line description of its purpose.
-- Integrate all relevant class names, interface names, annotation names, and domain-specific terms naturally into the prose — do NOT list them separately.
-- Focus the summary on purpose, behavior, important abstractions, and search-relevant terms woven into sentences.
-- Mention every directly extended class.
-- Mention every directly implemented interface.
-- Mention generic declarations and important generic types when present.
-- Do not mention standard Java methods unless they are meaningfully overridden or central to the class behavior.
-- Summarize recurring exception behavior across methods when relevant.
-- **IMPORTANT: If the source contains "[EOF - source was truncated]", the file is incomplete. Do NOT guess, invent, or hallucinate any methods, classes, fields, or code that is not explicitly present in the provided source. Only summarize what is actually shown.**
-
-File: %s
-
-Source:
-%s
-<end_of_turn>
-<start_of_turn>model
-]]></template>
-                                </promptDefinition>
-                                <promptDefinition>
-                                    <key>package-body-gemma</key>
-                                    <template><![CDATA[<start_of_turn>user
-You generate a detailed markdown body section for a Java package or package-like index. Output the description directly as markdown prose. Do not wrap the output in XML tags, code fences, or any other delimiters.
-
-Rules for the entire output:
-- Output markdown only.
-- Do not output explanations outside the body content.
-- Never return an empty response.
-- Start immediately with prose (no leading whitespace or empty lines).
-- The summary is already rendered inside a '###' heading (the package name). Do NOT start the summary with another heading. Use '####' or deeper headings only for subsections within the summary when the content is long enough to warrant internal structure.
-- The summary may be multiple lines.
-- The length should adapt to the size and complexity of the package.
-- Small packages -> short summary.
-- Large packages -> more detailed summary is allowed.
-- Do not use '###' or higher-level headings anywhere in the summary.
-- Do not wrap the summary in code fences.
-- Do not output ```markdown, ```java, or ```.
-- Do not output formatter comments like // @formatter:on or // @formatter:off.
-- For each contained file, include a brief one-line description of its purpose.
-- Integrate all relevant class names, interface names, annotation names, and domain-specific terms naturally into the prose — do NOT list them separately.
-- Focus the summary on the overall purpose, structure, responsibilities, and collaboration of the contained files.
-- Mention important directly extended classes and directly implemented interfaces if they are central and repeatedly represented in the package content.
-- Mention important generic declarations or important generic type patterns if they are central to the package design.
-- Summarize recurring exception behavior across the package when relevant.
-- For larger packages, group contained files by responsibility instead of listing every file.
-- **IMPORTANT: If the source contains "[EOF - source was truncated]", the index is incomplete. Do NOT guess, invent, or hallucinate any files, classes, or content that is not explicitly present in the provided source. Only summarize what is actually shown.**
-
-File: %s
-
-Source:
-%s
-<end_of_turn>
-<start_of_turn>model
-]]></template>
-                                </promptDefinition>
                             </promptDefinitions>
 
                         </configuration>
@@ -533,7 +460,7 @@ Source:
                                 <configuration>
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <promptKey>file-body-gemma</promptKey>
+                                            <promptKey>file-body</promptKey>
                                             <aiDefinitionKey>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
@@ -549,7 +476,7 @@ Source:
                                 <configuration>
                                     <fieldGenerations>
                                         <fieldGeneration>
-                                            <promptKey>package-body-gemma</promptKey>
+                                            <promptKey>package-body</promptKey>
                                             <aiDefinitionKey>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
