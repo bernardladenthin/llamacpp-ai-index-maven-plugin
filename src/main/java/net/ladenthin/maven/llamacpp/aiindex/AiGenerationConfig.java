@@ -87,16 +87,20 @@ public class AiGenerationConfig {
     public static final float DEFAULT_RETRY_TEMPERATURE_INCREMENT = 0.1f;
 
     /**
-     * Default nucleus-sampling probability threshold. A value of {@code 1.0} disables
-     * top-p filtering and preserves existing behaviour for models that do not specify it.
+     * Default nucleus-sampling probability threshold.
+     * Matches the {@code de.kherud:llama} {@code InferenceParameters} library default so
+     * that models which do not declare an explicit value retain the same output distribution
+     * as before this field was introduced.
      */
-    public static final float DEFAULT_TOP_P = 1.0f;
+    public static final float DEFAULT_TOP_P = 0.9f;
 
     /**
-     * Default top-k sampling limit. A value of {@code 0} disables top-k filtering and
-     * preserves existing behaviour for models that do not specify it.
+     * Default top-k sampling limit.
+     * Matches the {@code de.kherud:llama} {@code InferenceParameters} library default so
+     * that models which do not declare an explicit value retain the same output distribution
+     * as before this field was introduced.
      */
-    public static final int DEFAULT_TOP_K = 0;
+    public static final int DEFAULT_TOP_K = 40;
 
     /**
      * Default repetition penalty. A value of {@code 1.0} means no penalty and preserves
