@@ -23,9 +23,18 @@ import de.kherud.llama.LlamaModel;
 import de.kherud.llama.ModelParameters;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoCloseable {
+
+    /**
+     * Marker token that ends a Gemma-4 thinking block.
+     * The model emits {@code <|channel>thought\n[reasoning]<channel|>[final answer]};
+     * everything up to and including this marker is internal reasoning that must be
+     * stripped before storing the body.
+     */
+    private static final String THINKING_BLOCK_END_MARKER = "<channel|>";
 
     private final LlamaCppJniConfig config;
     private final LlamaModel model;
@@ -57,7 +66,15 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
 
         final InferenceParameters inferenceParameters = new InferenceParameters(prompt)
                 .setTemperature(temperatureOverride)
-                .setNPredict(config.maxOutputTokens());
+                .setNPredict(config.maxOutputTokens())
+                .setTopP(config.topP())
+                .setTopK(config.topK())
+                .setRepeatPenalty(config.repeatPenalty());
+
+        final List<String> stops = config.stopStrings();
+        if (stops != null && !stops.isEmpty()) {
+            inferenceParameters.setStopStrings(stops.toArray(new String[0]));
+        }
 
         final String response = model.complete(inferenceParameters);
 
@@ -67,6 +84,10 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
     private String normalize(final String response) {
         if (response == null) {
             return "";
+        }
+        final int thinkingEnd = response.lastIndexOf(THINKING_BLOCK_END_MARKER);
+        if (thinkingEnd >= 0) {
+            return response.substring(thinkingEnd + THINKING_BLOCK_END_MARKER.length()).trim();
         }
         return response.trim();
     }

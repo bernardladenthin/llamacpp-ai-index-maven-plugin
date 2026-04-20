@@ -21,6 +21,7 @@ package net.ladenthin.maven.llamacpp.aiindex;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.Assume;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,7 +45,9 @@ public class LlamaCppJniAiSummaryProviderTest {
                 Files.exists(Paths.get(MODEL_PATH)));
 
         final LlamaCppJniConfig config = new LlamaCppJniConfig(
-                null, MODEL_PATH, 32768, 128, 0.15f, 8
+                null, MODEL_PATH, 32768, 128, 0.15f, 8,
+                AiGenerationConfig.DEFAULT_TOP_P, AiGenerationConfig.DEFAULT_TOP_K,
+                AiGenerationConfig.DEFAULT_REPEAT_PENALTY, Collections.emptyList()
         );
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
 
