@@ -186,7 +186,7 @@
                                 <!-- bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
                                      https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf -->
                                 <aiDefinition>
-                                    <key>Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</key>
+                                    <key>Meta-Llama-3.1-8B-Instruct-Q5_K_M-C32k</key>
                                     <modelPath>X:/Modelle/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>1536</maxOutputTokens>
@@ -308,7 +308,7 @@
                                      32k context is a practical sweet spot for code summarization on local hardware.
                                      https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF -->
                                 <aiDefinition>
-                                    <key>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</key>
+                                    <key>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</key>
                                     <modelPath>X:/Modelle/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
                                     <maxOutputTokens>2048</maxOutputTokens>
@@ -443,7 +443,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>file-body</promptKey>
-                                            <aiDefinitionKey>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
@@ -459,7 +459,7 @@ Source:
                                     <fieldGenerations>
                                         <fieldGeneration>
                                             <promptKey>package-body</promptKey>
-                                            <aiDefinitionKey>gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
+                                            <aiDefinitionKey>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</aiDefinitionKey>
                                         </fieldGeneration>
                                     </fieldGenerations>
                                 </configuration>
