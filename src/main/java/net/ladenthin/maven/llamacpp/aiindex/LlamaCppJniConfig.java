@@ -18,6 +18,7 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -46,7 +47,7 @@ public class LlamaCppJniConfig {
         this.topP = topP;
         this.topK = topK;
         this.repeatPenalty = repeatPenalty;
-        this.stopStrings = stopStrings != null ? stopStrings : List.of();
+        this.stopStrings = stopStrings != null ? stopStrings : Collections.emptyList();
     }
 
     public String libraryPath() {
