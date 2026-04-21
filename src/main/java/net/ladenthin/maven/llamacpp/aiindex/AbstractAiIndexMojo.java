@@ -24,6 +24,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -203,7 +204,11 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
                     config.getContextSize(),
                     config.getMaxOutputTokens(),
                     config.getTemperature(),
-                    config.getThreads()
+                    config.getThreads(),
+                    config.getTopP(),
+                    config.getTopK(),
+                    config.getRepeatPenalty(),
+                    config.getStopStrings()
             );
         }
         return new LlamaCppJniConfig(
@@ -212,7 +217,11 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
                 getLlamaContextSize(),
                 llamaMaxOutputTokens,
                 llamaTemperature,
-                getLlamaThreads()
+                getLlamaThreads(),
+                AiGenerationConfig.DEFAULT_TOP_P,
+                AiGenerationConfig.DEFAULT_TOP_K,
+                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
+                Collections.emptyList()
         );
     }
 

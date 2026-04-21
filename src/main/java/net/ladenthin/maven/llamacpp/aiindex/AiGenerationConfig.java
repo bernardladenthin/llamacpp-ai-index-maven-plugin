@@ -18,6 +18,9 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AiGenerationConfig {
 
     /** Default context window size (in tokens) used when no explicit context size is configured. */
@@ -83,6 +86,28 @@ public class AiGenerationConfig {
      */
     public static final float DEFAULT_RETRY_TEMPERATURE_INCREMENT = 0.1f;
 
+    /**
+     * Default nucleus-sampling probability threshold.
+     * Matches the {@code de.kherud:llama} {@code InferenceParameters} library default so
+     * that models which do not declare an explicit value retain the same output distribution
+     * as before this field was introduced.
+     */
+    public static final float DEFAULT_TOP_P = 0.9f;
+
+    /**
+     * Default top-k sampling limit.
+     * Matches the {@code de.kherud:llama} {@code InferenceParameters} library default so
+     * that models which do not declare an explicit value retain the same output distribution
+     * as before this field was introduced.
+     */
+    public static final int DEFAULT_TOP_K = 40;
+
+    /**
+     * Default repetition penalty. A value of {@code 1.0} means no penalty and preserves
+     * existing behaviour for models that do not specify it.
+     */
+    public static final float DEFAULT_REPEAT_PENALTY = 1.0f;
+
     private String modelPath;
     private int contextSize = DEFAULT_CONTEXT_SIZE;
     private int maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS;
@@ -93,6 +118,10 @@ public class AiGenerationConfig {
     private boolean warnOnTrim = DEFAULT_WARN_ON_TRIM;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private float retryTemperatureIncrement = DEFAULT_RETRY_TEMPERATURE_INCREMENT;
+    private float topP = DEFAULT_TOP_P;
+    private int topK = DEFAULT_TOP_K;
+    private float repeatPenalty = DEFAULT_REPEAT_PENALTY;
+    private List<String> stopStrings = new ArrayList<>();
 
     public String getModelPath() {
         return modelPath;
@@ -184,5 +213,37 @@ public class AiGenerationConfig {
 
     public void setRetryTemperatureIncrement(final float retryTemperatureIncrement) {
         this.retryTemperatureIncrement = retryTemperatureIncrement;
+    }
+
+    public float getTopP() {
+        return topP;
+    }
+
+    public void setTopP(final float topP) {
+        this.topP = topP;
+    }
+
+    public int getTopK() {
+        return topK;
+    }
+
+    public void setTopK(final int topK) {
+        this.topK = topK;
+    }
+
+    public float getRepeatPenalty() {
+        return repeatPenalty;
+    }
+
+    public void setRepeatPenalty(final float repeatPenalty) {
+        this.repeatPenalty = repeatPenalty;
+    }
+
+    public List<String> getStopStrings() {
+        return stopStrings;
+    }
+
+    public void setStopStrings(final List<String> stopStrings) {
+        this.stopStrings = stopStrings != null ? stopStrings : new ArrayList<>();
     }
 }

@@ -18,6 +18,8 @@
 // @formatter:on
 package net.ladenthin.maven.llamacpp.aiindex;
 
+import java.util.List;
+
 /**
  * Maven plugin configuration POJO that pairs a lookup key with a complete set of
  * AI model parameters.
@@ -49,6 +51,10 @@ public class AiModelDefinition {
     private boolean warnOnTrim = AiGenerationConfig.DEFAULT_WARN_ON_TRIM;
     private int maxRetries = AiGenerationConfig.DEFAULT_MAX_RETRIES;
     private float retryTemperatureIncrement = AiGenerationConfig.DEFAULT_RETRY_TEMPERATURE_INCREMENT;
+    private float topP = AiGenerationConfig.DEFAULT_TOP_P;
+    private int topK = AiGenerationConfig.DEFAULT_TOP_K;
+    private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
+    private List<String> stopStrings;
 
     /**
      * Returns the unique lookup key for this definition.
@@ -235,5 +241,77 @@ public class AiModelDefinition {
      */
     public void setRetryTemperatureIncrement(final float retryTemperatureIncrement) {
         this.retryTemperatureIncrement = retryTemperatureIncrement;
+    }
+
+    /**
+     * Returns the nucleus-sampling probability threshold.
+     *
+     * @return top-p value; defaults to {@link AiGenerationConfig#DEFAULT_TOP_P}
+     */
+    public float getTopP() {
+        return topP;
+    }
+
+    /**
+     * Sets the nucleus-sampling probability threshold.
+     *
+     * @param topP cumulative probability threshold; {@code 1.0} disables top-p filtering
+     */
+    public void setTopP(final float topP) {
+        this.topP = topP;
+    }
+
+    /**
+     * Returns the top-k sampling limit.
+     *
+     * @return top-k value; defaults to {@link AiGenerationConfig#DEFAULT_TOP_K}
+     */
+    public int getTopK() {
+        return topK;
+    }
+
+    /**
+     * Sets the top-k sampling limit.
+     *
+     * @param topK number of top tokens to sample from; {@code 0} disables top-k filtering
+     */
+    public void setTopK(final int topK) {
+        this.topK = topK;
+    }
+
+    /**
+     * Returns the repetition penalty.
+     *
+     * @return repeat-penalty value; defaults to {@link AiGenerationConfig#DEFAULT_REPEAT_PENALTY}
+     */
+    public float getRepeatPenalty() {
+        return repeatPenalty;
+    }
+
+    /**
+     * Sets the repetition penalty applied to already-generated tokens.
+     *
+     * @param repeatPenalty penalty factor; {@code 1.0} means no penalty
+     */
+    public void setRepeatPenalty(final float repeatPenalty) {
+        this.repeatPenalty = repeatPenalty;
+    }
+
+    /**
+     * Returns the list of stop strings that terminate generation when encountered.
+     *
+     * @return stop strings, or {@code null} if not configured
+     */
+    public List<String> getStopStrings() {
+        return stopStrings;
+    }
+
+    /**
+     * Sets the list of stop strings that terminate generation when encountered.
+     *
+     * @param stopStrings list of strings; generation stops at the first match
+     */
+    public void setStopStrings(final List<String> stopStrings) {
+        this.stopStrings = stopStrings;
     }
 }

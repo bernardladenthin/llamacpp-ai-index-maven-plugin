@@ -101,6 +101,10 @@ public class AiModelDefinitionSupport {
         config.setWarnOnTrim(definition.isWarnOnTrim());
         config.setMaxRetries(definition.getMaxRetries());
         config.setRetryTemperatureIncrement(definition.getRetryTemperatureIncrement());
+        config.setTopP(definition.getTopP());
+        config.setTopK(definition.getTopK());
+        config.setRepeatPenalty(definition.getRepeatPenalty());
+        config.setStopStrings(definition.getStopStrings());
         return config;
     }
 }

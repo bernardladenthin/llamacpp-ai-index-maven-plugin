@@ -317,6 +317,12 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <topP>0.95</topP>
+                                    <topK>64</topK>
+                                    <repeatPenalty>1.1</repeatPenalty>
+                                    <stopStrings>
+                                        <stopString>&lt;end_of_turn&gt;</stopString>
+                                    </stopStrings>
                                 </aiDefinition>
                                 <!-- Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M (32 K context)
                                      ~4B effective parameters (MoE); uncensored derivative of gemma-4-E4B-it.
@@ -333,6 +339,12 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <topP>0.95</topP>
+                                    <topK>64</topK>
+                                    <repeatPenalty>1.1</repeatPenalty>
+                                    <stopStrings>
+                                        <stopString>&lt;end_of_turn&gt;</stopString>
+                                    </stopStrings>
                                 </aiDefinition>
                                 <!-- Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P (32 K context)
                                      Same model as Q4_K_M above; Q6_K_P is a custom lossless quantization by HauhauCS
@@ -351,6 +363,12 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <topP>0.95</topP>
+                                    <topK>64</topK>
+                                    <repeatPenalty>1.1</repeatPenalty>
+                                    <stopStrings>
+                                        <stopString>&lt;end_of_turn&gt;</stopString>
+                                    </stopStrings>
                                 </aiDefinition>
                             </aiDefinitions>
 
