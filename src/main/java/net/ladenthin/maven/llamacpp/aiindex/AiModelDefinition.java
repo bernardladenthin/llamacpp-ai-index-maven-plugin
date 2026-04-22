@@ -301,12 +301,8 @@ public class AiModelDefinition {
     /**
      * Returns whether the model's chat-template thinking mode is enabled.
      *
-     * <p>When {@code true} (the default), no {@code setChatTemplateKwargs} call is made.
-     * When {@code false}, {@code setChatTemplateKwargs({"enable_thinking": "false"})} is
-     * passed to disable chain-of-thought reasoning at the Jinja template level.</p>
-     *
-     * @return {@code true} to keep thinking enabled; defaults to
-     *         {@link AiGenerationConfig#DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING}
+     * @return {@code true} to keep thinking enabled via the model's chat-template default;
+     *         defaults to {@link AiGenerationConfig#DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING}
      */
     public boolean isChatTemplateEnableThinking() {
         return chatTemplateEnableThinking;
@@ -315,9 +311,10 @@ public class AiModelDefinition {
     /**
      * Sets whether the model's chat-template thinking mode is enabled.
      *
-     * @param chatTemplateEnableThinking {@code false} disables thinking by passing
-     *        {@code enable_thinking=false} to the Jinja chat template via
-     *        {@code InferenceParameters.setChatTemplateKwargs}
+     * @param chatTemplateEnableThinking {@code false} passes
+     *        {@code enable_thinking=false} to
+     *        {@link de.kherud.llama.InferenceParameters#setChatTemplateKwargs} to suppress
+     *        chain-of-thought reasoning at the Jinja template level
      */
     public void setChatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
         this.chatTemplateEnableThinking = chatTemplateEnableThinking;
