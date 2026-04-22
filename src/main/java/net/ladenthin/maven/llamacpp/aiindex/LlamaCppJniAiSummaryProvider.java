@@ -31,17 +31,10 @@ import java.util.Objects;
 
 public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoCloseable {
 
-    /**
-     * Marker token that ends a Gemma-4 thinking block.
-     * The model emits {@code <|channel>thought\n[reasoning]<channel|>[final answer]};
-     * everything up to and including this marker is internal reasoning that must be
-     * stripped before storing the body.
-     */
-    private static final String THINKING_BLOCK_END_MARKER = "<channel|>";
-
     private final LlamaCppJniConfig config;
     private final LlamaModel model;
     private final AiPromptSupport promptSupport;
+    private final AiResponseNormalizer responseNormalizer = new AiResponseNormalizer();
 
     public LlamaCppJniAiSummaryProvider(
             final LlamaCppJniConfig config,
@@ -87,18 +80,7 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
         for (final LlamaOutput output : model.generateChat(inferenceParameters)) {
             sb.append(output.text);
         }
-        return normalize(sb.toString());
-    }
-
-    private String normalize(final String response) {
-        if (response == null) {
-            return "";
-        }
-        final int thinkingEnd = response.lastIndexOf(THINKING_BLOCK_END_MARKER);
-        if (thinkingEnd >= 0) {
-            return response.substring(thinkingEnd + THINKING_BLOCK_END_MARKER.length()).trim();
-        }
-        return response.trim();
+        return responseNormalizer.normalize(sb.toString());
     }
 
     @Override
