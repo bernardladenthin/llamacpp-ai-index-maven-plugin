@@ -320,7 +320,7 @@
                                     <key>Gemma-4-26B-A4B-it-UD-Q4_K_M-C32k</key>
                                     <modelPath>X:/Modelle/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
-                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <maxOutputTokens>8192</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
                                     <charsPerToken>4</charsPerToken>
@@ -342,7 +342,7 @@
                                     <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M-C32k</key>
                                     <modelPath>X:/Modelle/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf</modelPath>
                                     <contextSize>32768</contextSize>
-                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <maxOutputTokens>8192</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
                                     <charsPerToken>4</charsPerToken>
@@ -366,7 +366,7 @@
                                     <key>Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P-C32k</key>
                                     <modelPath>X:/Modelle/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q6_K_P.gguf</modelPath>
                                     <contextSize>32768</contextSize>
-                                    <maxOutputTokens>2048</maxOutputTokens>
+                                    <maxOutputTokens>8192</maxOutputTokens>
                                     <temperature>1.0</temperature>
                                     <threads>8</threads>
                                     <charsPerToken>4</charsPerToken>
