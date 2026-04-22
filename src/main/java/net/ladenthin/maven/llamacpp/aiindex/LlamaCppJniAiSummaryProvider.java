@@ -72,7 +72,6 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
 
         final InferenceParameters inferenceParameters = new InferenceParameters("")
                 .setMessages(null, messages)
-                .setUseChatTemplate(true)
                 .setTemperature(temperatureOverride)
                 .setNPredict(config.maxOutputTokens())
                 .setTopP(config.topP())
@@ -85,7 +84,7 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
         }
 
         final StringBuilder sb = new StringBuilder();
-        for (final LlamaOutput output : model.generate(inferenceParameters)) {
+        for (final LlamaOutput output : model.generateChat(inferenceParameters)) {
             sb.append(output.text);
         }
         return normalize(sb.toString());

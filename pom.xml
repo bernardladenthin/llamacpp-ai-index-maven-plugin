@@ -182,6 +182,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- bartowski/Meta-Llama-3.1-8B-Instruct-GGUF
                                      https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/blob/main/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf -->
@@ -195,6 +196,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Codestral-22B-v0.1-Q4_K (32 K context)
                                      https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q4_K.gguf -->
@@ -208,6 +210,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Codestral-22B-v0.1-Q6_K (32 K context)
                                      https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/blob/main/Codestral-22B-v0.1-Q6_K.gguf -->
@@ -221,6 +224,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Qwen2.5-Coder-7B-Instruct-Q5_K_M (16 K context)
                                      https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/blob/main/qwen2.5-coder-7b-instruct-q5_k_m.gguf -->
@@ -234,6 +238,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Ministral-3-8B-Instruct-2512-Q4_K_M (32 K context)
                                      8.4B language model + 0.4B vision encoder; supports 256k context window.
@@ -250,6 +255,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Ministral-3-14B-Instruct-2512-Q4_K_M (32 K context)
                                      13.5B language model + 0.4B vision encoder; supports 256k context window.
@@ -267,6 +273,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Ministral-3-8B-Instruct-2512-Q5_K_M (32 K context)
                                      8.4B language model + 0.4B vision encoder; supports 256k context window.
@@ -283,6 +290,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- Ministral-3-14B-Instruct-2512-Q5_K_M (32 K context)
                                      13.5B language model + 0.4B vision encoder; supports 256k context window.
@@ -300,6 +308,7 @@
                                     <charsPerToken>4</charsPerToken>
                                     <warnOnTrim>true</warnOnTrim>
                                     <retryTemperatureIncrement>0.0</retryTemperatureIncrement>
+                                    <repeatPenalty>1.1</repeatPenalty>
                                 </aiDefinition>
                                 <!-- gemma-4-26B-A4B-it-UD-Q4_K_M (32 K context)
                                      26B total / ~4B active parameters (MoE: 128 experts, 8+1 active per token).
