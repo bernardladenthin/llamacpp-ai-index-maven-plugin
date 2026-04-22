@@ -108,6 +108,18 @@ public class AiGenerationConfig {
      */
     public static final float DEFAULT_REPEAT_PENALTY = 1.0f;
 
+    /**
+     * Default setting for whether the model's chat-template thinking mode is enabled.
+     *
+     * <p>When {@code true} (the default), no {@code setChatTemplateKwargs} call is made and
+     * the model uses its own chat-template default.  When {@code false},
+     * {@code setChatTemplateKwargs({"enable_thinking": "false"})} is passed to
+     * {@link de.kherud.llama.InferenceParameters#setChatTemplateKwargs} to explicitly disable
+     * chain-of-thought reasoning at the Jinja template level.  Set to {@code false} for
+     * Gemma 4 definitions to suppress the {@code <|channel>thought} thinking block.</p>
+     */
+    public static final boolean DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING = true;
+
     private String modelPath;
     private int contextSize = DEFAULT_CONTEXT_SIZE;
     private int maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS;
@@ -121,6 +133,7 @@ public class AiGenerationConfig {
     private float topP = DEFAULT_TOP_P;
     private int topK = DEFAULT_TOP_K;
     private float repeatPenalty = DEFAULT_REPEAT_PENALTY;
+    private boolean chatTemplateEnableThinking = DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
     private List<String> stopStrings = new ArrayList<>();
 
     public String getModelPath() {
@@ -237,6 +250,14 @@ public class AiGenerationConfig {
 
     public void setRepeatPenalty(final float repeatPenalty) {
         this.repeatPenalty = repeatPenalty;
+    }
+
+    public boolean isChatTemplateEnableThinking() {
+        return chatTemplateEnableThinking;
+    }
+
+    public void setChatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+        this.chatTemplateEnableThinking = chatTemplateEnableThinking;
     }
 
     public List<String> getStopStrings() {

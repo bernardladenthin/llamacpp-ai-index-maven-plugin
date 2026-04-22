@@ -329,6 +329,7 @@
                                     <topP>0.95</topP>
                                     <topK>64</topK>
                                     <repeatPenalty>1.1</repeatPenalty>
+                                    <chatTemplateEnableThinking>false</chatTemplateEnableThinking>
                                     <stopStrings>
                                         <stopString>&lt;end_of_turn&gt;</stopString>
                                     </stopStrings>
@@ -351,6 +352,7 @@
                                     <topP>0.95</topP>
                                     <topK>64</topK>
                                     <repeatPenalty>1.1</repeatPenalty>
+                                    <chatTemplateEnableThinking>false</chatTemplateEnableThinking>
                                     <stopStrings>
                                         <stopString>&lt;end_of_turn&gt;</stopString>
                                     </stopStrings>
@@ -375,6 +377,7 @@
                                     <topP>0.95</topP>
                                     <topK>64</topK>
                                     <repeatPenalty>1.1</repeatPenalty>
+                                    <chatTemplateEnableThinking>false</chatTemplateEnableThinking>
                                     <stopStrings>
                                         <stopString>&lt;end_of_turn&gt;</stopString>
                                     </stopStrings>

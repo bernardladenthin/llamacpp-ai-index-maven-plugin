@@ -62,6 +62,7 @@ public class AiModelDefinitionSupportTest {
         definition.setWarnOnTrim(false);
         definition.setMaxRetries(5);
         definition.setRetryTemperatureIncrement(0.2f);
+        definition.setChatTemplateEnableThinking(false);
         final AiModelDefinitionSupport support = new AiModelDefinitionSupport(Arrays.asList(definition));
 
         // act
@@ -77,6 +78,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.isWarnOnTrim(), is(false));
         assertThat(config.getMaxRetries(), is(equalTo(5)));
         assertThat(config.getRetryTemperatureIncrement(), is(equalTo(0.2f)));
+        assertThat(config.isChatTemplateEnableThinking(), is(false));
     }
 
     @Test
@@ -100,6 +102,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.isWarnOnTrim(), is(AiGenerationConfig.DEFAULT_WARN_ON_TRIM));
         assertThat(config.getMaxRetries(), is(equalTo(AiGenerationConfig.DEFAULT_MAX_RETRIES)));
         assertThat(config.getRetryTemperatureIncrement(), is(equalTo(AiGenerationConfig.DEFAULT_RETRY_TEMPERATURE_INCREMENT)));
+        assertThat(config.isChatTemplateEnableThinking(), is(AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING));
     }
 
     @Test(expected = IllegalArgumentException.class)

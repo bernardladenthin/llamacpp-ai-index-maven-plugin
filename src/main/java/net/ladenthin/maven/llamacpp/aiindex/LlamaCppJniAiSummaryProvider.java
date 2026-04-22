@@ -26,6 +26,7 @@ import de.kherud.llama.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -70,6 +71,10 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
                 .setTopP(config.topP())
                 .setTopK(config.topK())
                 .setRepeatPenalty(config.repeatPenalty());
+
+        if (!config.chatTemplateEnableThinking()) {
+            inferenceParameters.setChatTemplateKwargs(Collections.singletonMap("enable_thinking", "false"));
+        }
 
         final List<String> stops = config.stopStrings();
         if (stops != null && !stops.isEmpty()) {

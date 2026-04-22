@@ -208,6 +208,7 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
                     config.getTopP(),
                     config.getTopK(),
                     config.getRepeatPenalty(),
+                    config.isChatTemplateEnableThinking(),
                     config.getStopStrings()
             );
         }
@@ -221,6 +222,7 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
                 AiGenerationConfig.DEFAULT_TOP_P,
                 AiGenerationConfig.DEFAULT_TOP_K,
                 AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
+                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING,
                 Collections.emptyList()
         );
     }

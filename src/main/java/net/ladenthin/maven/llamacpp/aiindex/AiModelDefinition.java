@@ -54,6 +54,7 @@ public class AiModelDefinition {
     private float topP = AiGenerationConfig.DEFAULT_TOP_P;
     private int topK = AiGenerationConfig.DEFAULT_TOP_K;
     private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
+    private boolean chatTemplateEnableThinking = AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
     private List<String> stopStrings;
 
     /**
@@ -295,6 +296,31 @@ public class AiModelDefinition {
      */
     public void setRepeatPenalty(final float repeatPenalty) {
         this.repeatPenalty = repeatPenalty;
+    }
+
+    /**
+     * Returns whether the model's chat-template thinking mode is enabled.
+     *
+     * <p>When {@code true} (the default), no {@code setChatTemplateKwargs} call is made.
+     * When {@code false}, {@code setChatTemplateKwargs({"enable_thinking": "false"})} is
+     * passed to disable chain-of-thought reasoning at the Jinja template level.</p>
+     *
+     * @return {@code true} to keep thinking enabled; defaults to
+     *         {@link AiGenerationConfig#DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING}
+     */
+    public boolean isChatTemplateEnableThinking() {
+        return chatTemplateEnableThinking;
+    }
+
+    /**
+     * Sets whether the model's chat-template thinking mode is enabled.
+     *
+     * @param chatTemplateEnableThinking {@code false} disables thinking by passing
+     *        {@code enable_thinking=false} to the Jinja chat template via
+     *        {@code InferenceParameters.setChatTemplateKwargs}
+     */
+    public void setChatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+        this.chatTemplateEnableThinking = chatTemplateEnableThinking;
     }
 
     /**
