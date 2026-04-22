@@ -72,14 +72,8 @@ public class LlamaCppJniAiSummaryProvider implements AiGenerationProvider, AutoC
                 .setTopK(config.topK())
                 .setRepeatPenalty(config.repeatPenalty());
 
-        if (!config.chatTemplateEnableThinking()) {
-            inferenceParameters.setChatTemplateKwargs(Collections.singletonMap("enable_thinking", "false"));
-        }
-
-        final List<String> stops = config.stopStrings();
-        if (stops != null && !stops.isEmpty()) {
-            inferenceParameters.setStopStrings(stops.toArray(new String[0]));
-        }
+        inferenceParameters.setChatTemplateKwargs(Collections.singletonMap("enable_thinking", String.valueOf(config.chatTemplateEnableThinking())));
+        inferenceParameters.setStopStrings(config.stopStrings().toArray(new String[0]));
 
         final StringBuilder sb = new StringBuilder();
         for (final LlamaOutput output : model.generateChat(inferenceParameters)) {
