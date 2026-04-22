@@ -105,6 +105,7 @@ public class AiModelDefinitionSupport {
         config.setTopK(definition.getTopK());
         config.setRepeatPenalty(definition.getRepeatPenalty());
         config.setStopStrings(definition.getStopStrings());
+        config.setChatTemplateEnableThinking(definition.isChatTemplateEnableThinking());
         return config;
     }
 }

@@ -33,10 +33,12 @@ public class LlamaCppJniConfig {
     private final float topP;
     private final int topK;
     private final float repeatPenalty;
+    private final boolean chatTemplateEnableThinking;
     private final List<String> stopStrings;
 
     public LlamaCppJniConfig(String libraryPath, String modelPath, int contextSize, int maxOutputTokens,
-            float temperature, int threads, float topP, int topK, float repeatPenalty, List<String> stopStrings) {
+            float temperature, int threads, float topP, int topK, float repeatPenalty,
+            boolean chatTemplateEnableThinking, List<String> stopStrings) {
         Objects.requireNonNull(modelPath, "modelPath");
         this.libraryPath = libraryPath;
         this.modelPath = modelPath;
@@ -47,6 +49,7 @@ public class LlamaCppJniConfig {
         this.topP = topP;
         this.topK = topK;
         this.repeatPenalty = repeatPenalty;
+        this.chatTemplateEnableThinking = chatTemplateEnableThinking;
         this.stopStrings = stopStrings != null ? stopStrings : Collections.emptyList();
     }
 
@@ -86,6 +89,10 @@ public class LlamaCppJniConfig {
         return repeatPenalty;
     }
 
+    public boolean chatTemplateEnableThinking() {
+        return chatTemplateEnableThinking;
+    }
+
     public List<String> stopStrings() {
         return stopStrings;
     }
@@ -104,13 +111,14 @@ public class LlamaCppJniConfig {
                 Float.floatToIntBits(this.topP) == Float.floatToIntBits(that.topP) &&
                 this.topK == that.topK &&
                 Float.floatToIntBits(this.repeatPenalty) == Float.floatToIntBits(that.repeatPenalty) &&
+                this.chatTemplateEnableThinking == that.chatTemplateEnableThinking &&
                 Objects.equals(this.stopStrings, that.stopStrings);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(libraryPath, modelPath, contextSize, maxOutputTokens, temperature, threads,
-                topP, topK, repeatPenalty, stopStrings);
+                topP, topK, repeatPenalty, chatTemplateEnableThinking, stopStrings);
     }
 
     @Override
@@ -125,6 +133,7 @@ public class LlamaCppJniConfig {
                 "topP=" + topP + ", " +
                 "topK=" + topK + ", " +
                 "repeatPenalty=" + repeatPenalty + ", " +
+                "chatTemplateEnableThinking=" + chatTemplateEnableThinking + ", " +
                 "stopStrings=" + stopStrings + ']';
     }
 

@@ -47,7 +47,8 @@ public class LlamaCppJniAiSummaryProviderTest {
         final LlamaCppJniConfig config = new LlamaCppJniConfig(
                 null, MODEL_PATH, 32768, 128, 0.15f, 8,
                 AiGenerationConfig.DEFAULT_TOP_P, AiGenerationConfig.DEFAULT_TOP_K,
-                AiGenerationConfig.DEFAULT_REPEAT_PENALTY, Collections.emptyList()
+                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
+                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING, Collections.emptyList()
         );
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
 
