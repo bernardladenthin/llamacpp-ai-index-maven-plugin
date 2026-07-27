@@ -60,6 +60,13 @@ SPDX-License-Identifier: Apache-2.0
             at this level. srcmorph-cli/pom.xml does not redeclare it.
         -->
         <jackson.version>2.22.1</jackson.version>
+        <!--
+            SonarCloud requires sonar.organization on the project the scanner executes, which is
+            this reactor root (srcmorph-parent) — child-module properties are not visible to the
+            parent POM. The child modules also declare it for standalone/module-scoped runs; the
+            projectKey stays a workflow -D argument (see .github/workflows/sonarqube.yml).
+        -->
+        <sonar.organization>bernardladenthin</sonar.organization>
     </properties>
 
     <!--
