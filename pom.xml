@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Reactor parent for srcmorph: a prompt-driven source-tree transformer using local llama.cpp models, and its Maven plugin.</description>
-    <url>https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin</url>
+    <url>https://github.com/bernardladenthin/srcmorph</url>
 
     <licenses>
         <license>
@@ -35,14 +35,14 @@ SPDX-License-Identifier: Apache-2.0
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin.git</connection>
-        <developerConnection>scm:git:https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin.git</developerConnection>
-        <url>https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin</url>
+        <connection>scm:git:https://github.com/bernardladenthin/srcmorph.git</connection>
+        <developerConnection>scm:git:https://github.com/bernardladenthin/srcmorph.git</developerConnection>
+        <url>https://github.com/bernardladenthin/srcmorph</url>
     </scm>
 
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin/issues</url>
+        <url>https://github.com/bernardladenthin/srcmorph/issues</url>
     </issueManagement>
 
     <distributionManagement>

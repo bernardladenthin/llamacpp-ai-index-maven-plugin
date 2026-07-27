@@ -29,9 +29,9 @@
 [![CodeQL](https://github.com/bernardladenthin/srcmorph/actions/workflows/codeql.yml/badge.svg)](https://github.com/bernardladenthin/srcmorph/actions/workflows/codeql.yml)  
 
 **Coverage:**  
-[![Coverage Status](https://coveralls.io/repos/github/bernardladenthin/llamacpp-ai-index-maven-plugin/badge.svg?branch=main)](https://coveralls.io/github/bernardladenthin/llamacpp-ai-index-maven-plugin?branch=main)  
-[![codecov](https://codecov.io/gh/bernardladenthin/llamacpp-ai-index-maven-plugin/graph/badge.svg)](https://codecov.io/gh/bernardladenthin/llamacpp-ai-index-maven-plugin)  
-[![JaCoCo](https://img.shields.io/codecov/c/github/bernardladenthin/llamacpp-ai-index-maven-plugin?label=JaCoCo&logo=java)](https://codecov.io/gh/bernardladenthin/llamacpp-ai-index-maven-plugin)  
+[![Coverage Status](https://coveralls.io/repos/github/bernardladenthin/srcmorph/badge.svg?branch=main)](https://coveralls.io/github/bernardladenthin/srcmorph?branch=main)  
+[![codecov](https://codecov.io/gh/bernardladenthin/srcmorph/graph/badge.svg)](https://codecov.io/gh/bernardladenthin/srcmorph)  
+[![JaCoCo](https://img.shields.io/codecov/c/github/bernardladenthin/srcmorph?label=JaCoCo&logo=java)](https://codecov.io/gh/bernardladenthin/srcmorph)  
 [![PIT Mutation](https://img.shields.io/badge/PIT%20mutation-100%25%20(47%20classes)-brightgreen)](https://github.com/bernardladenthin/srcmorph/actions/workflows/publish.yml)  
 
 **Quality:**  
@@ -40,9 +40,9 @@
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_llamacpp-ai-index-maven-plugin&metric=security_rating)](https://sonarcloud.io/dashboard?id=bernardladenthin_llamacpp-ai-index-maven-plugin)  
 
 **Security:**  
-[![Known Vulnerabilities](https://snyk.io/test/github/bernardladenthin/llamacpp-ai-index-maven-plugin/badge.svg?targetFile=pom.xml)](https://snyk.io/test/github/bernardladenthin/llamacpp-ai-index-maven-plugin?targetFile=pom.xml)  
+[![Known Vulnerabilities](https://snyk.io/test/github/bernardladenthin/srcmorph/badge.svg?targetFile=pom.xml)](https://snyk.io/test/github/bernardladenthin/srcmorph?targetFile=pom.xml)  
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbernardladenthin%2Fllamacpp-ai-index-maven-plugin.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbernardladenthin%2Fllamacpp-ai-index-maven-plugin?ref=badge_shield)  
-[![Dependencies](https://img.shields.io/librariesio/github/bernardladenthin/llamacpp-ai-index-maven-plugin)](https://libraries.io/github/bernardladenthin/llamacpp-ai-index-maven-plugin)  
+[![Dependencies](https://img.shields.io/librariesio/github/bernardladenthin/srcmorph)](https://libraries.io/github/bernardladenthin/srcmorph)  
 [![OSV-Scanner](https://github.com/bernardladenthin/srcmorph/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/bernardladenthin/srcmorph/actions/workflows/osv-scanner.yml)  
 
 **Package:**  
@@ -57,13 +57,13 @@
 **Community:**  
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12863/badge)](https://www.bestpractices.dev/projects/12863)  
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/bernardladenthin/srcmorph)  
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bernardladenthin/llamacpp-ai-index-maven-plugin/badge)](https://scorecard.dev/viewer/?uri=github.com/bernardladenthin/llamacpp-ai-index-maven-plugin)  
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bernardladenthin/srcmorph/badge)](https://scorecard.dev/viewer/?uri=github.com/bernardladenthin/srcmorph)  
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-success?logo=dependabot)](./.github/dependabot.yml)  
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://www.conventionalcommits.org/en/v1.0.0/)  
 [![Keep a Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-blue)](https://keepachangelog.com/en/1.1.0/)  
 [![SemVer](https://img.shields.io/badge/SemVer-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)  
-[![REUSE](https://api.reuse.software/badge/github.com/bernardladenthin/llamacpp-ai-index-maven-plugin)](https://api.reuse.software/info/github.com/bernardladenthin/llamacpp-ai-index-maven-plugin)  
-[![Maintained?](https://isitmaintained.com/badge/resolution/bernardladenthin/llamacpp-ai-index-maven-plugin.svg)](https://isitmaintained.com/project/bernardladenthin/llamacpp-ai-index-maven-plugin)  
+[![REUSE](https://api.reuse.software/badge/github.com/bernardladenthin/srcmorph)](https://api.reuse.software/info/github.com/bernardladenthin/srcmorph)  
+[![Maintained?](https://isitmaintained.com/badge/resolution/bernardladenthin/srcmorph.svg)](https://isitmaintained.com/project/bernardladenthin/srcmorph)  
 [![Issues](https://img.shields.io/github/issues/bernardladenthin/srcmorph)](https://github.com/bernardladenthin/srcmorph/issues)  
 [![Pull Requests](https://img.shields.io/github/issues-pr/bernardladenthin/srcmorph)](https://github.com/bernardladenthin/srcmorph/pulls)  
 [![GitHub Stars](https://img.shields.io/github/stars/bernardladenthin/srcmorph?style=social)](https://github.com/bernardladenthin/srcmorph/stargazers)  
