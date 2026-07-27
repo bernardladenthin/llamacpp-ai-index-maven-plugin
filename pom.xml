@@ -54,6 +54,16 @@ SPDX-License-Identifier: Apache-2.0
 
     <properties>
         <!--
+            SonarCloud requires sonar.organization on the project the scanner actually analyzes.
+            The SonarCloud scan runs at THIS reactor root (.github/workflows/sonarqube.yml calls
+            `mvn ... sonar:sonar` with no -f, so the analyzed project is this parent POM), and a
+            parent POM never sees its children's <properties>. Declaring it only in the child
+            modules therefore left the root scan without it, failing with
+            "You must define the following mandatory properties for '<projectKey>': sonar.organization".
+            Kept in the child modules too (harmless) so a per-module scan would also carry it.
+        -->
+        <sonar.organization>bernardladenthin</sonar.organization>
+        <!--
             Defined here (not only in srcmorph-cli/pom.xml) because this parent's own
             <dependencyManagement> below references it: child properties are never visible to a
             parent POM, so the version used by both jackson dependencyManagement entries must live
