@@ -1,10 +1,10 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: llamacpp-ai-index-maven-plugin
+title: srcmorph
 authors:
   - family-names: Ladenthin
     given-names: Bernard
     email: bernard.ladenthin@gmail.com
-repository-code: "https://github.com/bernardladenthin/llamacpp-ai-index-maven-plugin"
+repository-code: "https://github.com/bernardladenthin/srcmorph"
 license: Apache-2.0
 type: software
