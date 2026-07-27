@@ -35,13 +35,13 @@
 [![PIT Mutation](https://img.shields.io/badge/PIT%20mutation-100%25%20(47%20classes)-brightgreen)](https://github.com/bernardladenthin/srcmorph/actions/workflows/publish.yml)  
 
 **Quality:**  
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_llamacpp-ai-index-maven-plugin&metric=alert_status)](https://sonarcloud.io/dashboard?id=bernardladenthin_llamacpp-ai-index-maven-plugin)  
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_llamacpp-ai-index-maven-plugin&metric=code_smells)](https://sonarcloud.io/dashboard?id=bernardladenthin_llamacpp-ai-index-maven-plugin)  
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_llamacpp-ai-index-maven-plugin&metric=security_rating)](https://sonarcloud.io/dashboard?id=bernardladenthin_llamacpp-ai-index-maven-plugin)  
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_srcmorph&metric=alert_status)](https://sonarcloud.io/dashboard?id=bernardladenthin_srcmorph)  
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_srcmorph&metric=code_smells)](https://sonarcloud.io/dashboard?id=bernardladenthin_srcmorph)  
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=bernardladenthin_srcmorph&metric=security_rating)](https://sonarcloud.io/dashboard?id=bernardladenthin_srcmorph)  
 
 **Security:**  
 [![Known Vulnerabilities](https://snyk.io/test/github/bernardladenthin/srcmorph/badge.svg?targetFile=pom.xml)](https://snyk.io/test/github/bernardladenthin/srcmorph?targetFile=pom.xml)  
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbernardladenthin%2Fllamacpp-ai-index-maven-plugin.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbernardladenthin%2Fllamacpp-ai-index-maven-plugin?ref=badge_shield)  
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbernardladenthin%2Fsrcmorph.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbernardladenthin%2Fsrcmorph?ref=badge_shield)  
 [![Dependencies](https://img.shields.io/librariesio/github/bernardladenthin/srcmorph)](https://libraries.io/github/bernardladenthin/srcmorph)  
 [![OSV-Scanner](https://github.com/bernardladenthin/srcmorph/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/bernardladenthin/srcmorph/actions/workflows/osv-scanner.yml)  
 
