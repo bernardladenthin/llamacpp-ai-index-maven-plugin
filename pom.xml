@@ -125,7 +125,7 @@ SPDX-License-Identifier: Apache-2.0
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.6.0</version>
+                <version>1.6.1</version>
             </dependency>
             <!--
                 JSON/YAML binding for srcmorph-cli's CConfiguration. Both artifacts are pinned to the
