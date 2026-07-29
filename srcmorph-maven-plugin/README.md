@@ -489,6 +489,13 @@ Based on an 8-model × 2-prompt benchmark run against this codebase — full res
 pros/cons, a source-faithfulness deep-dive, and reproduction steps in
 [docs/ai-index-benchmark](../docs/ai-index-benchmark/COMPARISON.md):
 
+> **On the `-Dai.*` flags below** (`ai.model`, `ai.gpuLayers`, `ai.mainGpu`, `ai.devices`, …): these are
+> **this repo's own Maven build properties** (defined in `srcmorph-maven-plugin/pom.xml` and wired into
+> the gpt-oss profile executions), overridable per run with `-D` when you build *this* repo. They are
+> **not** plugin `@Parameter`s — a downstream build of the published plugin instead sets the same knobs as
+> `<configuration>`/model-definition elements (`<gpuLayers>`, `<mainGpu>`, `<devices>`, `<aiDefinitionKey>`).
+> The published mojo parameters are the separate `srcmorph.*` set.
+
 - **`gpt-oss-20B-mxfp4` — the production default** (switch with `-Dai.model=<key>`). The native MXFP4
   quant at a 96K window; it inherits the benchmark's accuracy lead (gpt-oss-20b was most *accurate* per
   file, won 5/6 in the per-file matrix — measured on the `c96k`/UD-Q4_K_XL quant, but E5 shows quant

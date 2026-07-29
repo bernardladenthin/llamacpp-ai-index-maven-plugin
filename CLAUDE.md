@@ -195,6 +195,15 @@ themselves.
 - **Skip flags stay mojo-side** (`skip`, `skipFile`, `skipPackage`, `skipProject`) — a Maven lifecycle
   concern, not part of `SrcMorphConfiguration`; an engine built from a configuration always executes
   when asked. See `MojoPhaseSkipTest`.
+- **Two property namespaces — do NOT confuse them (this has tripped audits).** The **published mojo
+  `@Parameter`s** are the `srcmorph.*` set (`srcmorph.skip`, `srcmorph.force`, `srcmorph.planOnly`,
+  `srcmorph.generationProvider`, `srcmorph.llama.*`, …). The `ai.*` names in the plugin `pom.xml` +
+  README (`ai.model`, `ai.gpuLayers`, `ai.mainGpu`, `ai.devices`, `ai.index.output.directory`) are
+  **repo-local Maven build properties** wired into this module's own gpt-oss self-test/benchmark
+  executions (`<gpuLayers>${ai.gpuLayers}</gpuLayers>`, `<aiDefinitionKey>${ai.model}</aiDefinitionKey>`)
+  and overridable with `-Dai.*` — they are **not** mojo parameters, and downstream consumers set the
+  same knobs as `<configuration>`/model-definition elements. So `-Dai.gpuLayers=12` etc. are **correct**
+  as documented; do not "fix" them to `srcmorph.*`.
 - **Architecture rules** (`PluginArchitectureTest`): Maven-annotation confinement to `mojo`, every mojo
   extends `AbstractMojo`, plus this module's slice of the shared conventions.
 - **jcstress** (`jcstress/AiGenerationKindRace.java`) and **vmlens**
