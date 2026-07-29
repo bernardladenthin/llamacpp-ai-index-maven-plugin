@@ -555,7 +555,7 @@ GPU `jllama.dll` from it — no library path to manage:
 ```
 
 ```
-mvn srcmorph:generate -Dai.gpuLayers=20      # + the GPU runtime on PATH (see below)
+mvn srcmorph:generate -Dsrcmorph.generationProvider=llamacpp-jni      # + the GPU runtime on PATH (see below)
 ```
 
 **Alternative — runtime library override (no POM change).** Point `net.ladenthin.llama.lib.path` at a
@@ -563,7 +563,7 @@ folder holding the GPU `jllama.dll` (extracted once from the classifier jar); it
 bundled native:
 
 ```
-mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dai.gpuLayers=20
+mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dsrcmorph.generationProvider=llamacpp-jni
 ```
 
 In both cases:

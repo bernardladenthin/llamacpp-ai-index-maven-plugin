@@ -61,7 +61,7 @@ llamacpp-ai-index-maven-plugin/            (repo root; reactor parent)
 │       ├── Main.java                       BitcoinAddressFinder cli/Main.java pattern
 │       └── configuration/                  CConfiguration + CCommand (BAF public-field style)
 ├── srcmorph-maven-plugin/                   Maven plugin  net.ladenthin:srcmorph-maven-plugin, goalPrefix srcmorph
-│   └── src/main/java/net/ladenthin/maven/srcmorph/mojo/   (5 mojos; renamed package/properties)
+│   └── src/main/java/net/ladenthin/maven/srcmorph/mojo/   (4 goal mojos + the abstract AbstractAiIndexMojo base; renamed package/properties)
 ├── examples/                               config_*.json/.yaml + run_*.sh/.bat + logbackConfiguration.xml
 ├── docs/                                   RELEASE.md + the ai-index model-benchmark writeups
 └── .github/workflows/                      CI adapted to the 3-module reactor
@@ -127,7 +127,7 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 (`AiGenerationKindLincheckTest`), and the model-backed real tests gated on
 `src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 47 classes across
-config/document/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
+config/document/engine/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
 module do not have a PIT gate yet (see `TODO.md`). The `gpu-cuda`/`gpu-vulkan` profiles (swap the
 `net.ladenthin:llama` classifier via the `llama.classifier` property) live here; the `jcstress` and
 `vmlens` profiles/tests currently still live in the **plugin** module (they were not moved in the
