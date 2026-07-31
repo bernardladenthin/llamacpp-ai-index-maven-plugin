@@ -61,7 +61,7 @@ llamacpp-ai-index-maven-plugin/            (repo root; reactor parent)
 │       ├── Main.java                       BitcoinAddressFinder cli/Main.java pattern
 │       └── configuration/                  CConfiguration + CCommand (BAF public-field style)
 ├── srcmorph-maven-plugin/                   Maven plugin  net.ladenthin:srcmorph-maven-plugin, goalPrefix srcmorph
-│   └── src/main/java/net/ladenthin/maven/srcmorph/mojo/   (5 mojos; renamed package/properties)
+│   └── src/main/java/net/ladenthin/maven/srcmorph/mojo/   (4 goal mojos + the abstract AbstractAiIndexMojo base; renamed package/properties)
 ├── examples/                               config_*.json/.yaml + run_*.sh/.bat + logbackConfiguration.xml
 ├── docs/                                   RELEASE.md + the ai-index model-benchmark writeups
 └── .github/workflows/                      CI adapted to the 3-module reactor
@@ -127,7 +127,7 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 (`AiGenerationKindLincheckTest`), and the model-backed real tests gated on
 `src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 47 classes across
-config/document/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
+config/document/engine/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
 module do not have a PIT gate yet (see `TODO.md`). The `gpu-cuda`/`gpu-vulkan` profiles (swap the
 `net.ladenthin:llama` classifier via the `llama.classifier` property) live here; the `jcstress` and
 `vmlens` profiles/tests currently still live in the **plugin** module (they were not moved in the
@@ -195,6 +195,15 @@ themselves.
 - **Skip flags stay mojo-side** (`skip`, `skipFile`, `skipPackage`, `skipProject`) — a Maven lifecycle
   concern, not part of `SrcMorphConfiguration`; an engine built from a configuration always executes
   when asked. See `MojoPhaseSkipTest`.
+- **Two property namespaces — do NOT confuse them (this has tripped audits).** The **published mojo
+  `@Parameter`s** are the `srcmorph.*` set (`srcmorph.skip`, `srcmorph.force`, `srcmorph.planOnly`,
+  `srcmorph.generationProvider`, `srcmorph.llama.*`, …). The `ai.*` names in the plugin `pom.xml` +
+  README (`ai.model`, `ai.gpuLayers`, `ai.mainGpu`, `ai.devices`, `ai.index.output.directory`) are
+  **repo-local Maven build properties** wired into this module's own gpt-oss self-test/benchmark
+  executions (`<gpuLayers>${ai.gpuLayers}</gpuLayers>`, `<aiDefinitionKey>${ai.model}</aiDefinitionKey>`)
+  and overridable with `-Dai.*` — they are **not** mojo parameters, and downstream consumers set the
+  same knobs as `<configuration>`/model-definition elements. So `-Dai.gpuLayers=12` etc. are **correct**
+  as documented; do not "fix" them to `srcmorph.*`.
 - **Architecture rules** (`PluginArchitectureTest`): Maven-annotation confinement to `mojo`, every mojo
   extends `AbstractMojo`, plus this module's slice of the shared conventions.
 - **jcstress** (`jcstress/AiGenerationKindRace.java`) and **vmlens**

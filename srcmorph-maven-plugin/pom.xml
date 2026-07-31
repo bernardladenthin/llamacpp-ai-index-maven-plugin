@@ -34,6 +34,19 @@ SPDX-License-Identifier: Apache-2.0
              provider package touches it); this module no longer declares it directly. The
              gpu-cuda / gpu-vulkan profiles that used to set its classifier here now live on
              srcmorph/pom.xml, since the classifier choice is resolved at srcmorph's own build. -->
+        <!-- ====================================================================================
+             `ai.*` properties (ai.model / ai.gpuLayers / ai.mainGpu / ai.devices / ai.cachePrompt /
+             ai.index.output.directory, plus the commented-out exp.* experiment knobs) are THIS
+             repo's own Maven BUILD properties for the self-test / benchmark executions — NOT plugin
+             @Parameters. They are wired into the local gpt-oss profile executions below (e.g.
+             <gpuLayers>${ai.gpuLayers}</gpuLayers>, <aiDefinitionKey>${ai.model}</aiDefinitionKey>)
+             and are overridable per run with -Dai.<name>=<value>. Downstream consumers of the
+             PUBLISHED plugin do NOT inherit these; they set the same knobs as
+             <configuration>/model-definition elements (<gpuLayers>, <mainGpu>, <devices>,
+             <aiDefinitionKey>). The published mojo parameters are the separate `srcmorph.*` set
+             (see AbstractAiIndexMojo). Do NOT "fix" the docs' `-Dai.*` examples to `srcmorph.*` —
+             the two namespaces are intentionally different (repo build knobs vs. published params).
+             ==================================================================================== -->
         <!-- Default AI model definition (key) used by the gpt-oss profile's generate/aggregate executions.
              gpt-oss-20B-mxfp4 is the native MXFP4 format: same ~12 GB size and decode speed as the Q4/Q5/Q8
              variants (the MoE experts are MXFP4 regardless), but no double-quantization of the experts ->

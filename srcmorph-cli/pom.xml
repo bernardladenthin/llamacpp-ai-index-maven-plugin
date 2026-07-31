@@ -241,7 +241,7 @@ SPDX-License-Identifier: Apache-2.0
                     <version>0.8.15</version>
                 </plugin>
                 <!--
-                    No pitest-maven pluginManagement entry: unlike srcmorph (which gates ~40
+                    No pitest-maven pluginManagement entry: unlike srcmorph (which gates 47
                     framework-free classes at 100% mutation coverage), this module is not yet PIT-gated.
                     TODO (tracked for a later step): add a pitest-maven execution here once the CLI's
                     pure helpers (config copy/round-trip, command dispatch) have dedicated unit tests
