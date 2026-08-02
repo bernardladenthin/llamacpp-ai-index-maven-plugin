@@ -43,7 +43,7 @@ SPDX-License-Identifier: Apache-2.0
         <lincheck.version>3.6</lincheck.version>
         <errorprone.version>2.50.0</errorprone.version>
         <nullaway.version>0.13.8</nullaway.version>
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
         <checker.version>4.2.1</checker.version>
         <!-- DO NOT UPGRADE jqwik past 1.9.3. jqwik 1.10.0 added a deliberate
              anti-AI prompt-injection string to test stdout; the 1.10.1 user
