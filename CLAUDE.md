@@ -474,6 +474,15 @@ classifier) and signs them via the cross-repo shared `.github/sign-fatjars.sh` (
 java-llama.cpp). The convention + per-repo shapes + the classifier keep-in-sync rule are documented
 in [`../workspace/policies/fat-jar-release-assets.md`](../workspace/policies/fat-jar-release-assets.md).
 
+## Dependency Convergence Pinning
+
+`dependencyConvergence` is enabled (maven-enforcer) in each of the 3 reactor modules;
+`jspecify`/`checker-qual` are pinned in the reactor parent's `dependencyManagement` (next to the
+existing `slf4j-api`/`logback-classic`/`jackson` pins) because `net.ladenthin:llama` brings both
+transitively. Convention + the `excludedScopes` gotcha + merge-discipline guidance (this repo's
+`main` was actually broken by exactly this pattern once — Dependabot PR #169) are in
+[`../workspace/policies/dependency-convergence-pinning.md`](../workspace/policies/dependency-convergence-pinning.md).
+
 ## Open TODOs
 
 Open TODOs for this repo live in [`TODO.md`](TODO.md). Cross-repo status
