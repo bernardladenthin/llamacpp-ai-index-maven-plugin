@@ -170,7 +170,7 @@ jobs:
     environment: maven-central
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -211,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -247,7 +247,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -273,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -343,7 +343,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with: { java-version: '21', distribution: temurin, cache: maven }
       - name: Test under vmlens (one class — staged scope)
         # VmlensInterleavingSmokeTest and the `vmlens` profile both live in
@@ -375,7 +375,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with: { java-version: '21', distribution: temurin }
       # Only srcmorph's jacoco report is uploaded by the `test` job (see the comment there) —
       # it carries the bulk of the test suite and the only PIT gate. Coveralls/Codecov are
@@ -427,7 +427,7 @@ jobs:
     environment: maven-central
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -558,7 +558,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5.6.0
+      - uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
