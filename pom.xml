@@ -146,6 +146,29 @@ SPDX-License-Identifier: Apache-2.0
                 <artifactId>jackson-dataformat-yaml</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
+            <!--
+                Converge jspecify: declared directly (compile scope) in every child module while
+                net.ladenthin:llama brings 1.0.0 transitively, also at compile scope — this is the
+                pair that broke maven-enforcer's DependencyConvergence in Dependabot PR #169
+                (merged despite a red Build check). Pin the higher version so it wins everywhere.
+            -->
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>1.0.1</version>
+            </dependency>
+            <!--
+                Converge checker-qual: same shape as jspecify above (net.ladenthin:llama brings
+                4.2.1 transitively). Versions happen to match today, which is exactly the kind of
+                "converged by luck" state that let the jspecify mismatch go unnoticed until a
+                routine bump diverged it — pinned defensively so the next independent bump on
+                either side can't silently break convergence again.
+            -->
+            <dependency>
+                <groupId>org.checkerframework</groupId>
+                <artifactId>checker-qual</artifactId>
+                <version>4.2.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
