@@ -474,6 +474,20 @@ classifier) and signs them via the cross-repo shared `.github/sign-fatjars.sh` (
 java-llama.cpp). The convention + per-repo shapes + the classifier keep-in-sync rule are documented
 in [`../workspace/policies/fat-jar-release-assets.md`](../workspace/policies/fat-jar-release-assets.md).
 
+**srcmorph-specific smoke.** The cross-repo rule "no release asset is attached that CI has not run"
+is implemented here by the `smoke-fatjar` job (`needs: [build]`, gates both publish jobs): it
+downloads the `plugin-jars` artifact and runs the **byte-identical shared**
+`.github/smoke-fatjar-cli.sh` (synced with BAF — see the checksum table in `crossrepostatus.md`)
+from `examples/` against `config_Plan.json`, asserting exit 0 plus `Main#run end.` in the output.
+`Plan` with the `mock` provider needs no GGUF, no GPU and no network, which makes this the cheapest
+possible real launch of the CLI. **Do not "strengthen" it to `config_All.json` over a real source
+tree:** the example configs are tuned for a small demo tree, so `All` against this repo's own
+sources fails by design (19 files exceed the demo model's context window with `onOversize=fail`) —
+that would make the smoke non-deterministic, not more thorough. Note the shipped `Plan` example
+plans 0 files when run from `examples/` (its `subtrees: ["src/main/java"]` does not exist there);
+that is fine for a smoke, which is testing that the artifact launches and completes, not the
+indexer.
+
 ## Dependency Convergence Pinning
 
 `dependencyConvergence` is enabled (maven-enforcer) in each of the 3 reactor modules;
