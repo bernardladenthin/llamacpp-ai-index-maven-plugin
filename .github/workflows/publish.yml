@@ -367,6 +367,49 @@ jobs:
           path: srcmorph-maven-plugin/target/vmlens-report/
           if-no-files-found: ignore
 
+  # ---------------------------------------------------------------------------
+  # Fat-jar smoke test — cross-repo standard job, kept in the same shape in
+  # BitcoinAddressFinder and java-llama.cpp (see workspace/policies/fat-jar-release-assets.md,
+  # "No release asset is attached that CI has not run"). The fat jar is a GitHub-Release asset,
+  # and unit tests never touch it: they run off target/classes, so an unrunnable uber jar — no
+  # Main-Class, a shade-mangled resource, a missing SLF4J binding — is built and GPG-signed
+  # without anything noticing. Signing proves who built it, not that it works.
+  #
+  # srcmorph-specific: config_Plan.json uses the `mock` generation provider, so this needs no
+  # GGUF model, no GPU and no network — it is the cheapest possible real launch of the CLI.
+  # `Plan` is the command that cannot fail for configuration reasons (planOnly, nothing written);
+  # `All` over a real source tree fails by design when files exceed the demo model's context
+  # window, which would make the smoke non-deterministic rather than more thorough.
+  # ---------------------------------------------------------------------------
+
+  smoke-fatjar:
+    name: Smoke test fat jar
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: plugin-jars
+          path: fatjar/
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+      - name: Run fat-jar smoke test
+        run: |
+          .github/smoke-fatjar-cli.sh fatjar 'srcmorph-cli-*-jar-with-dependencies.jar' \
+            examples 'Main#run end\.' config_Plan.json
+      - name: Upload smoke logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-fatjar-logs
+          path: |
+            smoke-out.log
+            smoke-err.log
+          if-no-files-found: warn
+
   report:
     name: Report
     needs: [test]
@@ -421,7 +464,7 @@ jobs:
 
   publish-snapshot:
     name: Publish Snapshot to Central
-    needs: [check-snapshot, code-style]
+    needs: [check-snapshot, code-style, smoke-fatjar]
     if: needs.check-snapshot.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central
@@ -550,7 +593,7 @@ jobs:
 
   publish-release:
     name: Publish Release to Central
-    needs: [check-tag, code-style]
+    needs: [check-tag, code-style, smoke-fatjar]
     if: needs.check-tag.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central
