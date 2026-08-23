@@ -81,7 +81,7 @@ SPDX-License-Identifier: Apache-2.0
              with the config package's tests); see srcmorph/pom.xml for the jqwik "DO NOT UPGRADE
              past 1.9.3" policy note (CLAUDE.md "jqwik prompt-injection in test output"). -->
         <archunit.version>1.5.0</archunit.version>
-        <spotbugs.version>4.10.3.0</spotbugs.version>
+        <spotbugs.version>4.10.4.0</spotbugs.version>
         <lombok.version>1.18.46</lombok.version>
         <fb-contrib.version>7.7.4</fb-contrib.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
