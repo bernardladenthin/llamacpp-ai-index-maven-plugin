@@ -69,7 +69,7 @@ SPDX-License-Identifier: Apache-2.0
             parent POM, so the version used by both jackson dependencyManagement entries must live
             at this level. srcmorph-cli/pom.xml does not redeclare it.
         -->
-        <jackson.version>2.22.1</jackson.version>
+        <jackson.version>2.22.2</jackson.version>
         <!--
             SonarCloud requires sonar.organization on the project the scanner executes, which is
             this reactor root (srcmorph-parent) — child-module properties are not visible to the
