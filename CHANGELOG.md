@@ -11,6 +11,9 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Changed
+- CI actions bumped to latest: `actions/setup-java` v5 → v6.
+
 ### Fixed
 - Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
   pinned in the parent `pom.xml`) to close
