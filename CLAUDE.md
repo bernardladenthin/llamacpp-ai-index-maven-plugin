@@ -362,7 +362,7 @@ assume it has already been updated.
 
 | Dependency | Version | Used by |
 |---|---|---|
-| `net.ladenthin:llama` | 5.0.6 | `srcmorph` (`provider` package only) — llama.cpp JNI binding |
+| `net.ladenthin:llama` | 5.1.0 | `srcmorph` (`provider` package only) — llama.cpp JNI binding |
 | `org.slf4j:slf4j-api` | 2.0.18 (converged in the parent) | `srcmorph`, `srcmorph-cli`, the plugin |
 | `ch.qos.logback:logback-classic` | 1.6.3 (converged in the parent) | `srcmorph-cli` (runtime binding) |
 | `com.fasterxml.jackson.core:jackson-databind` | pinned in parent | `srcmorph-cli` (JSON config) |

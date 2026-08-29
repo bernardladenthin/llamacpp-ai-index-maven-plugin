@@ -124,7 +124,7 @@ It is published on Maven Central and resolves automatically — no manual instal
 <dependency>
     <groupId>net.ladenthin</groupId>
     <artifactId>llama</artifactId>
-    <version>5.0.6</version>
+    <version>5.1.0</version>
 </dependency>
 ```
 ## Configuration
@@ -554,7 +554,7 @@ GPU `jllama.dll` from it — no library path to manage:
     <dependency>
       <groupId>net.ladenthin</groupId>
       <artifactId>llama</artifactId>
-      <version>5.0.6</version>
+      <version>5.1.0</version>
       <classifier>cuda13-windows-x86-64</classifier> <!-- NVIDIA; or vulkan-windows-x86-64 -->
     </dependency>
   </dependencies>

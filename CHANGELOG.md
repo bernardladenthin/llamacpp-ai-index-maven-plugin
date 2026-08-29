@@ -14,6 +14,16 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 ## [1.2.0] - 2026-08-29
 
 ### Changed
+- **`net.ladenthin:llama` 5.0.6 → 5.1.0** (llama.cpp b10456 → b10682). Unlike the earlier bumps in
+  this series, 5.1.0 is **not** purely additive: it deprecates six `InferenceParameters` methods that
+  were always silent no-ops, and this provider called one of them — `withUseChatTemplate(true)`.
+  Because `srcmorph` compiles with `-Xlint:all -Werror`, that deprecation is a **compile error**, so
+  the bump would have broken the build. The call was **removed rather than suppressed**: it never had
+  an effect (upstream reads no such key from a request body), and llama.cpp defaults `use_jinja` to
+  true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
+  — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
+  `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
+  `clean test`: 30 + 17 tests, 0 failures, all four modules SUCCESS.
 - CI actions bumped to latest: `actions/setup-java` v5 → v6.
 - **Build tooling bumped and NullAway aligned with the sibling repos**: `nullaway` 0.13.8 → 0.14.0,
   `spotless-maven-plugin` 3.10.0 → 3.10.1, `palantir-java-format` 2.96.0 → 2.97.0, `pitest-maven`
