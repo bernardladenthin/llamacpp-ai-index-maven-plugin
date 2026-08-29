@@ -72,7 +72,7 @@ SPDX-License-Identifier: Apache-2.0
         <jcstress.version>0.16</jcstress.version>
         <vmlens.version>1.2.28</vmlens.version>
         <errorprone.version>2.50.0</errorprone.version>
-        <nullaway.version>0.13.8</nullaway.version>
+        <nullaway.version>0.14.0</nullaway.version>
         <!-- checker.version also drives the org.checkerframework:checker annotation-processor
              artifact below; the checker-qual dependency version itself is managed by the
              parent's <dependencyManagement> (see comment above <dependencies>). -->
@@ -85,8 +85,8 @@ SPDX-License-Identifier: Apache-2.0
         <lombok.version>1.18.46</lombok.version>
         <fb-contrib.version>7.7.4</fb-contrib.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
-        <spotless.version>3.10.0</spotless.version>
-        <palantir-java-format.version>2.96.0</palantir-java-format.version>
+        <spotless.version>3.10.1</spotless.version>
+        <palantir-java-format.version>2.97.0</palantir-java-format.version>
 
         <ai.index.output.directory>${project.basedir}/src/site/ai</ai.index.output.directory>
 
@@ -340,7 +340,7 @@ SPDX-License-Identifier: Apache-2.0
                 <plugin>
                     <groupId>org.pitest</groupId>
                     <artifactId>pitest-maven</artifactId>
-                    <version>1.25.9</version>
+                    <version>1.30.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
