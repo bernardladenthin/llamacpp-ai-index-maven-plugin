@@ -11,10 +11,27 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-29
+
 ### Changed
 - CI actions bumped to latest: `actions/setup-java` v5 → v6.
+- **Build tooling bumped and NullAway aligned with the sibling repos**: `nullaway` 0.13.8 → 0.14.0,
+  `spotless-maven-plugin` 3.10.0 → 3.10.1, `palantir-java-format` 2.96.0 → 2.97.0, `pitest-maven`
+  1.25.9 → 1.30.0. All three of the first are declared **per module** here (`srcmorph`,
+  `srcmorph-cli`, `srcmorph-maven-plugin`), not in the reactor parent, and `pitest-maven` has two
+  separate version declarations — every one was moved. nullaway is an alignment rather than a plain
+  bump: streambuffer had already merged a Dependabot bump to 0.14.0, so the four repos had silently
+  stopped being identical. Deliberately **not** taken: `jqwik` 1.9.3 → 1.10.1, forbidden by
+  [`workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md).
 
 ### Fixed
+- **`publish.yml` concurrency group: every non-PR run now gets its own group.** The block previously
+  claimed a push to `main` or a `v*` tag *"always runs to completion"* because `cancel-in-progress`
+  is scoped to `pull_request`. GitHub cancels a **pending** run whenever a newer run joins the same
+  group behind an in-progress one, and that rule is **independent of** `cancel-in-progress` — so a
+  queued release run on `main` could be dropped silently by a later push. The group expression now
+  appends the unique `github.run_id` for non-PR runs; PR runs still share a group per ref and
+  supersede each other as intended.
 - Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
   pinned in the parent `pom.xml`) to close
   [GHSA-5jmj-h7xm-6q6v](https://github.com/advisories/GHSA-5jmj-h7xm-6q6v) (CVSS 5.3, Medium),
@@ -91,6 +108,35 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   inherits the release profile's signing/publishing plugins at all (it previously had none),
   while keeping its own version pinned independently.
 
+## [1.1.0] - 2026-07-11
+
+> Reconstructed on 2026-08-29 from `git log v1.0.2..v1.1.0` (49 commits). This section was missing
+> entirely: `v1.1.0` was tagged and published, but neither a heading nor a compare-link was ever
+> added, so the chain jumped `1.0.2 → 1.1.1` and a shipped version was undocumented. The omission is
+> recorded in [`../workspace/workflows/release-process.md`](../workspace/workflows/release-process.md)
+> as the reason the CHANGELOG footer now has a mechanical headings/links/tags check.
+
+### Added
+- **`srcmorph-cli` module** — a standalone JSON/YAML-driven CLI (`net.ladenthin:srcmorph-cli`), with
+  the fat jar as its deliverable, bound unconditionally to the `package` phase.
+
+### Changed
+- **Restructured into a 3-module Maven reactor** (migration steps 3–9): a parent pom plus the
+  framework-free core library `srcmorph`, the new `srcmorph-cli`, and the Maven plugin. The engine
+  layer was extracted out of the mojos so the core carries no dependency on the Maven API.
+- **The Maven plugin was renamed** to `net.ladenthin:srcmorph-maven-plugin` (package
+  `net.ladenthin.maven.srcmorph.mojo`, goal prefix `srcmorph`, `@Parameter` properties `srcmorph.*`).
+  The old coordinates stayed resolvable via a one-time relocation-stub POM published at `1.0.4`.
+- **Maven `Log` replaced with SLF4J** throughout the indexer layer, which is what makes the core
+  module Maven-free.
+- CI adapted to the reactor; a Gradle/BouncyCastle signing-key preflight added (cross-repo sync);
+  `net.ladenthin:llama` 5.0.4 → 5.0.6; `pitest-maven` and `junit-jupiter` bumped.
+
+### Fixed
+- `module-info` for `srcmorph` was missing `requires org.slf4j`.
+- The code-style job used bare `spotless`/`spotbugs` prefix goals, which do not resolve in a reactor.
+- REUSE compliance: SPDX headers / license sidecars added to the benchmark files.
+
 ## [1.0.2] - 2026-07-02
 
 ### Changed
@@ -140,8 +186,10 @@ First public release on Maven Central. Pre-OpenSSF history themes (March–May 2
 
 ---
 
-[Unreleased]: https://github.com/bernardladenthin/srcmorph/compare/v1.1.1...HEAD
-[1.1.1]: https://github.com/bernardladenthin/srcmorph/compare/v1.0.2...v1.1.1
+[Unreleased]: https://github.com/bernardladenthin/srcmorph/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bernardladenthin/srcmorph/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/bernardladenthin/srcmorph/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/bernardladenthin/srcmorph/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/bernardladenthin/srcmorph/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bernardladenthin/srcmorph/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/bernardladenthin/srcmorph/releases/tag/v1.0.0

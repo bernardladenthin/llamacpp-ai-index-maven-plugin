@@ -187,7 +187,7 @@ The plugin is configured from three building blocks, declared on the plugin insi
 <plugin>
     <groupId>net.ladenthin</groupId>
     <artifactId>srcmorph-maven-plugin</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
 
     <configuration>
         <!-- outputDirectory defaults to ${project.basedir}/src/site/ai -->
