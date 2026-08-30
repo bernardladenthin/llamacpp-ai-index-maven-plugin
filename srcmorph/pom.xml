@@ -13,7 +13,7 @@ SPDX-License-Identifier: Apache-2.0
     <parent>
         <groupId>net.ladenthin</groupId>
         <artifactId>srcmorph-parent</artifactId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.2.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -30,9 +30,15 @@ SPDX-License-Identifier: Apache-2.0
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- net.ladenthin:llama release on Maven Central. 5.0.3 carries the prompt-cache / slot APIs
              (withCachePrompt / withSlotId) used by the provider's per-file cache reuse, plus the GPU
-             classifier jars (cuda13/vulkan/opencl). 5.0.6 is source-compatible with the provider's
-             API surface (checked against CHANGELOG.md 5.0.4 -> 5.0.6: additive-only changes). -->
-        <llama.version>5.0.6</llama.version>
+             classifier jars (cuda13/vulkan/opencl). 5.1.0 is NOT purely additive, unlike the earlier
+             bumps: it deprecates six InferenceParameters methods that were always silent no-ops, one
+             of which (withUseChatTemplate) this provider called. With -Xlint:all -Werror a
+             deprecation is a compile error, so the call was removed rather than suppressed: it
+             never had an effect, and upstream llama.cpp defaults use_jinja to true, so chat
+             templating is unchanged. The rest of the provider's API surface (LlamaModel,
+             InferenceParameters, ModelParameters, ChatResponse/Timings/Pair, ChatResponseParser,
+             ReasoningFormat) is untouched by 5.1.0. -->
+        <llama.version>5.1.0</llama.version>
         <!-- Native build selector for net.ladenthin:llama. Empty = the main jar (CPU, Ninja default).
              The gpu-cuda / gpu-vulkan profiles set a GPU classifier; or override with
              -Dllama.classifier=cuda13-windows-x86-64. GPU builds need their runtime on PATH
@@ -63,7 +69,7 @@ SPDX-License-Identifier: Apache-2.0
         <spotless.version>3.10.1</spotless.version>
         <palantir-java-format.version>2.97.0</palantir-java-format.version>
 
-        <project.build.outputTimestamp>2026-07-15T23:12:53Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-08-29T23:23:42Z</project.build.outputTimestamp>
     </properties>
 
     <!--

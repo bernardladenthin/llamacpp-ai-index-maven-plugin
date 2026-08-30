@@ -180,7 +180,6 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         // whole request is built as a single chain.
         final InferenceParameters baseParameters = new InferenceParameters("")
                 .withMessages(systemPrompt, messages)
-                .withUseChatTemplate(true)
                 .withTemperature(config.temperature())
                 .withNPredict(config.maxOutputTokens())
                 .withTopP(config.topP())

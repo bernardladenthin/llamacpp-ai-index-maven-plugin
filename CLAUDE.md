@@ -37,7 +37,7 @@ keep carrying it (and its `versions:set` exclusion footgun) in active developmen
 - **Java:** target bytecode 1.8 (production code), Java 21 test sources, built with JDK 21
 - **License:** Apache 2.0
 - **Author:** Bernard Ladenthin (Copyright 2026)
-- **Reactor version:** `1.2.0-SNAPSHOT` (single shared version across `srcmorph`, `srcmorph-cli`,
+- **Reactor version:** `1.2.0` (single shared version across `srcmorph`, `srcmorph-cli`,
   and `srcmorph-maven-plugin`). Last released version: `1.1.1`.
 
 ---
@@ -46,7 +46,7 @@ keep carrying it (and its `versions:set` exclusion footgun) in active developmen
 
 ```
 llamacpp-ai-index-maven-plugin/            (repo root; reactor parent)
-├── pom.xml                                net.ladenthin:srcmorph-parent:1.2.0-SNAPSHOT (packaging=pom)
+├── pom.xml                                net.ladenthin:srcmorph-parent:1.2.0 (packaging=pom)
 │                                           shared build plugins + dependencyManagement + release profile
 ├── srcmorph/                               CORE LIBRARY  net.ladenthin:srcmorph  (Java 8, Maven-API-free)
 │   └── src/main/java/net/ladenthin/srcmorph/
@@ -362,7 +362,7 @@ assume it has already been updated.
 
 | Dependency | Version | Used by |
 |---|---|---|
-| `net.ladenthin:llama` | 5.0.6 | `srcmorph` (`provider` package only) — llama.cpp JNI binding |
+| `net.ladenthin:llama` | 5.1.0 | `srcmorph` (`provider` package only) — llama.cpp JNI binding |
 | `org.slf4j:slf4j-api` | 2.0.18 (converged in the parent) | `srcmorph`, `srcmorph-cli`, the plugin |
 | `ch.qos.logback:logback-classic` | 1.6.3 (converged in the parent) | `srcmorph-cli` (runtime binding) |
 | `com.fasterxml.jackson.core:jackson-databind` | pinned in parent | `srcmorph-cli` (JSON config) |
