@@ -168,6 +168,17 @@ public final class GenerateEngine {
             return GenerateResult.planned();
         }
 
+        // Fail fast on a typo'd modelPath before the model-group loop below, not an hour into it.
+        //
+        // Deliberately AFTER the planOnly return: planOnly is documented to "stop before loading any
+        // model", and the workflow it exists for is configuring routing on a machine where the GGUFs
+        // are not present and running for real elsewhere. Stat'ing the file is not loading it, but
+        // failing the plan on a missing model would break that workflow all the same -- and Plan is
+        // the CLI's default command. Nothing between here and the loop loads a model, so the check
+        // loses nothing by moving down.
+        EngineSupport.validateRoutedModelPaths(
+                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
+
         // 4. Execute model group by model group: load each model once, index its files, close.
         //    Progress is the running sum of each finished file's PLAN estimate over the grand total
         //    (no re-estimation), logged as a bar + percent after every file, with the estimated time
@@ -190,7 +201,7 @@ public final class GenerateEngine {
                     group.getValue().size());
             try (AiGenerationProvider provider = providerFactory.create(
                     config.getGenerationProvider(),
-                    EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, aiDefinitionKey),
+                    EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, aiDefinitionKey),
                     promptSupport)) {
                 final AiFieldGenerationSupport support =
                         new AiFieldGenerationSupport(provider, promptPreparationSupport, modelDefinitionSupport);

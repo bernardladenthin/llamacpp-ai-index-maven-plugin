@@ -53,10 +53,18 @@ public class AiModelDefinitionSupportTest {
         definition.setSwaFull(false);
         definition.setCacheReuse(128);
         definition.setGpuLayers(20);
+        definition.setSeed(12345);
         definition.setCpuMoeLayers(24);
         definition.setCpuFfnLayers(16);
         definition.setKvUnifiedPerSlot(4096);
         definition.setTensorReadLazy("on");
+        definition.setRepeatLastN(128);
+        definition.setCacheTypeK("q8_0");
+        definition.setCacheTypeV("q4_0");
+        definition.setFlashAttn(true);
+        definition.setBatchSize(512);
+        definition.setUbatchSize(256);
+        definition.setThreadsBatch(6);
         definition.setMainGpu(1);
         definition.setDevices("Vulkan1");
         definition.setReasoningEffort("high");
@@ -111,10 +119,18 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.getGpuLayers(), is(equalTo(20)));
         // The CPU-offload / KV / lazy-read knobs propagate — kill the dropped-setter void-call
         // mutants in toConfig().
+        assertThat(config.getSeed(), is(equalTo(12345)));
         assertThat(config.getCpuMoeLayers(), is(equalTo(24)));
         assertThat(config.getCpuFfnLayers(), is(equalTo(16)));
         assertThat(config.getKvUnifiedPerSlot(), is(equalTo(4096)));
         assertThat(config.getTensorReadLazy(), is(equalTo("on")));
+        assertThat(config.getRepeatLastN(), is(equalTo(128)));
+        assertThat(config.getCacheTypeK(), is(equalTo("q8_0")));
+        assertThat(config.getCacheTypeV(), is(equalTo("q4_0")));
+        assertThat(config.isFlashAttn(), is(equalTo(true)));
+        assertThat(config.getBatchSize(), is(equalTo(512)));
+        assertThat(config.getUbatchSize(), is(equalTo(256)));
+        assertThat(config.getThreadsBatch(), is(equalTo(6)));
         // mainGpu/devices propagate — kill the dropped-setter void-call mutants in toConfig().
         assertThat(config.getMainGpu(), is(equalTo(1)));
         assertThat(config.getDevices(), is(equalTo("Vulkan1")));
@@ -153,10 +169,18 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.isSwaFull(), is(AiGenerationConfig.DEFAULT_SWA_FULL));
         assertThat(config.getCacheReuse(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_REUSE)));
         assertThat(config.getGpuLayers(), is(equalTo(AiGenerationConfig.DEFAULT_GPU_LAYERS)));
+        assertThat(config.getSeed(), is(equalTo(AiGenerationConfig.DEFAULT_SEED)));
         assertThat(config.getCpuMoeLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS)));
         assertThat(config.getCpuFfnLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS)));
         assertThat(config.getKvUnifiedPerSlot(), is(equalTo(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT)));
         assertThat(config.getTensorReadLazy(), is(equalTo(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY)));
+        assertThat(config.getRepeatLastN(), is(equalTo(AiGenerationConfig.DEFAULT_REPEAT_LAST_N)));
+        assertThat(config.getCacheTypeK(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_TYPE_K)));
+        assertThat(config.getCacheTypeV(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_TYPE_V)));
+        assertThat(config.isFlashAttn(), is(equalTo(AiGenerationConfig.DEFAULT_FLASH_ATTN)));
+        assertThat(config.getBatchSize(), is(equalTo(AiGenerationConfig.DEFAULT_BATCH_SIZE)));
+        assertThat(config.getUbatchSize(), is(equalTo(AiGenerationConfig.DEFAULT_UBATCH_SIZE)));
+        assertThat(config.getThreadsBatch(), is(equalTo(AiGenerationConfig.DEFAULT_THREADS_BATCH)));
         assertThat(config.getMainGpu(), is(equalTo(AiGenerationConfig.DEFAULT_MAIN_GPU)));
         assertThat(config.getDevices(), is(equalTo(AiGenerationConfig.DEFAULT_DEVICES)));
         assertThat(config.getReasoningEffort(), is(equalTo(AiGenerationConfig.DEFAULT_REASONING_EFFORT)));

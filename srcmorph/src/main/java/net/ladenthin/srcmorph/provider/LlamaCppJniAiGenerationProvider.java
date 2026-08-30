@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.ToString;
 import net.ladenthin.llama.LlamaModel;
+import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.ReasoningFormat;
 import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.llama.json.ChatResponseParser;
@@ -137,6 +138,28 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
                 modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
             }
+            if (config.flashAttn()) {
+                modelParameters.enableFlashAttn();
+            }
+            // KV-cache quantization. Set independently of each other, but note that a quantized V cache
+            // generally needs Flash Attention above -- llama.cpp refuses the combination otherwise.
+            if (!compatibilityHelper.isBlank(config.cacheTypeK())) {
+                modelParameters.setCacheTypeK(cacheType("cacheTypeK", config.cacheTypeK()));
+            }
+            if (!compatibilityHelper.isBlank(config.cacheTypeV())) {
+                modelParameters.setCacheTypeV(cacheType("cacheTypeV", config.cacheTypeV()));
+            }
+            // Prefill sizing. The binding's own default for both is 0, which llama.cpp reads as
+            // "decide for me", so 0 is not a meaningful user value and the guard is > 0.
+            if (config.batchSize() > 0) {
+                modelParameters.setBatchSize(config.batchSize());
+            }
+            if (config.ubatchSize() > 0) {
+                modelParameters.setUbatchSize(config.ubatchSize());
+            }
+            if (config.threadsBatch() > 0) {
+                modelParameters.setThreadsBatch(config.threadsBatch());
+            }
             // Pick a specific GPU when configured (>= 0). Matters on multi-GPU hosts: a Vulkan build
             // enumerates every GPU (an integrated GPU may be device 0), so the default can select the
             // slower one. -1 leaves the binding/native-build default.
@@ -180,6 +203,45 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
     }
 
     /**
+     * Resolves a configured {@code --cache-type-k} / {@code --cache-type-v} value to the binding's enum.
+     *
+     * <p>Same contract as {@link #tensorReadLazyMode(String)}: matched case-insensitively against the CLI
+     * strings the enum itself declares, so a cache type upstream adds is accepted for free, and an
+     * unrecognised value is rejected rather than dropped. The knob name is passed in so the message names
+     * the element the user actually wrote.</p>
+     *
+     * @param knobName the configuration element name, for the error message
+     * @param value    the configured value; must not be blank (callers guard on that)
+     * @return the matching cache type
+     * @throws IllegalArgumentException if no cache type declares that CLI string
+     */
+    static CacheType cacheType(final String knobName, final String value) {
+        for (final CacheType type : CacheType.values()) {
+            if (type.getArgValue().equalsIgnoreCase(value)) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException(
+                "Invalid " + knobName + " value: \"" + value + "\" (expected one of: " + knownCacheTypeValues() + ")");
+    }
+
+    /**
+     * Renders the accepted KV-cache types for an error message.
+     *
+     * @return the CLI strings the binding's enum declares, comma-separated in declaration order
+     */
+    private static String knownCacheTypeValues() {
+        final StringBuilder known = new StringBuilder();
+        for (final CacheType type : CacheType.values()) {
+            if (known.length() > 0) {
+                known.append(", ");
+            }
+            known.append(type.getArgValue());
+        }
+        return known.toString();
+    }
+
+    /**
      * Renders the accepted {@code --tensor-read-lazy} values for an error message.
      *
      * @return the CLI strings the binding's enum declares, comma-separated in declaration order
@@ -216,11 +278,15 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         final Timings timings = response.getTimings();
         if (timings == null) {
             // A build/response without timings degrades to zero rates so the caller's fallback can act.
-            return new AiGenerationTimings(text, 0, 0.0d, 0, 0.0d);
+            return new AiGenerationTimings(text, 0, 0, 0.0d, 0, 0.0d);
         }
+        // cache_n is the leading prompt slice llama.cpp served straight from the KV cache. It is the only
+        // observable the prefix-reuse settings (cachePrompt / cacheReuse / swaFull) produce, so it is
+        // surfaced rather than dropped: without it a run pays swaFull's KV memory on faith.
         return new AiGenerationTimings(
                 text,
                 (int) timings.getPromptN(),
+                timings.getCacheN(),
                 timings.getPromptPerSecond(),
                 (int) timings.getPredictedN(),
                 timings.getPredictedPerSecond());
@@ -268,11 +334,24 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
                 .withCachePrompt(config.cachePrompt())
                 .withSlotId(REUSE_SLOT_ID);
 
+        // Pin the RNG seed only when explicitly configured (>= 0). Upstream's default is a random seed
+        // per request, so an unconfigured run keeps exactly the behaviour it had; a configured one makes
+        // the generated body stable for a given machine and configuration, which is what turns a
+        // re-index into a reviewable diff. Not bit-reproducibility -- see AiGenerationConfig.DEFAULT_SEED.
+        final InferenceParameters seededParameters =
+                config.seed() >= 0 ? baseParameters.withSeed(config.seed()) : baseParameters;
+
+        // The window the repeat penalty above acts on. Forwarded only when configured (>= 0), so an
+        // unconfigured run keeps llama.cpp's own window; 0 is meaningful (disables the penalty), and the
+        // binding rejects negatives, which is why the guard is >= 0 rather than > 0.
+        final InferenceParameters penaltyScopedParameters =
+                config.repeatLastN() >= 0 ? seededParameters.withRepeatLastN(config.repeatLastN()) : seededParameters;
+
         // Only override the DRY sequence breakers when explicitly configured; an empty list keeps
         // the binding/model default set instead of clearing it.
         return config.drySequenceBreakers().isEmpty()
-                ? baseParameters
-                : baseParameters.withDrySequenceBreakers(
+                ? penaltyScopedParameters
+                : penaltyScopedParameters.withDrySequenceBreakers(
                         config.drySequenceBreakers().toArray(new String[0]));
     }
 

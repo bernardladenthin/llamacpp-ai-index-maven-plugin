@@ -45,7 +45,6 @@ public class SrcMorphConfigurationTest {
         assertThat(c.getAiDefinitions(), is(nullValue()));
         assertThat(c.getFieldGenerations(), is(nullValue()));
         assertThat(c.getFactDefinitions(), is(nullValue()));
-        assertThat(c.getLlamaLibraryPath(), is(nullValue()));
         assertThat(c.getLlamaModelPath(), is(nullValue()));
         assertThat(c.getProjectName(), is(nullValue()));
     }
@@ -157,13 +156,6 @@ public class SrcMorphConfigurationTest {
         fd.setKey("fd");
         c.setFactDefinitions(Arrays.asList(fd));
         assertThat(c.getFactDefinitions(), hasItem(fd));
-    }
-
-    @Test
-    public void llamaLibraryPathRoundTrips() {
-        final SrcMorphConfiguration c = new SrcMorphConfiguration();
-        c.setLlamaLibraryPath("/opt/lib/libjllama.so");
-        assertThat(c.getLlamaLibraryPath(), is("/opt/lib/libjllama.so"));
     }
 
     @Test

@@ -11,6 +11,203 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Removed
+- **`llamaLibraryPath` / `srcmorph.llama.libraryPath` — a parameter that never worked.**
+
+  It was declared on every mojo and threaded through
+  `SrcMorphConfiguration`, `EngineSupport`, both `LlamaCppJniConfigFactory` methods and
+  `LlamaCppJniConfig` — and no code read it, so setting it was a silent no-op. Git history shows this
+  was never a working feature a refactor broke: in `a1df3e0 "Initial version."` it is already the
+  first field of the then six-field `LlamaCppJniConfig` record, next to `modelPath`, while that
+  commit's provider built its `ModelParameters` from `modelPath` / `contextSize` / `threads` alone.
+
+  It is removed rather than implemented, because the binding already offers the same knob and offers
+  it *better*. `net.ladenthin.llama.lib.path` is an ordinary JVM system property and the loader's
+  highest-precedence source; `MAVEN_OPTS` and `.mvn/jvm.config` set it before the JVM starts, so it
+  is in place before any class loads. A plugin parameter can only act once the provider builds a
+  model — by then `LlamaModel`'s static initializer may already have resolved the library, and every
+  later value is silently ignored. Implementing it would have added a weaker path with a
+  silent-failure mode alongside one that always works. Verified empirically that the property reaches
+  the build JVM: `mvn -Dnet.ladenthin.llama.lib.path=…` is readable via `System.getProperty` from
+  inside the build.
+
+  **Migration:** replace `<llamaLibraryPath>DIR</llamaLibraryPath>` with
+  `-Dnet.ladenthin.llama.lib.path=DIR` on the command line, in `MAVEN_OPTS`, or in `.mvn/jvm.config`.
+  A POM that still sets the element will fail with an unknown-parameter error; it was doing nothing
+  before, so no behaviour changes with it gone. The plugin README's GPU section already documented
+  the property as the runtime override.
+
+- **`config.AiGenerationKind` — dead code from a superseded design.** The enum (`FILE_SUMMARY`,
+  `PACKAGE_SUMMARY`, `FILE_KEYWORDS`, `PACKAGE_KEYWORDS`) is the original *fixed* generation taxonomy
+  from when the goals were `SummarizeFilesMojo` / `SummarizePackagesMojo`, and `8d1be51` and `0a6f462` deliberately replaced
+  that with configurable prompt keys and rule routing — which is design principle 6, "prompt templates
+  and routing rules are data, never hardcoded in Java". No production class referenced it in any
+  commit. Its two apparent users were concurrency-infrastructure examples that had borrowed the name:
+  the Lincheck one never touched the enum at all (it exercises an `AtomicInteger`) and is now
+  `AtomicCounterLincheckTest`; the jcstress one now races a real enum and is `AiOversizeStrategyRace`.
+  Both examples are kept — only their misleading names and the dead enum are gone. It was `public` in
+  a published artifact, so formally a breaking change; nothing could construct or receive it, so
+  practically not.
+
+### Added
+- **`seed` model-definition knob** (`InferenceParameters.withSeed`, default `-1`). Upstream draws a
+  random seed per request, so with a non-zero temperature every generation samples differently: a
+  re-index of an unchanged file, or any `force=true` run, produced a different `.ai.md` body than the
+  one already committed. That sat awkwardly next to the project's own "deterministic indexing"
+  principle. Setting a seed makes the body stable for a given machine and configuration, which turns a
+  re-index into a reviewable diff. Forwarded only when `>= 0`, so an unconfigured run is byte-identical
+  to before. Documented deliberately as *not* bit-reproducibility: llama.cpp results move with thread
+  count, batch size and backend, so the seed pins the sampling, not the arithmetic.
+
+- **The prompt cache is now measured instead of assumed** — `cache_n` reaches Java. The binding has
+  always reported how many leading prompt tokens llama.cpp served straight from the KV cache; the
+  provider read the `Timings` object and dropped that number. It is the *only* observable the whole
+  prefix-reuse stack produces (`cachePrompt`, `cacheReuse`, `swaFull`), so with it discarded a run paid
+  `swaFull`'s KV-memory surcharge on the assumption that it was working, with no way to tell whether it
+  was. `AiGenerationTimings` now carries it as `cachedPromptTokens()` next to the evaluated
+  `promptTokens()`, plus their sum as `totalPromptTokens()`; `AiCalibrationMeasurement` carries the
+  near-window run's count, and `srcmorph:calibrate` logs it per model — an `INFO` line naming the reused
+  token count, or a `WARN` when nothing was reused, which is the case where those settings cost memory
+  and buy nothing. The opt-in real-model provider test (`-DrunNativeLlamaTests=true`) asserts that a
+  second request against the same system prompt finds it cached, so the reuse is proven end to end and
+  not just plumbed.
+
+- **Seven further model-definition knobs**, wired through to `net.ladenthin:llama` 5.1.0 exactly like the
+  existing `gpuLayers` / `cpuMoeLayers` set — an `<aiDefinition>` element in the Maven plugin, or a key
+  under `srcMorph.aiDefinitions[]` in a CLI JSON/YAML config — and each forwarded to the binding only when
+  explicitly set, so an unconfigured build behaves exactly as before. They are added now rather than later
+  because configuration surface is the part of this library that cannot be extended without a release.
+  - `repeatLastN` (`--repeat-last-n`, default `-1`) — **the gap this closes is a pair that was half
+    wired**: `repeatPenalty` was configurable, the window it acts on was not, so the strength was
+    adjustable while the reach stayed on llama.cpp's default of 64 tokens. `0` disables the penalty and is
+    a meaningful value, so the guard is `>= 0`; the binding rejects negatives. Per-request, next to
+    `repeatPenalty` itself.
+  - `cacheTypeK` / `cacheTypeV` (`--cache-type-k` / `--cache-type-v`, default empty) — KV-cache
+    quantization, the most direct trade of quality for context length: at `q8_0` the cache costs about
+    half of `f16`, so a larger `contextSize` (or `swaFull`) fits the same VRAM. Carried as a `String`
+    through the `config` package — the `jniConfinedToProvider` ArchUnit rule keeps `net.ladenthin.llama`
+    types out of it — and resolved to the binding's `CacheType` inside the provider, matched
+    case-insensitively against the CLI strings the enum itself declares. An unrecognised value is
+    **rejected**, and the message names which of the two knobs was wrong, since one resolver serves both.
+  - `flashAttn` (`--flash-attn`, default `false`) — lower KV memory and faster attention where the
+    backend supports it, and the precondition for quantizing the V cache.
+  - `batchSize` / `ubatchSize` (`--batch-size` / `--ubatch-size`, default `-1`) — prefill sizing, and
+    prefill is what dominates an indexing run: every file is one large prompt with a short answer. The
+    binding's own default for both is `0`, which llama.cpp reads as "decide for me", so `0` is not a
+    meaningful user value and the guard is `> 0`.
+  - `threadsBatch` (`--threads-batch`, default `-1`) — prompt-processing threads, separate from the
+    decode `threads`. The two optima differ on machines with efficiency cores; `-1` keeps llama.cpp's
+    behaviour of reusing `threads`.
+
+  `srcmorph:calibrate` is what makes these measurable rather than guesswork: it reports prefill and
+  decode throughput, and — since this release — the prompt-cache reuse the extra KV room buys.
+
+  Note the cost this exposes: `LlamaCppJniConfig`'s positional constructor is now 37 arguments. It is
+  covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
+  mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
+
+### Changed
+- **`LlamaCppJniConfig` is built through a builder; its positional constructor is private.** Breaking for
+  anyone who constructed one directly — deliberately taken in this release rather than later, because the
+  class is already breaking here and a second break for the same type is worse than one.
+
+  It had grown to a **37-argument** constructor, which is past the point where a call site can be read or
+  a swapped pair of same-typed neighbours is noticeable: the compiler accepts
+  `…, batchSize, ubatchSize, …` in either order. `LlamaCppJniConfig.builder(modelPath)` replaces it, and
+  `modelPath` — the one value with no meaningful default — is required at the entry point rather than
+  checked in `build()`, so a half-formed builder cannot be constructed at all.
+
+  The builder is also where the defaults now live, and that removes a real duplication:
+  `LlamaCppJniConfigFactory.fromFallbackParameters` used to restate all 30+
+  `AiGenerationConfig.DEFAULT_*` constants by hand, so a knob added to `AiGenerationConfig` could end up
+  with a different default there by simple omission. It is now five lines. Each builder field starts at
+  the matching `AiGenerationConfig.DEFAULT_*`, and a `null` on a String or list setter restores that
+  knob's default instead of storing `null` — note this is "the default", not "empty":
+  `reasoningEffort(null)` gives back `"low"`.
+
+  Two tests carry this, and both were verified to fail against a deliberately broken build rather than
+  assumed to: `builder_leavesEveryUnsetValueAtItsAiGenerationConfigDefault` (every unset value equals its
+  config default — reds when one builder field is initialised to `0` instead) and
+  `builder_everySetterWritesItsOwnField` (36 distinct values — reds when `ubatchSize(…)` is made to write
+  `batchSize`). The old positional-constructor tests they supersede are removed.
+
+### Fixed
+- **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
+  seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced
+  wholesale with `return false;` and the class's tests stayed green — verified, not inferred. Two of
+  them wrote the fixture document with a header but no body, so the method returned at its blank-body
+  guard before the comparison ever ran. Since checksum-driven regeneration is a stated design
+  principle, dropping any disjunct would have meant stale files silently never regenerating, with
+  nothing failing. Both tests now write a body, and a parameterized case covers each compared field
+  (`h`/`x`/`title`/`c`/`d`/`g`/`a`) plus the unchanged-header negative. Re-running the same mutation
+  now fails 9 of 15 tests, and removing a single disjunct fails 2.
+- **`srcmorph:calibrate`'s chars-per-token silently depended on a cache hit nothing checked.** It divided
+  the near-window run's *source* characters by the prompt tokens the model had *evaluated* — a figure that
+  excludes whatever the KV cache served. That is only the source's own token count while the base prompt
+  is a cache hit; with no reuse the same divisor also covers the base prompt, so the ratio came out too
+  low and the plan's time estimate with it. Nothing enforced the assumption and, until `cache_n` was
+  surfaced, nothing could even observe whether it held. The ratio is now read from the mid&rarr;near
+  *size differential* over `totalPromptTokens()` (evaluated **plus** cache-served): both runs share the
+  same base prompt, so subtracting them cancels it and the result describes the source text alone,
+  identically whether or not the prefix was reused. A regression test measures the same prompt twice —
+  once fully reused, once not — and requires both to agree; it fails on the previous formula.
+
+- **No `execute()` verified that it honours the skip flag.** `shouldSkip()` itself was well tested, but
+  a mojo that never called it would have passed every one of those tests — and would have loaded a
+  model and written files under `-Dsrcmorph.skip=true`. All four goals now assert it, `CalibrateMojo`
+  included (it previously had no test constructing it at all).
+
+### Added
+- **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
+  phase — walk, classify, rendered plan — and only died inside the native loader, which with several
+  model groups means *after* the earlier groups had already generated. The check joins the fail-fast
+  block the engines already run.
+
+  Two placement constraints, both load-bearing. It is **gated on
+  `generationProvider == llamacpp-jni`**, because only that provider loads a GGUF and every shipped
+  example deliberately points at a non-existent `unused-with-mock-provider.gguf` while running the
+  mock; an ungated check would red the examples, their binding tests, the CLI end-to-end test and the
+  fat-jar release smoke. And it runs **after the `planOnly` early-out**, because `planOnly` is
+  documented to "stop before loading any model" and `Plan` is the CLI's default command — the
+  workflow it serves is configuring routing on a machine where the GGUFs are not present and running
+  for real on the one that has them. Stat'ing a file is not loading it, but failing the plan on a
+  missing model would break that workflow all the same.
+
+  The ordering was wrong in the first cut and no test saw it: every other `GenerateEngineTest`
+  fixture uses the `mock` provider, so the check never ran through the engine at all. Both halves are
+  now pinned — a plan-only run with the real provider and a missing model still plans; the same
+  configuration without `planOnly` still fails fast.
+
+### Changed
+- `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is
+  initialised to an empty list and the setter normalises `null`, so the documented "or `null` if not
+  set" case was unreachable; the getter now matches its sibling `getDrySequenceBreakers()`. The two
+  null-guards this made dead in `LlamaCppJniConfigFactory` were dropped with it — the real guard lives
+  in `LlamaCppJniConfig`'s constructor, and is now pinned directly by a new `LlamaCppJniConfigTest`.
+- **PIT gate widened from 632 to 717 mutations, all killed at `mutationThreshold` 100.** Newly gated:
+  `provider.LlamaCppJniConfig`, `config.AiConditionGroup` (both already at 100% with no new test —
+  `TODO.md` had listed them as needing "careful fixtures", which was stale), `document.AiMdDocumentCodec`
+  and `indexer.AiIndexPlan` (survivors killed here). `document.AiMdHeaderCodec` is documented as
+  permanently out: its last two survivors are equivalent mutants in the colon-position guard, unkillable
+  through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
+  six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
+  missing-subtree and unknown-`factsKey` paths.
+- **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and
+  the condition layer was tested directly, but no test ever made the indexer's `anyRuleUsesLines`
+  return true, so `countLines` never ran during planning. A silent failure there would send every
+  file to the fallback rule with nothing failing. Verified by inverting the `usesLines` check: the
+  new test goes red. Writing it also surfaced a semantic worth knowing — a condition node evaluates
+  exactly one leaf and returns on the first present, with `extensions` before `lines`, so combining
+  the two needs an `<and>` group; the first version of the fixture set both on one node and matched
+  on extension alone.
+- **`AiSourceChunker`'s observable boundaries are pinned** (28/34 mutants, up from 25): `maxChars == 1`,
+  the guard that stops the last chunk being trimmed and re-split, and the guard that stops a chunk
+  beginning on a newline collapsing to a single character — the last two are silent-content-change
+  shapes. The six remaining mutants are equivalent (capacity hint, empty-list return, two arithmetic
+  terms an enclosing `Math.max` absorbs, a loop head an earlier `break` already guarantees, and a
+  subset branch that at equality reproduces its input); they are enumerated in `TODO.md` so nobody
+  re-hunts them.
+
 ## [1.2.0] - 2026-08-29
 
 ### Added

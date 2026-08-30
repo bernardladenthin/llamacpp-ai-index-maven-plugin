@@ -426,15 +426,23 @@ below are the shipped values (`AiGenerationConfig.DEFAULT_*`).
 | `minP` | `0.0` | Min-p sampling threshold (`0.0` = disabled) |
 | `topNSigma` | `-1.0` | Top-n-sigma sampling threshold (`-1.0` = disabled) |
 | `repeatPenalty` | `1.0` | Repetition penalty (`1.0` = disabled) |
+| `repeatLastN` | `-1` | Window the `repeatPenalty` above acts on (`--repeat-last-n`); `-1` = leave llama.cpp's own window (64 tokens), `0` = disable the penalty entirely. Configuring a penalty without its range leaves the strength adjustable but the reach fixed, which is why the two belong together |
 | `charsPerToken` | `4` | Chars-per-token estimate; drives the automatic `maxInputChars` trim budget (`maxInputChars` itself is derived, not a field). Use a value at or below your model's real ratio so the budget stays conservative |
 | `warnOnTrim` | `true` | Log a warning when the source is trimmed to fit the window |
 | `cachePrompt` | `true` | Reuse the shared prompt-prefix KV across files (`cache_prompt`) |
 | `swaFull` | `true` | Keep the full-size sliding-window-attention KV cache (`--swa-full`) |
 | `cacheReuse` | `256` | KV prefix-reuse minimum chunk size in tokens (`--cache-reuse`; `0` = off) |
+| `flashAttn` | `false` | Enable Flash Attention (`--flash-attn`). Lowers KV-cache memory and speeds up attention where the backend supports it, and it is the precondition for `cacheTypeV` below |
+| `cacheTypeK` | *(empty)* | KV-cache data type for K (`--cache-type-k`): `f32`, `f16`, `bf16`, `q8_0`, `q4_0`, `q4_1`, `iq4_nl`, `q5_0`, `q5_1`; empty leaves the default. Quantizing the KV cache is the most direct trade of quality for context length — at `q8_0` the cache costs about half of `f16`, so a larger `contextSize` (or `swaFull`) fits the same VRAM. Whether it pays off is measurable: `srcmorph:calibrate` reports the prompt-cache reuse the extra room buys |
+| `cacheTypeV` | *(empty)* | KV-cache data type for V (`--cache-type-v`); same values as `cacheTypeK`. **Quantizing V generally requires `flashAttn`** — without it llama.cpp will usually refuse to load, so set the two together |
+| `seed` | `-1` | RNG seed for generation; `-1` leaves upstream's random-seed-per-request default. Set it to make a re-run produce the same `.ai.md` body instead of a fresh sample, so re-indexing yields a reviewable diff. **Not bit-reproducibility** — llama.cpp is not identical across thread counts, batch sizes or backends, so this pins the sampling, not the arithmetic; same machine + same config is the guarantee |
 | `gpuLayers` | `-1` | GPU layers to offload (`--gpu-layers`); `-1` = auto-fit to free VRAM, `0` = force CPU, `>0` = partial. GPU native only |
 | `cpuMoeLayers` | `-1` | Keep the MoE expert weights of the first *n* layers on the CPU (`--n-cpu-moe` / `-ncmoe`); `-1` = leave default, `0` = keep none on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE model: it moves only the expert weights, so a much larger model fits the same VRAM at a smaller speed cost. GPU native only |
 | `cpuFfnLayers` | `-1` | Dense-model counterpart of `cpuMoeLayers`: keep the FFN weights of the first *n* layers on the CPU (`--n-cpu-ffn` / `-ncffn`); `-1` = leave default, `0` = keep none on the CPU. GPU native only |
 | `kvUnifiedPerSlot` | `-1` | Per-slot unified KV context cap (`--kv-unified-per-slot`); `-1` = leave default. Must be positive when set |
+| `batchSize` | `-1` | Logical maximum batch size (`--batch-size`); `-1` = leave default. A prefill-throughput knob, and prefill is what dominates an indexing run: every file is one large prompt with a short answer. Must be positive when set |
+| `ubatchSize` | `-1` | Physical maximum batch size (`--ubatch-size`); `-1` = leave default. Bounds how much of a logical batch reaches the backend at once, so it trades prefill speed against peak memory. Must be positive when set |
+| `threadsBatch` | `-1` | Threads for batch/prompt processing (`--threads-batch`); `-1` = reuse `threads`. Prefill parallelises differently from decode, so the optimum often is not the decode thread count — on a machine with efficiency cores, more threads help prompt processing while hurting generation. Must be positive when set |
 | `tensorReadLazy` | *(empty)* | On-demand reading of lazy-loadable tensors (`--tensor-read-lazy`): `off`, `auto` or `on`; empty leaves the default. Trades resident memory for disk reads and shortens model load time; **requires mmap** |
 | `mainGpu` | `-1` | Primary GPU index (`--main-gpu`); `-1` = leave default. Matters on multi-GPU hosts (e.g. a Vulkan build enumerates every GPU) |
 | `devices` | *(empty)* | Explicit device selection (`--device`), comma-separated backend device names (e.g. `Vulkan1`); takes precedence over `mainGpu` |
@@ -576,6 +584,14 @@ bundled native:
 ```
 mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dsrcmorph.generationProvider=llamacpp-jni
 ```
+
+> [!NOTE]
+> There is deliberately **no plugin parameter** for this. The property is read by the binding's
+> loader from `LlamaModel`'s static initializer, i.e. once per class-load — so setting it before the
+> JVM starts (`MAVEN_OPTS`, `.mvn/jvm.config`, or `-D` on the command line as above) always works,
+> while a plugin parameter could only act after the library may already have been resolved. A
+> `llamaLibraryPath` parameter existed up to 1.1.1 and was removed in 1.2.0; no code ever read it,
+> so it never had an effect. See the CHANGELOG.
 
 In both cases:
 

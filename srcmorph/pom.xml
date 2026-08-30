@@ -603,6 +603,7 @@ SPDX-License-Identifier: Apache-2.0
                         <param>net.ladenthin.srcmorph.config.AiCalibration</param>
                         <param>net.ladenthin.srcmorph.config.AiCondition</param>
                         <param>net.ladenthin.srcmorph.config.AiConditionEvaluator</param>
+                        <param>net.ladenthin.srcmorph.config.AiConditionGroup</param>
                         <param>net.ladenthin.srcmorph.config.AiFieldGenerationConfig</param>
                         <param>net.ladenthin.srcmorph.config.AiFieldGenerationSelector</param>
                         <param>net.ladenthin.srcmorph.config.AiFileContext</param>
@@ -612,10 +613,12 @@ SPDX-License-Identifier: Apache-2.0
                         <param>net.ladenthin.srcmorph.config.AiModelDefinitionSupport</param>
                         <param>net.ladenthin.srcmorph.indexer.AiCalibrationMeasurement</param>
                         <param>net.ladenthin.srcmorph.indexer.AiInputWindowCalculator</param>
+                        <param>net.ladenthin.srcmorph.indexer.AiIndexPlan</param>
                         <param>net.ladenthin.srcmorph.document.AiGenerationRequest</param>
                         <param>net.ladenthin.srcmorph.document.AiGenerationResult</param>
                         <param>net.ladenthin.srcmorph.document.AiMdChildEntryLineFormatter</param>
                         <param>net.ladenthin.srcmorph.document.AiMdDocument</param>
+                        <param>net.ladenthin.srcmorph.document.AiMdDocumentCodec</param>
                         <param>net.ladenthin.srcmorph.document.AiMdHeader</param>
                         <param>net.ladenthin.srcmorph.document.AiMdHeaderSupport</param>
                         <param>net.ladenthin.srcmorph.document.AiMdLeadExtractor</param>
@@ -642,6 +645,7 @@ SPDX-License-Identifier: Apache-2.0
                         <param>net.ladenthin.srcmorph.support.AiTimeSupport</param>
                         <param>net.ladenthin.srcmorph.support.Java8CompatibilityHelper</param>
                         <param>net.ladenthin.srcmorph.config.SrcMorphConfiguration</param>
+                        <param>net.ladenthin.srcmorph.provider.LlamaCppJniConfig</param>
                         <param>net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory</param>
                         <param>net.ladenthin.srcmorph.engine.EngineSupport</param>
                         <param>net.ladenthin.srcmorph.engine.GenerateResult</param>
@@ -651,6 +655,44 @@ SPDX-License-Identifier: Apache-2.0
                     <targetTests>
                         <param>net.ladenthin.srcmorph.*</param>
                     </targetTests>
+                    <!--
+                      PIT minions must NOT inherit surefire's <argLine>. Two separate reasons, both
+                      measured rather than assumed (see TODO.md for the full experiment log):
+
+                      1. The crash diagnostics do not belong here. That argLine carries
+                         -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=. from the cross-repo
+                         ci-test-diagnostics policy, where an OOM in a test JVM is a bug worth a heap
+                         dump. In a PIT minion an OOM is a normal operating condition (pitest even
+                         has a MEMORY_ERROR status for a mutant that allocates its way out of the
+                         heap), so every run wrote a 1.2 GB .hprof into this module directory while
+                         still reporting exit 0. Twelve of them filled the disk once.
+                      2. The JaCoCo agent that @{argLine} resolves to is pure overhead here: PIT
+                         collects its own coverage and never reads jacoco.exec.
+
+                      parseSurefireConfig=false is what actually stops the inheritance. Setting
+                      <jvmArgs> alone is inert: pitest places them BEFORE the inherited argLine, so
+                      surefire's -Xmx2g wins (verified: the dump size did not move until this flag
+                      was added, then jumped from 1.2 GB to 2.2 GB).
+
+                      The OOM itself is not a defect and is not meant to be fixed. The dump's own
+                      thread stack names it: an infinite-loop mutant. PIT mutates the i += 1 that
+                      advances globToRegex's scan loop in AiSourceExcludeFilter (a gated class), the
+                      loop then appends "[^/]" forever, and StringBuilder grows until the heap ends
+                      (the surviving array's bytes read literally ^A[^/]A[^/]A[^/]...). timeoutConstant
+                      exists for runaway mutants, but this one allocates its way out of a 2 GB heap
+                      long before 30 s elapse. PIT restarts the minion and the mutation is killed on
+                      the retry, which is why the run reports 762/762, MEMORY_ERROR 0, exit 0.
+
+                      So the heap size is not the lever: 4g only enlarges the failure (two minions
+                      died at 2.2 GB each instead of one at 1.2 GB), and dropping the JaCoCo agent
+                      changed nothing. 2g matches surefire's envelope and lets the runaway die
+                      sooner. Re-add the two dump flags to reproduce; see TODO.md for the full log.
+                    -->
+                    <parseSurefireConfig>false</parseSurefireConfig>
+                    <jvmArgs>
+                        <value>-Xmx2g</value>
+                        <value>-XX:+EnableDynamicAgentLoading</value>
+                    </jvmArgs>
                     <mutationThreshold>100</mutationThreshold>
                     <timeoutConstant>30000</timeoutConstant>
                 </configuration>

@@ -6,6 +6,7 @@ package net.ladenthin.srcmorph.indexer;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Path;
@@ -115,4 +116,117 @@ public class AiIndexPlanTest {
         assertThat(md, containsString("0 over window"));
         assertThat(md.contains("### (!) Over window"), is(false));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="oversize rendering and path display">
+
+    /**
+     * Builds a rule whose {@code onOversize} strategy is set explicitly.
+     *
+     * @param id         the rule id
+     * @param onOversize the configured strategy value
+     * @return the rule
+     */
+    private static AiFieldGenerationConfig oversizeRule(final String id, final String onOversize) {
+        final AiFieldGenerationConfig config = new AiFieldGenerationConfig();
+        config.setId(id);
+        config.setPromptKey("p1");
+        config.setOnOversize(onOversize);
+        return config;
+    }
+
+    /**
+     * An over-window entry whose rule fails the build must be rendered as such, and must trigger the
+     * closing "how to fix it" paragraph.
+     */
+    @Test
+    public void renderMarkdown_oversizeWithFailStrategy_marksBuildFailureAndAddsAdvice() {
+        // arrange
+        final AiIndexPlan plan = new AiIndexPlan();
+        plan.addRoute("modelA", Paths.get("Big.java"), oversizeRule("r1", "fail"), 60, 9000L, 1000L);
+
+        // act
+        final String rendered = plan.renderMarkdown(Paths.get(""));
+
+        // assert
+        assertThat(rendered, containsString("FAILS BUILD"));
+        assertThat(rendered, containsString("The onOversize=fail entries fail the build."));
+    }
+
+    /**
+     * The same entry with a non-failing strategy renders as handled and must NOT emit the advice
+     * paragraph. Without this counterpart, a mutant hardcoding either branch survives.
+     */
+    @Test
+    public void renderMarkdown_oversizeWithHandlingStrategy_marksHandledAndOmitsAdvice() {
+        // arrange
+        final AiIndexPlan plan = new AiIndexPlan();
+        plan.addRoute("modelA", Paths.get("Big.java"), oversizeRule("r1", "sample"), 60, 9000L, 1000L);
+
+        // act
+        final String rendered = plan.renderMarkdown(Paths.get(""));
+
+        // assert
+        assertThat(rendered, containsString("handled"));
+        assertThat(rendered, not(containsString("FAILS BUILD")));
+        assertThat(rendered, not(containsString("The onOversize=fail entries fail the build.")));
+    }
+
+    /**
+     * A plan with no over-window entry at all must not emit the advice paragraph either -- this is the
+     * zero case for the {@code windowFailCount() > 0} guard, distinct from the "handled" case above.
+     */
+    @Test
+    public void renderMarkdown_noOversizeEntries_omitsAdvice() {
+        // arrange
+        final AiIndexPlan plan = new AiIndexPlan();
+        plan.addRoute("modelA", Paths.get("Small.java"), rule("r1", "p1"), 60, 100L, 1000L);
+
+        // act
+        final String rendered = plan.renderMarkdown(Paths.get(""));
+
+        // assert
+        assertThat(rendered, not(containsString("The onOversize=fail entries fail the build.")));
+    }
+
+    /**
+     * The per-entry window cell distinguishes three states, and each must be rendered distinctly:
+     * unchecked, fits, exceeds.
+     */
+    @Test
+    public void renderMarkdown_windowCell_rendersAllThreeStates() {
+        // arrange
+        final AiIndexPlan plan = new AiIndexPlan();
+        plan.addRoute("modelA", Paths.get("Unchecked.java"), rule("r1", "p1"), 60);
+        plan.addRoute("modelA", Paths.get("Fits.java"), rule("r2", "p1"), 60, 100L, 1000L);
+        plan.addRoute("modelA", Paths.get("Exceeds.java"), oversizeRule("r3", "sample"), 60, 9000L, 1000L);
+
+        // act
+        final String rendered = plan.renderMarkdown(Paths.get(""));
+
+        // assert -- match the whole table cell, not the bare word: "ok" also occurs in the prose
+        // around the table, so a substring check would pass even against an empty window cell.
+        assertThat(rendered, containsString("| ok |"));
+        assertThat(rendered, containsString("| (!) 9000>1000"));
+        assertThat(rendered, containsString("| - |"));
+    }
+
+    /**
+     * A file that cannot be relativized against the base directory falls back to its own path rather
+     * than throwing. {@code Path.relativize} raises {@link IllegalArgumentException} when one path is
+     * absolute and the other relative, which is exactly what this constructs.
+     */
+    @Test
+    public void renderMarkdown_fileNotRelativizableAgainstBase_fallsBackToTheFullPath() {
+        // arrange -- absolute base, relative file: relativize cannot bridge the two
+        final AiIndexPlan plan = new AiIndexPlan();
+        plan.addRoute("modelA", Paths.get("relative/Foo.java"), rule("r1", "p1"), 60);
+
+        // act
+        final String rendered = plan.renderMarkdown(Paths.get("/absolute/base").toAbsolutePath());
+
+        // assert
+        assertThat(rendered, containsString("relative/Foo.java"));
+    }
+
+    // </editor-fold>
 }

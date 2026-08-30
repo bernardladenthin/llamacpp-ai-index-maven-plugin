@@ -8,9 +8,14 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class AiMdHeaderCodecTest {
 
@@ -136,5 +141,111 @@ public class AiMdHeaderCodecTest {
         // assert
         assertThat(decoded, is(equalTo(original)));
     }
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="file overload and malformed field lines">
+
+    @TempDir
+    Path tempDir;
+
+    /**
+     * The public {@code read(Path)} overload has no test of its own -- every other case goes through
+     * the {@code List<String>} form -- so nothing pins that it reads the file at all, let alone with
+     * the right charset. It must agree with the line-based form for the same content.
+     *
+     * @throws IOException if the fixture cannot be written or read
+     */
+    @Test
+    public void read_existingFile_parsesSameAsLineForm() throws IOException {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "- H: 1.0", "- C: 12345678", "- X: file");
+        final Path file = tempDir.resolve("test.ai.md");
+        Files.write(file, lines, StandardCharsets.UTF_8);
+
+        // act
+        final AiMdHeader fromFile = new AiMdHeaderCodec().read(file);
+        final AiMdHeader fromLines = new AiMdHeaderCodec().read(lines);
+
+        // assert
+        assertThat(fromFile.title(), is(equalTo(fromLines.title())));
+        assertThat(fromFile.h(), is(equalTo(fromLines.h())));
+        assertThat(fromFile.c(), is(equalTo(fromLines.c())));
+        assertThat(fromFile.x(), is(equalTo(fromLines.x())));
+    }
+
+    /**
+     * A field line whose colon sits at the prefix boundary carries an empty key and must be ignored.
+     *
+     * <p>Pins the {@code colonIndex < HEADER_FIELD_PREFIX.length() + 1} guard: both the boundary
+     * mutant and the {@code +1 -> -1} arithmetic mutant survive without a case at exactly this
+     * position, and either would admit an empty-keyed entry into the parsed field map.
+     */
+    @Test
+    public void read_fieldLineWithColonAtPrefixBoundary_isIgnored() {
+        // arrange -- "- :value" has its colon at index 2, i.e. exactly HEADER_FIELD_PREFIX.length()
+        final List<String> lines = Arrays.asList("### Test.java", "- :value", "- H: 1.0");
+
+        // act
+        final AiMdHeader header = new AiMdHeaderCodec().read(lines);
+
+        // assert -- the malformed line contributed nothing; the well-formed one still parsed
+        assertThat(header.h(), is(equalTo("1.0")));
+        assertThat(header.title(), is(equalTo("Test.java")));
+    }
+
+    /** A field line with no colon at all is ignored rather than throwing. */
+    @Test
+    public void read_fieldLineWithoutColon_isIgnored() {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "- no colon here", "- H: 1.0");
+
+        // act
+        final AiMdHeader header = new AiMdHeaderCodec().read(lines);
+
+        // assert
+        assertThat(header.h(), is(equalTo("1.0")));
+    }
+
+    /** Input with no title line yields an empty title rather than failing. */
+    @Test
+    public void read_noTitleLine_yieldsEmptyTitle() {
+        // arrange
+        final List<String> lines = Arrays.asList("- H: 1.0", "- C: 12345678");
+
+        // act
+        final AiMdHeader header = new AiMdHeaderCodec().read(lines);
+
+        // assert
+        assertThat(header.title(), is(equalTo("")));
+    }
+
+    /** A line that is neither a title nor a field is skipped without disturbing the parse. */
+    @Test
+    public void read_unrelatedLine_isSkipped() {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "some prose", "- H: 1.0");
+
+        // act
+        final AiMdHeader header = new AiMdHeaderCodec().read(lines);
+
+        // assert
+        assertThat(header.h(), is(equalTo("1.0")));
+        assertThat(header.title(), is(equalTo("Test.java")));
+    }
+
+    /** A header missing a field yields the empty string for it, not null. */
+    @Test
+    public void read_missingField_yieldsEmptyString() {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "- H: 1.0");
+
+        // act
+        final AiMdHeader header = new AiMdHeaderCodec().read(lines);
+
+        // assert
+        assertThat(header.c(), is(equalTo("")));
+        assertThat(header.g(), is(equalTo("")));
+    }
+
     // </editor-fold>
 }

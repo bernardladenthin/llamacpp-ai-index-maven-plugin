@@ -17,7 +17,9 @@ import java.util.Collections;
 import java.util.List;
 import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiCondition;
+import net.ladenthin.srcmorph.config.AiConditionGroup;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
+import net.ladenthin.srcmorph.config.AiRangeCondition;
 import net.ladenthin.srcmorph.document.AiMdDocument;
 import net.ladenthin.srcmorph.document.AiMdDocumentCodec;
 import net.ladenthin.srcmorph.prompt.AiPromptPreparationSupport;
@@ -226,5 +228,127 @@ public class SourceFileIndexerTest {
         final boolean wroteAgain = indexer.indexFile(foo, rule, support);
         assertThat(wroteAgain, is(false));
     }
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="classify -- line-based routing">
+
+    /**
+     * Builds a rule that matches {@code .java} files within a line-count range.
+     *
+     * @param promptKey the rule's prompt key (also its identity in the assertions)
+     * @param minLines  exclusive lower bound ({@code <= 0} disables it)
+     * @param maxLines  inclusive upper bound ({@code <= 0} disables it)
+     * @return the rule
+     */
+    private static AiFieldGenerationConfig lineRangeRule(
+            final String promptKey, final long minLines, final long maxLines) {
+        final AiFieldGenerationConfig config = new AiFieldGenerationConfig();
+        config.setPromptKey(promptKey);
+        config.setAiDefinitionKey(CommonTestFixtures.AI_DEFINITION_KEY_DEFAULT);
+        // A condition node evaluates exactly ONE leaf and returns on the first one present, with
+        // extensions checked before lines -- so setting both on the same node would silently make the
+        // line range dead. Combining them requires an <and> group, which is also what validate()
+        // enforces. Worth stating: the first version of this fixture set both on one node and every
+        // file matched on extension alone.
+        final AiCondition extensionLeaf = new AiCondition();
+        extensionLeaf.setExtensions(Arrays.asList(".java"));
+
+        final AiRangeCondition lines = new AiRangeCondition();
+        lines.setMin(minLines);
+        lines.setMax(maxLines);
+        final AiCondition lineLeaf = new AiCondition();
+        lineLeaf.setLines(lines);
+
+        final AiConditionGroup both = new AiConditionGroup();
+        both.setConditions(Arrays.asList(extensionLeaf, lineLeaf));
+        final AiCondition condition = new AiCondition();
+        condition.setAnd(both);
+        config.setCondition(condition);
+        return config;
+    }
+
+    /**
+     * Two files differing only in line count must reach different rules.
+     *
+     * <p>This covers the wiring, which nothing else did: {@code <lines>} is documented in the plugin
+     * README and the condition layer is tested directly, but no test ever made
+     * {@code anyRuleUsesLines} return true, so {@code countLines} never ran during planning. The
+     * failure mode is silent -- if the indexer stopped counting lines, every file would simply fall
+     * through to the fallback rule and nothing would fail.
+     *
+     * @throws Exception if the fixture cannot be written
+     */
+    @Test
+    public void classify_lineRangeRules_routeFilesByTheirLineCount() throws Exception {
+        // arrange
+        final Path temp = Files.createTempDirectory("ai-index-test");
+        final Path small = temp.resolve("src/main/java/com/example/Small.java");
+        final Path large = temp.resolve("src/main/java/com/example/Large.java");
+        writeJava(small, "class Small {}\n");
+        final StringBuilder manyLines = new StringBuilder("class Large {\n");
+        for (int i = 0; i < 20; i++) {
+            manyLines.append("    // line ").append(i).append('\n');
+        }
+        manyLines.append("}\n");
+        writeJava(large, manyLines.toString());
+
+        final List<AiFieldGenerationConfig> rules = Arrays.asList(
+                lineRangeRule("java-small", 0L, 5L),
+                lineRangeRule("java-large", 5L, 1000L),
+                rule("fallback", null, false, true));
+
+        // act
+        final AiIndexPlan plan = indexer(temp, temp.resolve("out"), Collections.<String>emptyList(), 0L, 0L)
+                .classify(Arrays.asList(small, large), rules);
+
+        // assert -- both routed, and to the rule matching their own size
+        assertThat(plan.unmatched().isEmpty(), is(true));
+        assertThat(promptKeyOf(plan, small), is(equalTo("java-small")));
+        assertThat(promptKeyOf(plan, large), is(equalTo("java-large")));
+    }
+
+    /**
+     * The negative counterpart: with a line range no file satisfies, the fallback rule takes over.
+     * Without this, a mutant that always matched the first line rule would survive the test above.
+     *
+     * @throws Exception if the fixture cannot be written
+     */
+    @Test
+    public void classify_lineRangeMatchingNothing_fallsBackToTheFallbackRule() throws Exception {
+        // arrange
+        final Path temp = Files.createTempDirectory("ai-index-test");
+        final Path small = temp.resolve("src/main/java/com/example/Small.java");
+        writeJava(small, "class Small {}\n");
+
+        final List<AiFieldGenerationConfig> rules =
+                Arrays.asList(lineRangeRule("java-huge", 500L, 1000L), rule("fallback", null, false, true));
+
+        // act
+        final AiIndexPlan plan = indexer(temp, temp.resolve("out"), Collections.<String>emptyList(), 0L, 0L)
+                .classify(Arrays.asList(small), rules);
+
+        // assert
+        assertThat(plan.unmatched().isEmpty(), is(true));
+        assertThat(promptKeyOf(plan, small), is(equalTo("fallback")));
+    }
+
+    /**
+     * Finds the prompt key of the rule a given file was routed to.
+     *
+     * @param plan the classification result
+     * @param file the routed file
+     * @return the matched rule's prompt key
+     */
+    private static String promptKeyOf(final AiIndexPlan plan, final Path file) {
+        for (final List<AiIndexPlan.Entry> entries : plan.routesByModel().values()) {
+            for (final AiIndexPlan.Entry entry : entries) {
+                if (entry.file().equals(file)) {
+                    return entry.rule().getPromptKey();
+                }
+            }
+        }
+        throw new AssertionError("file was not routed: " + file);
+    }
+
     // </editor-fold>
 }

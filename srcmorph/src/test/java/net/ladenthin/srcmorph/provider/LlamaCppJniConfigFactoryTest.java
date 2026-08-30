@@ -5,7 +5,6 @@ package net.ladenthin.srcmorph.provider;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
@@ -36,10 +35,18 @@ public class LlamaCppJniConfigFactoryTest {
         config.setSwaFull(false);
         config.setCacheReuse(101);
         config.setGpuLayers(12);
+        config.setSeed(12345);
         config.setCpuMoeLayers(24);
         config.setCpuFfnLayers(16);
         config.setKvUnifiedPerSlot(4096);
         config.setTensorReadLazy("on");
+        config.setRepeatLastN(128);
+        config.setCacheTypeK("q8_0");
+        config.setCacheTypeV("q4_0");
+        config.setFlashAttn(true);
+        config.setBatchSize(512);
+        config.setUbatchSize(256);
+        config.setThreadsBatch(6);
         config.setMainGpu(3);
         config.setDevices("Vulkan1");
         config.setReasoningEffort("high");
@@ -55,9 +62,8 @@ public class LlamaCppJniConfigFactoryTest {
 
     @Test
     public void fromGenerationConfig_threadsEveryFieldThrough() {
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig("libpath", fullConfig());
+        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(fullConfig());
 
-        assertThat(result.libraryPath(), is("libpath"));
         assertThat(result.modelPath(), is("model.gguf"));
         assertThat(result.contextSize(), is(1111));
         assertThat(result.maxOutputTokens(), is(222));
@@ -73,10 +79,19 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(false));
         assertThat(result.cacheReuse(), is(101));
         assertThat(result.gpuLayers(), is(12));
+        assertThat(result.seed(), is(12345));
         assertThat(result.cpuMoeLayers(), is(24));
         assertThat(result.cpuFfnLayers(), is(16));
         assertThat(result.kvUnifiedPerSlot(), is(4096));
         assertThat(result.tensorReadLazy(), is("on"));
+        assertThat(result.repeatLastN(), is(128));
+        assertThat(result.cacheTypeK(), is("q8_0"));
+        assertThat(result.cacheTypeV(), is("q4_0"));
+        // Distinct from swaFull above (false), so a swap of the two adjacent booleans is caught.
+        assertThat(result.flashAttn(), is(true));
+        assertThat(result.batchSize(), is(512));
+        assertThat(result.ubatchSize(), is(256));
+        assertThat(result.threadsBatch(), is(6));
         assertThat(result.mainGpu(), is(3));
         assertThat(result.devices(), is("Vulkan1"));
         assertThat(result.reasoningEffort(), is("high"));
@@ -91,19 +106,16 @@ public class LlamaCppJniConfigFactoryTest {
     }
 
     @Test
-    public void fromGenerationConfig_libraryPathNullIsPreserved() {
-        final AiGenerationConfig config = fullConfig();
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(null, config);
-        assertThat(result.libraryPath(), is(nullValue()));
-    }
-
-    @Test
-    public void fromGenerationConfig_nullStopStringsAndDrySequenceBreakersBecomeEmpty() {
+    public void fromGenerationConfig_listsNullifiedThroughTheSetters_arriveAsEmptyLists() {
+        // Note what this does and does not pin: the setters normalise null to an empty list, so the
+        // factory never sees a null here. It proves the empty list survives the mapping, NOT that the
+        // factory itself guards against null -- that guard lives in LlamaCppJniConfig's constructor
+        // and is pinned by LlamaCppJniConfigTest.
         final AiGenerationConfig config = fullConfig();
         config.setStopStrings(null);
         config.setDrySequenceBreakers(null);
 
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig("lib", config);
+        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(config);
 
         assertThat(result.stopStrings(), is(Collections.<String>emptyList()));
         assertThat(result.drySequenceBreakers(), is(Collections.<String>emptyList()));
@@ -112,9 +124,8 @@ public class LlamaCppJniConfigFactoryTest {
     @Test
     public void fromFallbackParameters_threadsFallbackArgumentsThrough() {
         final LlamaCppJniConfig result =
-                LlamaCppJniConfigFactory.fromFallbackParameters("lib", "fallback.gguf", 4096, 256, 0.42f, 6);
+                LlamaCppJniConfigFactory.fromFallbackParameters("fallback.gguf", 4096, 256, 0.42f, 6);
 
-        assertThat(result.libraryPath(), is("lib"));
         assertThat(result.modelPath(), is("fallback.gguf"));
         assertThat(result.contextSize(), is(4096));
         assertThat(result.maxOutputTokens(), is(256));
@@ -125,7 +136,7 @@ public class LlamaCppJniConfigFactoryTest {
     @Test
     public void fromFallbackParameters_appliesEveryAiGenerationConfigDefault() {
         final LlamaCppJniConfig result =
-                LlamaCppJniConfigFactory.fromFallbackParameters(null, "fallback.gguf", 4096, 256, 0.42f, 6);
+                LlamaCppJniConfigFactory.fromFallbackParameters("fallback.gguf", 4096, 256, 0.42f, 6);
 
         assertThat(result.topP(), is(AiGenerationConfig.DEFAULT_TOP_P));
         assertThat(result.topK(), is(AiGenerationConfig.DEFAULT_TOP_K));
@@ -137,10 +148,18 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(AiGenerationConfig.DEFAULT_SWA_FULL));
         assertThat(result.cacheReuse(), is(AiGenerationConfig.DEFAULT_CACHE_REUSE));
         assertThat(result.gpuLayers(), is(AiGenerationConfig.DEFAULT_GPU_LAYERS));
+        assertThat(result.seed(), is(AiGenerationConfig.DEFAULT_SEED));
         assertThat(result.cpuMoeLayers(), is(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS));
         assertThat(result.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
         assertThat(result.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));
         assertThat(result.tensorReadLazy(), is(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY));
+        assertThat(result.repeatLastN(), is(AiGenerationConfig.DEFAULT_REPEAT_LAST_N));
+        assertThat(result.cacheTypeK(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_K));
+        assertThat(result.cacheTypeV(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_V));
+        assertThat(result.flashAttn(), is(AiGenerationConfig.DEFAULT_FLASH_ATTN));
+        assertThat(result.batchSize(), is(AiGenerationConfig.DEFAULT_BATCH_SIZE));
+        assertThat(result.ubatchSize(), is(AiGenerationConfig.DEFAULT_UBATCH_SIZE));
+        assertThat(result.threadsBatch(), is(AiGenerationConfig.DEFAULT_THREADS_BATCH));
         assertThat(result.mainGpu(), is(AiGenerationConfig.DEFAULT_MAIN_GPU));
         assertThat(result.devices(), is(AiGenerationConfig.DEFAULT_DEVICES));
         assertThat(result.reasoningEffort(), is(AiGenerationConfig.DEFAULT_REASONING_EFFORT));

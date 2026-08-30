@@ -139,4 +139,84 @@ public class MainTest {
 
         assertThrows(IllegalStateException.class, main::run);
     }
+
+    // <editor-fold defaultstate="collapsed" desc="extension aliases and the safe default">
+
+    /**
+     * The {@code .js} alias is documented in {@code loadConfiguration}'s Javadoc as a JSON extension,
+     * but no shipped {@code examples/} fixture uses it, so nothing else can reach that branch. If the
+     * {@code ||} were reordered or the constant dropped, half the documented extensions would start
+     * failing with "Unknown file ending" and no test would notice.
+     *
+     * @throws IOException if the fixture cannot be written or read
+     */
+    @Test
+    public void loadConfiguration_jsExtension_parsesAsJson() throws IOException {
+        // arrange
+        final Path configFile = tempDir.resolve("config.js");
+        Files.write(configFile, MINIMAL_JSON_STRING.getBytes(StandardCharsets.UTF_8));
+
+        // act
+        final CConfiguration configuration = Main.loadConfiguration(configFile);
+
+        // assert
+        assertThat(configuration, is(notNullValue()));
+        assertThat(configuration.command, is(equalTo(CCommand.Plan)));
+    }
+
+    /**
+     * The {@code .yml} alias, for the same reason as {@link #loadConfiguration_jsExtension_parsesAsJson}.
+     *
+     * @throws IOException if the fixture cannot be written or read
+     */
+    @Test
+    public void loadConfiguration_ymlExtension_parsesAsYaml() throws IOException {
+        // arrange
+        final Path configFile = tempDir.resolve("config.yml");
+        Files.write(configFile, MINIMAL_YAML_STRING.getBytes(StandardCharsets.UTF_8));
+
+        // act
+        final CConfiguration configuration = Main.loadConfiguration(configFile);
+
+        // assert
+        assertThat(configuration, is(notNullValue()));
+        assertThat(configuration.command, is(equalTo(CCommand.Plan)));
+    }
+
+    /**
+     * Extension matching is case-insensitive by construction ({@code toLowerCase(Locale.ROOT)}); a
+     * mutant dropping that call would break an upper-cased path with no other test noticing.
+     *
+     * @throws IOException if the fixture cannot be written or read
+     */
+    @Test
+    public void loadConfiguration_upperCaseExtension_stillParses() throws IOException {
+        // arrange
+        final Path configFile = tempDir.resolve("config.JSON");
+        Files.write(configFile, MINIMAL_JSON_STRING.getBytes(StandardCharsets.UTF_8));
+
+        // act
+        final CConfiguration configuration = Main.loadConfiguration(configFile);
+
+        // assert
+        assertThat(configuration, is(notNullValue()));
+    }
+
+    /**
+     * Pins the documented safety default: a configuration that names no command must plan, never run.
+     * {@code Plan} loads no model and writes nothing, so it is the only safe value to fall back to --
+     * the contract is documented on {@code CConfiguration.command} but was not asserted anywhere.
+     *
+     * @throws IOException if the empty document cannot be deserialised
+     */
+    @Test
+    public void fromJson_documentWithoutCommand_defaultsToPlan() throws IOException {
+        // act
+        final CConfiguration configuration = Main.fromJson("{}");
+
+        // assert
+        assertThat(configuration.command, is(equalTo(CCommand.Plan)));
+    }
+
+    // </editor-fold>
 }

@@ -10,10 +10,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
+import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.srcmorph.CommonTestFixtures;
-import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
@@ -46,37 +45,12 @@ public class LlamaCppJniAiGenerationProviderTest {
     }
 
     private static LlamaCppJniConfig config(final int contextSize, final int maxOutputTokens) {
-        return new LlamaCppJniConfig(
-                null,
-                MODEL_PATH,
-                contextSize,
-                maxOutputTokens,
-                0.15f,
-                8,
-                AiGenerationConfig.DEFAULT_TOP_P,
-                AiGenerationConfig.DEFAULT_TOP_K,
-                AiGenerationConfig.DEFAULT_MIN_P,
-                AiGenerationConfig.DEFAULT_TOP_N_SIGMA,
-                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
-                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING,
-                AiGenerationConfig.DEFAULT_CACHE_PROMPT,
-                AiGenerationConfig.DEFAULT_SWA_FULL,
-                AiGenerationConfig.DEFAULT_CACHE_REUSE,
-                AiGenerationConfig.DEFAULT_GPU_LAYERS,
-                AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
-                AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
-                AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
-                AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY,
-                AiGenerationConfig.DEFAULT_MAIN_GPU,
-                AiGenerationConfig.DEFAULT_DEVICES,
-                AiGenerationConfig.DEFAULT_REASONING_EFFORT,
-                AiGenerationConfig.DEFAULT_REASONING_BUDGET_TOKENS,
-                AiGenerationConfig.DEFAULT_DRY_MULTIPLIER,
-                AiGenerationConfig.DEFAULT_DRY_BASE,
-                AiGenerationConfig.DEFAULT_DRY_ALLOWED_LENGTH,
-                AiGenerationConfig.DEFAULT_DRY_PENALTY_LAST_N,
-                Collections.emptyList(),
-                Collections.emptyList());
+        return LlamaCppJniConfig.builder(MODEL_PATH)
+                .contextSize(contextSize)
+                .maxOutputTokens(maxOutputTokens)
+                .temperature(0.15f)
+                .threads(8)
+                .build();
     }
 
     private static AiGenerationRequest request(final String source) {
@@ -132,6 +106,12 @@ public class LlamaCppJniAiGenerationProviderTest {
             // A clearly larger, distinct prompt processes more prompt tokens -> proves it is the real
             // generation path (not a discarded/zero-timings one).
             assertThat(big.promptTokens() > small.promptTokens(), is(true));
+            // Both requests share the same system prompt, so the second one must find that prefix already
+            // in the KV cache. This is the end-to-end proof that the prefix-reuse settings (cachePrompt /
+            // cacheReuse / swaFull) actually engage -- without cache_n surfaced, their KV-memory cost was
+            // paid on faith alone.
+            assertThat(big.cachedPromptTokens() > 0, is(true));
+            assertThat(big.totalPromptTokens() > big.promptTokens(), is(true));
         }
     }
     // </editor-fold>
@@ -157,5 +137,30 @@ public class LlamaCppJniAiGenerationProviderTest {
                 IllegalArgumentException.class, () -> LlamaCppJniAiGenerationProvider.tensorReadLazyMode("lazy"));
         assertThat(thrown.getMessage(), containsString("lazy"));
         assertThat(thrown.getMessage(), containsString("off, auto, on"));
+    }
+
+    @Test
+    public void cacheType_mapsEveryDeclaredCliString() {
+        // Every cache type the binding declares must resolve; a type upstream adds is covered for free.
+        for (final CacheType type : CacheType.values()) {
+            assertThat(LlamaCppJniAiGenerationProvider.cacheType("cacheTypeK", type.getArgValue()), is(type));
+        }
+    }
+
+    @Test
+    public void cacheType_isCaseInsensitive() {
+        assertThat(LlamaCppJniAiGenerationProvider.cacheType("cacheTypeK", "Q8_0"), is(CacheType.Q8_0));
+        assertThat(LlamaCppJniAiGenerationProvider.cacheType("cacheTypeV", "F16"), is(CacheType.F16));
+    }
+
+    @Test
+    public void cacheType_rejectsUnknownValueAndNamesBothTheKnobAndTheAcceptedOnes() {
+        // A typo must fail loud rather than be dropped. The knob name is in the message because the same
+        // resolver serves cacheTypeK and cacheTypeV -- without it the user cannot tell which one is wrong.
+        final IllegalArgumentException thrown = Assertions.assertThrows(
+                IllegalArgumentException.class, () -> LlamaCppJniAiGenerationProvider.cacheType("cacheTypeV", "q3_k"));
+        assertThat(thrown.getMessage(), containsString("cacheTypeV"));
+        assertThat(thrown.getMessage(), containsString("q3_k"));
+        assertThat(thrown.getMessage(), containsString("f32, f16, bf16, q8_0"));
     }
 }

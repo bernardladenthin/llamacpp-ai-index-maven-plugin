@@ -84,6 +84,10 @@ public final class CalibrateEngine {
             throw new SrcMorphException("No routable (model + prompt) rule found to calibrate.");
         }
 
+        // Same fail-fast check as the generate goal: calibrate loads every routed model in turn.
+        EngineSupport.validateRoutedModelPaths(
+                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
+
         LOGGER.info(
                 "AI index calibration: {} model(s). Provider: {}",
                 modelToPrompt.size(),
@@ -129,7 +133,7 @@ public final class CalibrateEngine {
         LOGGER.info("Model '{}': loading (window ~{} source chars)...", modelKey, windowChars);
         try (AiGenerationProvider provider = providerFactory.create(
                 config.getGenerationProvider(),
-                EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, modelKey),
+                EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, modelKey),
                 promptSupport)) {
             final AiCalibrationMeasurement m =
                     calibrationRunner.measure(provider, modelConfig, promptKey, promptPreparationSupport);
@@ -148,6 +152,16 @@ public final class CalibrateEngine {
                         "  (mid-window prefill %.0f tok/s vs near-window %.0f tok/s - larger gap => more curvature)",
                         m.midPrefillTokensPerSecond(),
                         m.prefillTokensPerSecond()));
+            }
+            // The only observable the prefix-reuse settings produce. Reporting it is what turns
+            // cachePrompt/cacheReuse/swaFull from an article of faith into a measurement.
+            if (m.cachedPromptTokens() > 0) {
+                LOGGER.info(
+                        "  (prompt cache: {} prompt token(s) reused from the KV cache - prefix reuse is working)",
+                        m.cachedPromptTokens());
+            } else {
+                LOGGER.warn("  (prompt cache: no prompt tokens were reused on this model; "
+                        + "cachePrompt/cacheReuse/swaFull are costing KV memory without paying for it)");
             }
             return new CalibrationReport.ModelMeasurement(modelKey, m);
         } catch (final IOException e) {

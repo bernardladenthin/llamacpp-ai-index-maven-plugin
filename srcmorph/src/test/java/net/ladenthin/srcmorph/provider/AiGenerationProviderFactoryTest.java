@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Collections;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import org.junit.jupiter.api.Test;
 
@@ -18,37 +17,7 @@ public class AiGenerationProviderFactoryTest {
     private final AiPromptSupport promptSupport = new AiPromptSupport(null);
 
     private static LlamaCppJniConfig jniConfig() {
-        return new LlamaCppJniConfig(
-                null,
-                "model.gguf",
-                2048,
-                128,
-                0.15f,
-                2,
-                0.9f,
-                40,
-                0.0f,
-                -1.0f,
-                1.1f,
-                false,
-                true,
-                false,
-                0,
-                -1,
-                -1,
-                -1,
-                -1,
-                "",
-                -1,
-                "",
-                "low",
-                -1,
-                0.0f,
-                1.75f,
-                2,
-                -1,
-                Collections.emptyList(),
-                Collections.emptyList());
+        return LlamaCppJniConfig.builder("model.gguf").build();
     }
 
     @Test

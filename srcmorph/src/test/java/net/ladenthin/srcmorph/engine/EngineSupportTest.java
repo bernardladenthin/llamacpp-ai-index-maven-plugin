@@ -22,6 +22,7 @@ import net.ladenthin.srcmorph.config.AiModelDefinitionSupport;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
 import net.ladenthin.srcmorph.prompt.AiPromptDefinition;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
+import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -148,17 +149,14 @@ public class EngineSupportTest {
     @Test
     public void resolveLlamaCppJniConfig_byKey_looksUpNamedDefinition() {
         final SrcMorphConfiguration config = new SrcMorphConfiguration();
-        config.setLlamaLibraryPath("/opt/lib");
 
         final AiModelDefinition definition = new AiModelDefinition();
         definition.setKey("named");
         definition.setModelPath("named.gguf");
         final AiModelDefinitionSupport modelDefinitionSupport = new AiModelDefinitionSupport(Arrays.asList(definition));
 
-        final LlamaCppJniConfig result =
-                EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, "named");
+        final LlamaCppJniConfig result = EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, "named");
 
-        assertThat(result.libraryPath(), is("/opt/lib"));
         assertThat(result.modelPath(), is("named.gguf"));
     }
 
@@ -169,7 +167,137 @@ public class EngineSupportTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, "missing"));
+                () -> EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, "missing"));
     }
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="validateRoutedModelPaths">
+
+    @TempDir
+    Path modelDir;
+
+    /**
+     * Builds a lookup holding one definition with the given model path.
+     *
+     * @param modelPath the definition's model path, may be {@code null}
+     * @return the lookup
+     */
+    private static AiModelDefinitionSupport supportWithModelPath(final String modelPath) {
+        final AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey("routed");
+        definition.setModelPath(modelPath);
+        return new AiModelDefinitionSupport(Arrays.asList(definition));
+    }
+
+    /**
+     * Builds a routing rule pointing at the {@code routed} definition.
+     *
+     * @param skip           whether the rule is a skip rule
+     * @param aiDefinitionKey the definition key, may be {@code null}
+     * @return the rule
+     */
+    private static AiFieldGenerationConfig routedRule(final boolean skip, final String aiDefinitionKey) {
+        final AiFieldGenerationConfig rule = new AiFieldGenerationConfig();
+        rule.setPromptKey("p1");
+        rule.setAiDefinitionKey(aiDefinitionKey);
+        rule.setSkip(skip);
+        return rule;
+    }
+
+    @Test
+    public void validateRoutedModelPaths_missingModelFile_throwsNamingTheDefinitionAndPath() {
+        // arrange
+        final String missing = modelDir.resolve("nope.gguf").toString();
+
+        // act
+        final SrcMorphException thrown = assertThrows(
+                SrcMorphException.class,
+                () -> EngineSupport.validateRoutedModelPaths(
+                        AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                        supportWithModelPath(missing),
+                        Arrays.asList(routedRule(false, "routed"))));
+
+        // assert -- the message must name both the definition and the path the user has to fix
+        assertThat(thrown.getMessage(), containsString("routed"));
+        assertThat(thrown.getMessage(), containsString("nope.gguf"));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_existingModelFile_passes() throws IOException, SrcMorphException {
+        // arrange
+        final Path model = modelDir.resolve("real.gguf");
+        Files.write(model, "gguf".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        // act / assert -- no exception
+        EngineSupport.validateRoutedModelPaths(
+                AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                supportWithModelPath(model.toString()),
+                Arrays.asList(routedRule(false, "routed")));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_pathIsADirectoryNotAFile_throws() {
+        // act / assert -- a directory is not a usable model file
+        assertThrows(
+                SrcMorphException.class,
+                () -> EngineSupport.validateRoutedModelPaths(
+                        AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                        supportWithModelPath(modelDir.toString()),
+                        Arrays.asList(routedRule(false, "routed"))));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_nullModelPath_throws() {
+        // act / assert
+        assertThrows(
+                SrcMorphException.class,
+                () -> EngineSupport.validateRoutedModelPaths(
+                        AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                        supportWithModelPath(null),
+                        Arrays.asList(routedRule(false, "routed"))));
+    }
+
+    /**
+     * The gate that keeps every shipped example green: they all set a deliberately non-existent
+     * {@code unused-with-mock-provider.gguf} and run the mock provider, which never loads it.
+     *
+     * @throws SrcMorphException never
+     */
+    @Test
+    public void validateRoutedModelPaths_mockProvider_ignoresAMissingModelFile() throws SrcMorphException {
+        // act / assert -- no exception despite the missing file
+        EngineSupport.validateRoutedModelPaths(
+                AiGenerationProviderFactory.PROVIDER_MOCK,
+                supportWithModelPath("unused-with-mock-provider.gguf"),
+                Arrays.asList(routedRule(false, "routed")));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_skipRule_isNotChecked() throws SrcMorphException {
+        // act / assert -- a skip rule never loads a model, so its path is irrelevant
+        EngineSupport.validateRoutedModelPaths(
+                AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                supportWithModelPath("missing.gguf"),
+                Arrays.asList(routedRule(true, "routed")));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_ruleWithoutDefinitionKey_isNotChecked() throws SrcMorphException {
+        // act / assert -- a fallback-shaped rule with no model key routes nowhere to check
+        EngineSupport.validateRoutedModelPaths(
+                AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                supportWithModelPath("missing.gguf"),
+                Arrays.asList(routedRule(false, null)));
+    }
+
+    @Test
+    public void validateRoutedModelPaths_nullRuleEntry_isSkipped() throws SrcMorphException {
+        // act / assert -- a null entry in the list must not NPE
+        EngineSupport.validateRoutedModelPaths(
+                AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
+                supportWithModelPath("missing.gguf"),
+                Collections.<AiFieldGenerationConfig>singletonList(null));
+    }
+
     // </editor-fold>
 }

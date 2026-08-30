@@ -73,7 +73,6 @@ public class SrcMorphConfiguration {
     private @Nullable List<AiModelDefinition> aiDefinitions;
     private @Nullable List<AiFieldGenerationConfig> fieldGenerations;
     private @Nullable List<AiFactDefinition> factDefinitions;
-    private @Nullable String llamaLibraryPath;
     private @Nullable String llamaModelPath;
     private int llamaContextSize = DEFAULT_LLAMA_CONTEXT_SIZE;
     private int llamaMaxOutputTokens = DEFAULT_LLAMA_MAX_OUTPUT_TOKENS;
@@ -338,24 +337,6 @@ public class SrcMorphConfiguration {
      */
     public void setFactDefinitions(final @Nullable List<AiFactDefinition> factDefinitions) {
         this.factDefinitions = factDefinitions;
-    }
-
-    /**
-     * Returns the optional native library path passed to the llama.cpp JNI provider.
-     *
-     * @return the native library path, or {@code null} to use the bundled native library
-     */
-    public @Nullable String getLlamaLibraryPath() {
-        return llamaLibraryPath;
-    }
-
-    /**
-     * Sets the optional native library path passed to the llama.cpp JNI provider.
-     *
-     * @param llamaLibraryPath the native library path, or {@code null} to use the bundled library
-     */
-    public void setLlamaLibraryPath(final @Nullable String llamaLibraryPath) {
-        this.llamaLibraryPath = llamaLibraryPath;
     }
 
     /**

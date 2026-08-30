@@ -56,10 +56,18 @@ public class AiModelDefinition {
     private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
     private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
     private int gpuLayers = AiGenerationConfig.DEFAULT_GPU_LAYERS;
+    private int seed = AiGenerationConfig.DEFAULT_SEED;
     private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
     private String tensorReadLazy = AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+    private int repeatLastN = AiGenerationConfig.DEFAULT_REPEAT_LAST_N;
+    private String cacheTypeK = AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
+    private String cacheTypeV = AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
+    private boolean flashAttn = AiGenerationConfig.DEFAULT_FLASH_ATTN;
+    private int batchSize = AiGenerationConfig.DEFAULT_BATCH_SIZE;
+    private int ubatchSize = AiGenerationConfig.DEFAULT_UBATCH_SIZE;
+    private int threadsBatch = AiGenerationConfig.DEFAULT_THREADS_BATCH;
     private int mainGpu = AiGenerationConfig.DEFAULT_MAIN_GPU;
     private String devices = AiGenerationConfig.DEFAULT_DEVICES;
     private String reasoningEffort = AiGenerationConfig.DEFAULT_REASONING_EFFORT;
@@ -430,6 +438,24 @@ public class AiModelDefinition {
     }
 
     /**
+     * Returns the RNG seed for this model.
+     *
+     * @return the seed; defaults to {@link AiGenerationConfig#DEFAULT_SEED} (-1 = random per request)
+     */
+    public int getSeed() {
+        return seed;
+    }
+
+    /**
+     * Sets the RNG seed for this model.
+     *
+     * @param seed the seed ({@code -1} = leave upstream's random-per-request default)
+     */
+    public void setSeed(final int seed) {
+        this.seed = seed;
+    }
+
+    /**
      * Returns the number of FFN layers kept on the CPU ({@code --n-cpu-ffn}) for this model.
      *
      * @return CPU FFN layers; defaults to {@link AiGenerationConfig#DEFAULT_CPU_FFN_LAYERS} (-1 = leave default)
@@ -481,6 +507,136 @@ public class AiModelDefinition {
      */
     public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
         this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+    }
+
+    /**
+     * Returns the repeat-penalty window ({@code --repeat-last-n}) for this model.
+     *
+     * @return the window; defaults to {@link AiGenerationConfig#DEFAULT_REPEAT_LAST_N}
+     */
+    public int getRepeatLastN() {
+        return repeatLastN;
+    }
+
+    /**
+     * Sets the repeat-penalty window ({@code --repeat-last-n}) for this model. This is the range
+     * {@code repeatPenalty} acts on.
+     *
+     * @param repeatLastN the window ({@code -1} = leave llama.cpp's own, {@code 0} = disable the penalty)
+     */
+    public void setRepeatLastN(final int repeatLastN) {
+        this.repeatLastN = repeatLastN;
+    }
+
+    /**
+     * Returns the KV-cache data type for K ({@code --cache-type-k}) for this model.
+     *
+     * @return a llama.cpp cache type such as {@code q8_0}, or empty to leave the default
+     */
+    public String getCacheTypeK() {
+        return cacheTypeK;
+    }
+
+    /**
+     * Sets the KV-cache data type for K ({@code --cache-type-k}) for this model.
+     *
+     * @param cacheTypeK a llama.cpp cache type, or empty/{@code null} to leave the default
+     */
+    public void setCacheTypeK(final @Nullable String cacheTypeK) {
+        this.cacheTypeK = cacheTypeK != null ? cacheTypeK : AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
+    }
+
+    /**
+     * Returns the KV-cache data type for V ({@code --cache-type-v}) for this model.
+     *
+     * @return a llama.cpp cache type such as {@code q8_0}, or empty to leave the default
+     */
+    public String getCacheTypeV() {
+        return cacheTypeV;
+    }
+
+    /**
+     * Sets the KV-cache data type for V ({@code --cache-type-v}) for this model. Usually requires
+     * {@link #setFlashAttn(boolean)}.
+     *
+     * @param cacheTypeV a llama.cpp cache type, or empty/{@code null} to leave the default
+     */
+    public void setCacheTypeV(final @Nullable String cacheTypeV) {
+        this.cacheTypeV = cacheTypeV != null ? cacheTypeV : AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
+    }
+
+    /**
+     * Returns whether Flash Attention is enabled ({@code --flash-attn}) for this model.
+     *
+     * @return {@code true} when Flash Attention is enabled
+     */
+    public boolean isFlashAttn() {
+        return flashAttn;
+    }
+
+    /**
+     * Sets whether Flash Attention is enabled ({@code --flash-attn}) for this model.
+     *
+     * @param flashAttn {@code true} to enable it (lower KV memory, and the precondition for a
+     *                  quantized V cache)
+     */
+    public void setFlashAttn(final boolean flashAttn) {
+        this.flashAttn = flashAttn;
+    }
+
+    /**
+     * Returns the logical batch size ({@code --batch-size}) for this model.
+     *
+     * @return the logical batch size, or {@code -1} to leave the default
+     */
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    /**
+     * Sets the logical batch size ({@code --batch-size}) for this model.
+     *
+     * @param batchSize the logical batch size ({@code -1} = leave default, must be positive when set)
+     */
+    public void setBatchSize(final int batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    /**
+     * Returns the physical batch size ({@code --ubatch-size}) for this model.
+     *
+     * @return the physical batch size, or {@code -1} to leave the default
+     */
+    public int getUbatchSize() {
+        return ubatchSize;
+    }
+
+    /**
+     * Sets the physical batch size ({@code --ubatch-size}) for this model.
+     *
+     * @param ubatchSize the physical batch size ({@code -1} = leave default, must be positive when set)
+     */
+    public void setUbatchSize(final int ubatchSize) {
+        this.ubatchSize = ubatchSize;
+    }
+
+    /**
+     * Returns the batch/prompt-processing thread count ({@code --threads-batch}) for this model.
+     *
+     * @return the batch thread count, or {@code -1} to reuse {@code threads}
+     */
+    public int getThreadsBatch() {
+        return threadsBatch;
+    }
+
+    /**
+     * Sets the batch/prompt-processing thread count ({@code --threads-batch}) for this model.
+     *
+     * @param threadsBatch the batch thread count ({@code -1} = reuse {@code threads}, must be positive
+     *                     when set)
+     */
+    public void setThreadsBatch(final int threadsBatch) {
+        this.threadsBatch = threadsBatch;
     }
 
     /**

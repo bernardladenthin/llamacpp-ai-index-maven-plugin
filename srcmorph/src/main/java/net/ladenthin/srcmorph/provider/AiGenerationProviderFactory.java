@@ -16,12 +16,19 @@ public class AiGenerationProviderFactory {
         // no-op
     }
 
+    /** Provider key selecting the deterministic, model-free {@link MockAiGenerationProvider}. */
+    public static final String PROVIDER_MOCK = "mock";
+
+    /** Provider key selecting the llama.cpp JNI provider, which loads a real GGUF model. */
+    public static final String PROVIDER_LLAMACPP_JNI = "llamacpp-jni";
+
     private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
 
     /**
      * Creates an {@link AiGenerationProvider} for the given provider name.
      *
-     * @param providerName  provider key; {@code "mock"} or {@code "llamacpp-jni"} (defaults to mock when blank or {@code null})
+     * @param providerName  provider key; {@link #PROVIDER_MOCK} or {@link #PROVIDER_LLAMACPP_JNI}
+     *                      (defaults to mock when blank or {@code null})
      * @param llamaConfig   configuration for the llama.cpp JNI provider
      * @param promptSupport prompt lookup support passed to providers that need it
      * @return a newly-created provider instance
@@ -34,9 +41,9 @@ public class AiGenerationProviderFactory {
         }
 
         switch (providerName) {
-            case "mock":
+            case PROVIDER_MOCK:
                 return new MockAiGenerationProvider();
-            case "llamacpp-jni":
+            case PROVIDER_LLAMACPP_JNI:
                 return new LlamaCppJniAiGenerationProvider(llamaConfig, promptSupport);
             default:
                 throw new IllegalArgumentException("Unsupported AI provider: " + providerName);

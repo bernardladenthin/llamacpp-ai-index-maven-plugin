@@ -17,7 +17,7 @@ public class CalibrationReportTest {
 
     @Test
     public void modelMeasurement_accessorsReflectConstructorArguments() {
-        final AiCalibrationMeasurement measurement = new AiCalibrationMeasurement(1.5d, 100.0d, 50.0d, 4.0d, 90.0d);
+        final AiCalibrationMeasurement measurement = new AiCalibrationMeasurement(1.5d, 100.0d, 50.0d, 4.0d, 90.0d, 16);
         final CalibrationReport.ModelMeasurement m = new CalibrationReport.ModelMeasurement("my-model", measurement);
 
         assertThat(m.modelKey(), is("my-model"));
@@ -26,10 +26,10 @@ public class CalibrationReportTest {
 
     @Test
     public void measurements_returnsDefensiveCopyInOrder() {
-        final CalibrationReport.ModelMeasurement m1 =
-                new CalibrationReport.ModelMeasurement("a", new AiCalibrationMeasurement(1.0d, 1.0d, 1.0d, 1.0d, 1.0d));
-        final CalibrationReport.ModelMeasurement m2 =
-                new CalibrationReport.ModelMeasurement("b", new AiCalibrationMeasurement(2.0d, 2.0d, 2.0d, 2.0d, 2.0d));
+        final CalibrationReport.ModelMeasurement m1 = new CalibrationReport.ModelMeasurement(
+                "a", new AiCalibrationMeasurement(1.0d, 1.0d, 1.0d, 1.0d, 1.0d, 1));
+        final CalibrationReport.ModelMeasurement m2 = new CalibrationReport.ModelMeasurement(
+                "b", new AiCalibrationMeasurement(2.0d, 2.0d, 2.0d, 2.0d, 2.0d, 2));
         final List<CalibrationReport.ModelMeasurement> source = new ArrayList<>(Arrays.asList(m1, m2));
         final CalibrationReport report = new CalibrationReport(source);
 
@@ -45,7 +45,7 @@ public class CalibrationReportTest {
         try {
             report.measurements()
                     .add(new CalibrationReport.ModelMeasurement(
-                            "x", new AiCalibrationMeasurement(0.0d, 0.0d, 0.0d, 0.0d, 0.0d)));
+                            "x", new AiCalibrationMeasurement(0.0d, 0.0d, 0.0d, 0.0d, 0.0d, 0)));
             org.junit.jupiter.api.Assertions.fail("expected UnsupportedOperationException");
         } catch (final UnsupportedOperationException expected) {
             // expected: measurements() must not allow external mutation
@@ -61,8 +61,9 @@ public class CalibrationReportTest {
     @Test
     public void renderXml_rendersOnePasteBlockPerModelInOrder() {
         final AiCalibrationMeasurement measurementA =
-                new AiCalibrationMeasurement(1.234d, 1000.5d, 200.3d, 4.57d, 900.0d);
-        final AiCalibrationMeasurement measurementB = new AiCalibrationMeasurement(2.0d, 500.0d, 100.0d, 3.0d, 450.0d);
+                new AiCalibrationMeasurement(1.234d, 1000.5d, 200.3d, 4.57d, 900.0d, 128);
+        final AiCalibrationMeasurement measurementB =
+                new AiCalibrationMeasurement(2.0d, 500.0d, 100.0d, 3.0d, 450.0d, 64);
         final CalibrationReport report = new CalibrationReport(Arrays.asList(
                 new CalibrationReport.ModelMeasurement("model-a", measurementA),
                 new CalibrationReport.ModelMeasurement("model-b", measurementB)));
@@ -86,7 +87,7 @@ public class CalibrationReportTest {
     @Test
     public void toString_containsModelKey() {
         final CalibrationReport report = new CalibrationReport(Arrays.asList(new CalibrationReport.ModelMeasurement(
-                "unique-model-key", new AiCalibrationMeasurement(0.0d, 0.0d, 0.0d, 0.0d, 0.0d))));
+                "unique-model-key", new AiCalibrationMeasurement(0.0d, 0.0d, 0.0d, 0.0d, 0.0d, 0))));
         assertThat(report.toString(), org.hamcrest.CoreMatchers.containsString("unique-model-key"));
     }
 }
