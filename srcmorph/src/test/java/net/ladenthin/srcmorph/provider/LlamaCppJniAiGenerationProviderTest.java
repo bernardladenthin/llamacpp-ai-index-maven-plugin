@@ -10,11 +10,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
 import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.srcmorph.CommonTestFixtures;
-import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
@@ -47,44 +45,12 @@ public class LlamaCppJniAiGenerationProviderTest {
     }
 
     private static LlamaCppJniConfig config(final int contextSize, final int maxOutputTokens) {
-        return new LlamaCppJniConfig(
-                MODEL_PATH,
-                contextSize,
-                maxOutputTokens,
-                0.15f,
-                8,
-                AiGenerationConfig.DEFAULT_TOP_P,
-                AiGenerationConfig.DEFAULT_TOP_K,
-                AiGenerationConfig.DEFAULT_MIN_P,
-                AiGenerationConfig.DEFAULT_TOP_N_SIGMA,
-                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
-                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING,
-                AiGenerationConfig.DEFAULT_CACHE_PROMPT,
-                AiGenerationConfig.DEFAULT_SWA_FULL,
-                AiGenerationConfig.DEFAULT_CACHE_REUSE,
-                AiGenerationConfig.DEFAULT_GPU_LAYERS,
-                AiGenerationConfig.DEFAULT_SEED,
-                AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
-                AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
-                AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
-                AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY,
-                -1,
-                "",
-                "",
-                false,
-                -1,
-                -1,
-                -1,
-                AiGenerationConfig.DEFAULT_MAIN_GPU,
-                AiGenerationConfig.DEFAULT_DEVICES,
-                AiGenerationConfig.DEFAULT_REASONING_EFFORT,
-                AiGenerationConfig.DEFAULT_REASONING_BUDGET_TOKENS,
-                AiGenerationConfig.DEFAULT_DRY_MULTIPLIER,
-                AiGenerationConfig.DEFAULT_DRY_BASE,
-                AiGenerationConfig.DEFAULT_DRY_ALLOWED_LENGTH,
-                AiGenerationConfig.DEFAULT_DRY_PENALTY_LAST_N,
-                Collections.emptyList(),
-                Collections.emptyList());
+        return LlamaCppJniConfig.builder(MODEL_PATH)
+                .contextSize(contextSize)
+                .maxOutputTokens(maxOutputTokens)
+                .temperature(0.15f)
+                .threads(8)
+                .build();
     }
 
     private static AiGenerationRequest request(final String source) {

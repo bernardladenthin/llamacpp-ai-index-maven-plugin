@@ -106,6 +106,31 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
   mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
 
+### Changed
+- **`LlamaCppJniConfig` is built through a builder; its positional constructor is private.** Breaking for
+  anyone who constructed one directly — deliberately taken in this release rather than later, because the
+  class is already breaking here and a second break for the same type is worse than one.
+
+  It had grown to a **37-argument** constructor, which is past the point where a call site can be read or
+  a swapped pair of same-typed neighbours is noticeable: the compiler accepts
+  `…, batchSize, ubatchSize, …` in either order. `LlamaCppJniConfig.builder(modelPath)` replaces it, and
+  `modelPath` — the one value with no meaningful default — is required at the entry point rather than
+  checked in `build()`, so a half-formed builder cannot be constructed at all.
+
+  The builder is also where the defaults now live, and that removes a real duplication:
+  `LlamaCppJniConfigFactory.fromFallbackParameters` used to restate all 30+
+  `AiGenerationConfig.DEFAULT_*` constants by hand, so a knob added to `AiGenerationConfig` could end up
+  with a different default there by simple omission. It is now five lines. Each builder field starts at
+  the matching `AiGenerationConfig.DEFAULT_*`, and a `null` on a String or list setter restores that
+  knob's default instead of storing `null` — note this is "the default", not "empty":
+  `reasoningEffort(null)` gives back `"low"`.
+
+  Two tests carry this, and both were verified to fail against a deliberately broken build rather than
+  assumed to: `builder_leavesEveryUnsetValueAtItsAiGenerationConfigDefault` (every unset value equals its
+  config default — reds when one builder field is initialised to `0` instead) and
+  `builder_everySetterWritesItsOwnField` (36 distinct values — reds when `ubatchSize(…)` is made to write
+  `batchSize`). The old positional-constructor tests they supersede are removed.
+
 ### Fixed
 - **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
   seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced

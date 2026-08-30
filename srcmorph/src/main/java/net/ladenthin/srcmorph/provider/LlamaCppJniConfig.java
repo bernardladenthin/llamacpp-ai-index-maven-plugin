@@ -8,10 +8,14 @@ import java.util.List;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.support.ConvertToRecord;
 
 /**
  * Immutable configuration for the llama.cpp JNI provider.
+ *
+ * <p>Built through {@link #builder(String)}; the positional constructor is private (thirty-seven
+ * arguments is past the point where a call site is readable or a swapped pair is noticeable).</p>
  *
  * <p>Record-shaped value type marked {@link net.ladenthin.srcmorph.support.ConvertToRecord} for the future Java&nbsp;17+
  * migration. Accessors are record-style. {@code equals}, {@code hashCode} and
@@ -62,122 +66,71 @@ public final class LlamaCppJniConfig {
     private final List<String> stopStrings;
 
     /**
-     * Creates a new {@link LlamaCppJniConfig}.
+     * Creates a configuration from a fully populated {@link Builder}.
      *
-     * @param modelPath                   path to the GGUF model file
-     * @param contextSize                 context window size in tokens
-     * @param maxOutputTokens             maximum number of output tokens per call
-     * @param temperature                 sampling temperature
-     * @param threads                     number of CPU threads
-     * @param topP                        nucleus-sampling probability threshold
-     * @param topK                        top-k sampling limit
-     * @param minP                        min-p sampling threshold ({@code 0.0} = disabled)
-     * @param topNSigma                   top-n-sigma sampling threshold ({@code -1.0} = disabled)
-     * @param repeatPenalty               repetition penalty
-     * @param chatTemplateEnableThinking  whether chat-template thinking mode is enabled
-     * @param cachePrompt                 whether llama.cpp prompt caching ({@code cache_prompt}) is enabled
-     * @param swaFull                     whether to keep the full-size SWA KV cache ({@code --swa-full})
-     * @param cacheReuse                  KV prefix-reuse minimum chunk size ({@code --cache-reuse}); 0 = off
-     * @param gpuLayers                   GPU layers to offload ({@code --gpu-layers}); -1 = leave default
-     * @param seed                        RNG seed for generation; -1 = leave the random-per-request default
-     * @param cpuMoeLayers                MoE layers kept on the CPU ({@code --n-cpu-moe}); -1 = leave default
-     * @param cpuFfnLayers                FFN layers kept on the CPU ({@code --n-cpu-ffn}); -1 = leave default
-     * @param kvUnifiedPerSlot            per-slot unified KV context cap ({@code --kv-unified-per-slot}); -1 = leave default
-     * @param tensorReadLazy              tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default
-     * @param repeatLastN the repeat-penalty window ({@code --repeat-last-n}); {@code -1} leaves llama.cpp's own
-     * @param cacheTypeK the KV-cache data type for K ({@code --cache-type-k}); empty leaves the default
-     * @param cacheTypeV the KV-cache data type for V ({@code --cache-type-v}); empty leaves the default
-     * @param flashAttn whether Flash Attention is enabled ({@code --flash-attn})
-     * @param batchSize the logical batch size ({@code --batch-size}); {@code -1} leaves the default
-     * @param ubatchSize the physical batch size ({@code --ubatch-size}); {@code -1} leaves the default
-     * @param threadsBatch the batch/prompt-processing thread count ({@code --threads-batch}); {@code -1} reuses {@code threads}
-     * @param mainGpu                     primary GPU index ({@code --main-gpu}); -1 = leave default
-     * @param devices                     device selection ({@code --device}); empty = leave default
-     * @param reasoningEffort             gpt-oss reasoning-effort kwarg value ("low"/"medium"/"high"); empty omits it
-     * @param reasoningBudgetTokens       reasoning/think-token budget ({@code -1} = unrestricted)
-     * @param dryMultiplier               DRY sampling multiplier ({@code 0.0} = disabled)
-     * @param dryBase                     DRY base (effective only when {@code dryMultiplier > 0})
-     * @param dryAllowedLength            DRY allowed length (effective only when {@code dryMultiplier > 0})
-     * @param dryPenaltyLastN             DRY penalty look-back tokens ({@code -1} = whole context, {@code 0} = off)
-     * @param drySequenceBreakers         DRY sequence breakers; may be {@code null} (treated as empty → binding default)
-     * @param stopStrings                 stop strings; may be {@code null} (treated as empty)
+     * <p>Private on purpose: with thirty-seven fields a positional constructor is unreadable at the call
+     * site and a swap of two same-typed neighbours compiles silently. {@link #builder(String)} is the only
+     * way in, so every value arrives named, and every value the caller did not name is the matching
+     * {@code AiGenerationConfig.DEFAULT_*} rather than Java's zero.</p>
+     *
+     * <p>No normalisation happens here — the builder's setters already did it, and duplicating a guard on
+     * an unreachable path would only look like protection.</p>
+     *
+     * @param builder the populated builder
      */
-    public LlamaCppJniConfig(
-            String modelPath,
-            int contextSize,
-            int maxOutputTokens,
-            float temperature,
-            int threads,
-            float topP,
-            int topK,
-            float minP,
-            float topNSigma,
-            float repeatPenalty,
-            boolean chatTemplateEnableThinking,
-            boolean cachePrompt,
-            boolean swaFull,
-            int cacheReuse,
-            int gpuLayers,
-            int seed,
-            int cpuMoeLayers,
-            int cpuFfnLayers,
-            int kvUnifiedPerSlot,
-            String tensorReadLazy,
-            int repeatLastN,
-            String cacheTypeK,
-            String cacheTypeV,
-            boolean flashAttn,
-            int batchSize,
-            int ubatchSize,
-            int threadsBatch,
-            int mainGpu,
-            String devices,
-            String reasoningEffort,
-            int reasoningBudgetTokens,
-            float dryMultiplier,
-            float dryBase,
-            int dryAllowedLength,
-            int dryPenaltyLastN,
-            List<String> drySequenceBreakers,
-            List<String> stopStrings) {
-        Objects.requireNonNull(modelPath, "modelPath");
-        this.modelPath = modelPath;
-        this.contextSize = contextSize;
-        this.maxOutputTokens = maxOutputTokens;
-        this.temperature = temperature;
-        this.threads = threads;
-        this.topP = topP;
-        this.topK = topK;
-        this.minP = minP;
-        this.topNSigma = topNSigma;
-        this.repeatPenalty = repeatPenalty;
-        this.chatTemplateEnableThinking = chatTemplateEnableThinking;
-        this.cachePrompt = cachePrompt;
-        this.swaFull = swaFull;
-        this.cacheReuse = cacheReuse;
-        this.gpuLayers = gpuLayers;
-        this.seed = seed;
-        this.cpuMoeLayers = cpuMoeLayers;
-        this.cpuFfnLayers = cpuFfnLayers;
-        this.kvUnifiedPerSlot = kvUnifiedPerSlot;
-        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : "";
-        this.repeatLastN = repeatLastN;
-        this.cacheTypeK = cacheTypeK != null ? cacheTypeK : "";
-        this.cacheTypeV = cacheTypeV != null ? cacheTypeV : "";
-        this.flashAttn = flashAttn;
-        this.batchSize = batchSize;
-        this.ubatchSize = ubatchSize;
-        this.threadsBatch = threadsBatch;
-        this.mainGpu = mainGpu;
-        this.devices = devices;
-        this.reasoningEffort = reasoningEffort;
-        this.reasoningBudgetTokens = reasoningBudgetTokens;
-        this.dryMultiplier = dryMultiplier;
-        this.dryBase = dryBase;
-        this.dryAllowedLength = dryAllowedLength;
-        this.dryPenaltyLastN = dryPenaltyLastN;
-        this.drySequenceBreakers = drySequenceBreakers != null ? drySequenceBreakers : Collections.emptyList();
-        this.stopStrings = stopStrings != null ? stopStrings : Collections.emptyList();
+    private LlamaCppJniConfig(final Builder builder) {
+        this.modelPath = builder.modelPath;
+        this.contextSize = builder.contextSize;
+        this.maxOutputTokens = builder.maxOutputTokens;
+        this.temperature = builder.temperature;
+        this.threads = builder.threads;
+        this.topP = builder.topP;
+        this.topK = builder.topK;
+        this.minP = builder.minP;
+        this.topNSigma = builder.topNSigma;
+        this.repeatPenalty = builder.repeatPenalty;
+        this.chatTemplateEnableThinking = builder.chatTemplateEnableThinking;
+        this.cachePrompt = builder.cachePrompt;
+        this.swaFull = builder.swaFull;
+        this.cacheReuse = builder.cacheReuse;
+        this.gpuLayers = builder.gpuLayers;
+        this.seed = builder.seed;
+        this.cpuMoeLayers = builder.cpuMoeLayers;
+        this.cpuFfnLayers = builder.cpuFfnLayers;
+        this.kvUnifiedPerSlot = builder.kvUnifiedPerSlot;
+        this.tensorReadLazy = builder.tensorReadLazy;
+        this.repeatLastN = builder.repeatLastN;
+        this.cacheTypeK = builder.cacheTypeK;
+        this.cacheTypeV = builder.cacheTypeV;
+        this.flashAttn = builder.flashAttn;
+        this.batchSize = builder.batchSize;
+        this.ubatchSize = builder.ubatchSize;
+        this.threadsBatch = builder.threadsBatch;
+        this.mainGpu = builder.mainGpu;
+        this.devices = builder.devices;
+        this.reasoningEffort = builder.reasoningEffort;
+        this.reasoningBudgetTokens = builder.reasoningBudgetTokens;
+        this.dryMultiplier = builder.dryMultiplier;
+        this.dryBase = builder.dryBase;
+        this.dryAllowedLength = builder.dryAllowedLength;
+        this.dryPenaltyLastN = builder.dryPenaltyLastN;
+        this.drySequenceBreakers = builder.drySequenceBreakers;
+        this.stopStrings = builder.stopStrings;
+    }
+
+    /**
+     * Starts building a configuration for the given model, with every other value pre-set to its
+     * {@code AiGenerationConfig.DEFAULT_*}.
+     *
+     * <p>{@code modelPath} is the one value with no meaningful default, so it is required here rather
+     * than checked in {@code build()}: a caller cannot construct a half-formed builder at all.</p>
+     *
+     * @param modelPath path to the GGUF model file; must not be {@code null}
+     * @return a builder carrying the defaults
+     * @throws NullPointerException if {@code modelPath} is {@code null}
+     */
+    public static Builder builder(final String modelPath) {
+        return new Builder(modelPath);
     }
 
     /**
@@ -511,5 +464,468 @@ public final class LlamaCppJniConfig {
      */
     public List<String> stopStrings() {
         return Collections.unmodifiableList(stopStrings);
+    }
+
+    /**
+     * Fluent builder for {@link LlamaCppJniConfig}.
+     *
+     * <p>Every setter is optional and starts at the matching {@code AiGenerationConfig.DEFAULT_*}, so this
+     * class is the single place those defaults are applied: {@code LlamaCppJniConfigFactory}'s
+     * fallback path no longer restates all thirty-six of them, and a knob added to
+     * {@code AiGenerationConfig} cannot end up with a different default here by omission.</p>
+     *
+     * <p>Not thread-safe, and not meant to be: a builder is filled and built on one thread, and the
+     * {@link LlamaCppJniConfig} it produces is immutable.</p>
+     */
+    public static final class Builder {
+
+        private final String modelPath;
+        private int contextSize = AiGenerationConfig.DEFAULT_CONTEXT_SIZE;
+        private int maxOutputTokens = AiGenerationConfig.DEFAULT_MAX_OUTPUT_TOKENS;
+        private float temperature = AiGenerationConfig.DEFAULT_TEMPERATURE;
+        private int threads = AiGenerationConfig.DEFAULT_THREADS;
+        private float topP = AiGenerationConfig.DEFAULT_TOP_P;
+        private int topK = AiGenerationConfig.DEFAULT_TOP_K;
+        private float minP = AiGenerationConfig.DEFAULT_MIN_P;
+        private float topNSigma = AiGenerationConfig.DEFAULT_TOP_N_SIGMA;
+        private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
+        private boolean chatTemplateEnableThinking = AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
+        private boolean cachePrompt = AiGenerationConfig.DEFAULT_CACHE_PROMPT;
+        private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
+        private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
+        private int gpuLayers = AiGenerationConfig.DEFAULT_GPU_LAYERS;
+        private int seed = AiGenerationConfig.DEFAULT_SEED;
+        private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
+        private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
+        private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
+        private String tensorReadLazy = AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+        private int repeatLastN = AiGenerationConfig.DEFAULT_REPEAT_LAST_N;
+        private String cacheTypeK = AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
+        private String cacheTypeV = AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
+        private boolean flashAttn = AiGenerationConfig.DEFAULT_FLASH_ATTN;
+        private int batchSize = AiGenerationConfig.DEFAULT_BATCH_SIZE;
+        private int ubatchSize = AiGenerationConfig.DEFAULT_UBATCH_SIZE;
+        private int threadsBatch = AiGenerationConfig.DEFAULT_THREADS_BATCH;
+        private int mainGpu = AiGenerationConfig.DEFAULT_MAIN_GPU;
+        private String devices = AiGenerationConfig.DEFAULT_DEVICES;
+        private String reasoningEffort = AiGenerationConfig.DEFAULT_REASONING_EFFORT;
+        private int reasoningBudgetTokens = AiGenerationConfig.DEFAULT_REASONING_BUDGET_TOKENS;
+        private float dryMultiplier = AiGenerationConfig.DEFAULT_DRY_MULTIPLIER;
+        private float dryBase = AiGenerationConfig.DEFAULT_DRY_BASE;
+        private int dryAllowedLength = AiGenerationConfig.DEFAULT_DRY_ALLOWED_LENGTH;
+        private int dryPenaltyLastN = AiGenerationConfig.DEFAULT_DRY_PENALTY_LAST_N;
+        private List<String> drySequenceBreakers = Collections.<String>emptyList();
+        private List<String> stopStrings = Collections.<String>emptyList();
+
+        private Builder(final String modelPath) {
+            this.modelPath = Objects.requireNonNull(modelPath, "modelPath");
+        }
+
+        /**
+         * Sets context window size in tokens.
+         *
+         * @param contextSize context window size in tokens
+         * @return this builder
+         */
+        public Builder contextSize(final int contextSize) {
+            this.contextSize = contextSize;
+            return this;
+        }
+
+        /**
+         * Sets maximum number of output tokens per call.
+         *
+         * @param maxOutputTokens maximum number of output tokens per call
+         * @return this builder
+         */
+        public Builder maxOutputTokens(final int maxOutputTokens) {
+            this.maxOutputTokens = maxOutputTokens;
+            return this;
+        }
+
+        /**
+         * Sets sampling temperature.
+         *
+         * @param temperature sampling temperature
+         * @return this builder
+         */
+        public Builder temperature(final float temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
+        /**
+         * Sets number of CPU threads.
+         *
+         * @param threads number of CPU threads
+         * @return this builder
+         */
+        public Builder threads(final int threads) {
+            this.threads = threads;
+            return this;
+        }
+
+        /**
+         * Sets nucleus-sampling probability threshold.
+         *
+         * @param topP nucleus-sampling probability threshold
+         * @return this builder
+         */
+        public Builder topP(final float topP) {
+            this.topP = topP;
+            return this;
+        }
+
+        /**
+         * Sets top-k sampling limit.
+         *
+         * @param topK top-k sampling limit
+         * @return this builder
+         */
+        public Builder topK(final int topK) {
+            this.topK = topK;
+            return this;
+        }
+
+        /**
+         * Sets min-p sampling threshold ({@code 0.0} = disabled).
+         *
+         * @param minP min-p sampling threshold ({@code 0.0} = disabled)
+         * @return this builder
+         */
+        public Builder minP(final float minP) {
+            this.minP = minP;
+            return this;
+        }
+
+        /**
+         * Sets top-n-sigma sampling threshold ({@code -1.0} = disabled).
+         *
+         * @param topNSigma top-n-sigma sampling threshold ({@code -1.0} = disabled)
+         * @return this builder
+         */
+        public Builder topNSigma(final float topNSigma) {
+            this.topNSigma = topNSigma;
+            return this;
+        }
+
+        /**
+         * Sets repetition penalty.
+         *
+         * @param repeatPenalty repetition penalty
+         * @return this builder
+         */
+        public Builder repeatPenalty(final float repeatPenalty) {
+            this.repeatPenalty = repeatPenalty;
+            return this;
+        }
+
+        /**
+         * Sets whether chat-template thinking mode is enabled.
+         *
+         * @param chatTemplateEnableThinking whether chat-template thinking mode is enabled
+         * @return this builder
+         */
+        public Builder chatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+            this.chatTemplateEnableThinking = chatTemplateEnableThinking;
+            return this;
+        }
+
+        /**
+         * Sets whether llama.cpp prompt caching ({@code cache_prompt}) is enabled.
+         *
+         * @param cachePrompt whether llama.cpp prompt caching ({@code cache_prompt}) is enabled
+         * @return this builder
+         */
+        public Builder cachePrompt(final boolean cachePrompt) {
+            this.cachePrompt = cachePrompt;
+            return this;
+        }
+
+        /**
+         * Sets whether to keep the full-size SWA KV cache ({@code --swa-full}).
+         *
+         * @param swaFull whether to keep the full-size SWA KV cache ({@code --swa-full})
+         * @return this builder
+         */
+        public Builder swaFull(final boolean swaFull) {
+            this.swaFull = swaFull;
+            return this;
+        }
+
+        /**
+         * Sets kV prefix-reuse minimum chunk size ({@code --cache-reuse}); 0 = off.
+         *
+         * @param cacheReuse KV prefix-reuse minimum chunk size ({@code --cache-reuse}); 0 = off
+         * @return this builder
+         */
+        public Builder cacheReuse(final int cacheReuse) {
+            this.cacheReuse = cacheReuse;
+            return this;
+        }
+
+        /**
+         * Sets gPU layers to offload ({@code --gpu-layers}); -1 = leave default.
+         *
+         * @param gpuLayers GPU layers to offload ({@code --gpu-layers}); -1 = leave default
+         * @return this builder
+         */
+        public Builder gpuLayers(final int gpuLayers) {
+            this.gpuLayers = gpuLayers;
+            return this;
+        }
+
+        /**
+         * Sets rNG seed for generation; -1 = leave the random-per-request default.
+         *
+         * @param seed RNG seed for generation; -1 = leave the random-per-request default
+         * @return this builder
+         */
+        public Builder seed(final int seed) {
+            this.seed = seed;
+            return this;
+        }
+
+        /**
+         * Sets moE layers kept on the CPU ({@code --n-cpu-moe}); -1 = leave default.
+         *
+         * @param cpuMoeLayers MoE layers kept on the CPU ({@code --n-cpu-moe}); -1 = leave default
+         * @return this builder
+         */
+        public Builder cpuMoeLayers(final int cpuMoeLayers) {
+            this.cpuMoeLayers = cpuMoeLayers;
+            return this;
+        }
+
+        /**
+         * Sets fFN layers kept on the CPU ({@code --n-cpu-ffn}); -1 = leave default.
+         *
+         * @param cpuFfnLayers FFN layers kept on the CPU ({@code --n-cpu-ffn}); -1 = leave default
+         * @return this builder
+         */
+        public Builder cpuFfnLayers(final int cpuFfnLayers) {
+            this.cpuFfnLayers = cpuFfnLayers;
+            return this;
+        }
+
+        /**
+         * Sets per-slot unified KV context cap ({@code --kv-unified-per-slot}); -1 = leave default.
+         *
+         * @param kvUnifiedPerSlot per-slot unified KV context cap ({@code --kv-unified-per-slot}); -1 = leave default
+         * @return this builder
+         */
+        public Builder kvUnifiedPerSlot(final int kvUnifiedPerSlot) {
+            this.kvUnifiedPerSlot = kvUnifiedPerSlot;
+            return this;
+        }
+
+        /**
+         * Sets tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default. {@code null} restores the default.
+         *
+         * @param tensorReadLazy tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default
+         * @return this builder
+         */
+        public Builder tensorReadLazy(final String tensorReadLazy) {
+            this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+            return this;
+        }
+
+        /**
+         * Sets the repeat-penalty window ({@code --repeat-last-n}); {@code -1} leaves llama.cpp's own.
+         *
+         * @param repeatLastN the repeat-penalty window ({@code --repeat-last-n}); {@code -1} leaves llama.cpp's own
+         * @return this builder
+         */
+        public Builder repeatLastN(final int repeatLastN) {
+            this.repeatLastN = repeatLastN;
+            return this;
+        }
+
+        /**
+         * Sets the KV-cache data type for K ({@code --cache-type-k}); empty leaves the default. {@code null} restores the default.
+         *
+         * @param cacheTypeK the KV-cache data type for K ({@code --cache-type-k}); empty leaves the default
+         * @return this builder
+         */
+        public Builder cacheTypeK(final String cacheTypeK) {
+            this.cacheTypeK = cacheTypeK != null ? cacheTypeK : AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
+            return this;
+        }
+
+        /**
+         * Sets the KV-cache data type for V ({@code --cache-type-v}); empty leaves the default. {@code null} restores the default.
+         *
+         * @param cacheTypeV the KV-cache data type for V ({@code --cache-type-v}); empty leaves the default
+         * @return this builder
+         */
+        public Builder cacheTypeV(final String cacheTypeV) {
+            this.cacheTypeV = cacheTypeV != null ? cacheTypeV : AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
+            return this;
+        }
+
+        /**
+         * Sets whether Flash Attention is enabled ({@code --flash-attn}).
+         *
+         * @param flashAttn whether Flash Attention is enabled ({@code --flash-attn})
+         * @return this builder
+         */
+        public Builder flashAttn(final boolean flashAttn) {
+            this.flashAttn = flashAttn;
+            return this;
+        }
+
+        /**
+         * Sets the logical batch size ({@code --batch-size}); {@code -1} leaves the default.
+         *
+         * @param batchSize the logical batch size ({@code --batch-size}); {@code -1} leaves the default
+         * @return this builder
+         */
+        public Builder batchSize(final int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
+        /**
+         * Sets the physical batch size ({@code --ubatch-size}); {@code -1} leaves the default.
+         *
+         * @param ubatchSize the physical batch size ({@code --ubatch-size}); {@code -1} leaves the default
+         * @return this builder
+         */
+        public Builder ubatchSize(final int ubatchSize) {
+            this.ubatchSize = ubatchSize;
+            return this;
+        }
+
+        /**
+         * Sets the batch/prompt-processing thread count ({@code --threads-batch}); {@code -1} reuses {@code threads}.
+         *
+         * @param threadsBatch the batch/prompt-processing thread count ({@code --threads-batch}); {@code -1} reuses {@code threads}
+         * @return this builder
+         */
+        public Builder threadsBatch(final int threadsBatch) {
+            this.threadsBatch = threadsBatch;
+            return this;
+        }
+
+        /**
+         * Sets primary GPU index ({@code --main-gpu}); -1 = leave default.
+         *
+         * @param mainGpu primary GPU index ({@code --main-gpu}); -1 = leave default
+         * @return this builder
+         */
+        public Builder mainGpu(final int mainGpu) {
+            this.mainGpu = mainGpu;
+            return this;
+        }
+
+        /**
+         * Sets device selection ({@code --device}); empty = leave default. {@code null} restores the default.
+         *
+         * @param devices device selection ({@code --device}); empty = leave default
+         * @return this builder
+         */
+        public Builder devices(final String devices) {
+            this.devices = devices != null ? devices : AiGenerationConfig.DEFAULT_DEVICES;
+            return this;
+        }
+
+        /**
+         * Sets gpt-oss reasoning-effort kwarg value ("low"/"medium"/"high"); empty omits it. {@code null} restores the default.
+         *
+         * @param reasoningEffort gpt-oss reasoning-effort kwarg value ("low"/"medium"/"high"); empty omits it
+         * @return this builder
+         */
+        public Builder reasoningEffort(final String reasoningEffort) {
+            this.reasoningEffort =
+                    reasoningEffort != null ? reasoningEffort : AiGenerationConfig.DEFAULT_REASONING_EFFORT;
+            return this;
+        }
+
+        /**
+         * Sets reasoning/think-token budget ({@code -1} = unrestricted).
+         *
+         * @param reasoningBudgetTokens reasoning/think-token budget ({@code -1} = unrestricted)
+         * @return this builder
+         */
+        public Builder reasoningBudgetTokens(final int reasoningBudgetTokens) {
+            this.reasoningBudgetTokens = reasoningBudgetTokens;
+            return this;
+        }
+
+        /**
+         * Sets dRY sampling multiplier ({@code 0.0} = disabled).
+         *
+         * @param dryMultiplier DRY sampling multiplier ({@code 0.0} = disabled)
+         * @return this builder
+         */
+        public Builder dryMultiplier(final float dryMultiplier) {
+            this.dryMultiplier = dryMultiplier;
+            return this;
+        }
+
+        /**
+         * Sets dRY base (effective only when {@code dryMultiplier > 0}).
+         *
+         * @param dryBase DRY base (effective only when {@code dryMultiplier > 0})
+         * @return this builder
+         */
+        public Builder dryBase(final float dryBase) {
+            this.dryBase = dryBase;
+            return this;
+        }
+
+        /**
+         * Sets dRY allowed length (effective only when {@code dryMultiplier > 0}).
+         *
+         * @param dryAllowedLength DRY allowed length (effective only when {@code dryMultiplier > 0})
+         * @return this builder
+         */
+        public Builder dryAllowedLength(final int dryAllowedLength) {
+            this.dryAllowedLength = dryAllowedLength;
+            return this;
+        }
+
+        /**
+         * Sets dRY penalty look-back tokens ({@code -1} = whole context, {@code 0} = off).
+         *
+         * @param dryPenaltyLastN DRY penalty look-back tokens ({@code -1} = whole context, {@code 0} = off)
+         * @return this builder
+         */
+        public Builder dryPenaltyLastN(final int dryPenaltyLastN) {
+            this.dryPenaltyLastN = dryPenaltyLastN;
+            return this;
+        }
+
+        /**
+         * Sets dRY sequence breakers; may be {@code null} (treated as empty → binding default). {@code null} restores the empty default.
+         *
+         * @param drySequenceBreakers DRY sequence breakers; may be {@code null} (treated as empty → binding default)
+         * @return this builder
+         */
+        public Builder drySequenceBreakers(final List<String> drySequenceBreakers) {
+            this.drySequenceBreakers =
+                    drySequenceBreakers != null ? drySequenceBreakers : Collections.<String>emptyList();
+            return this;
+        }
+
+        /**
+         * Sets stop strings; may be {@code null} (treated as empty). {@code null} restores the empty default.
+         *
+         * @param stopStrings stop strings; may be {@code null} (treated as empty)
+         * @return this builder
+         */
+        public Builder stopStrings(final List<String> stopStrings) {
+            this.stopStrings = stopStrings != null ? stopStrings : Collections.<String>emptyList();
+            return this;
+        }
+
+        /**
+         * Builds the immutable configuration.
+         *
+         * @return the configuration
+         */
+        public LlamaCppJniConfig build() {
+            return new LlamaCppJniConfig(this);
+        }
     }
 }

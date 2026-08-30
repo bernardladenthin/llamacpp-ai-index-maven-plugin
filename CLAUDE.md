@@ -108,7 +108,9 @@ Framework-free: **no dependency on `org.apache.maven..`** anywhere (enforced by
   `AiPromptPreparationSupport`.
 - **`provider/`** — the AI backend abstraction: `AiGenerationProvider` (`Closeable`),
   `AiGenerationProviderFactory` (looks up `"mock"` / `"llamacpp-jni"`), `MockAiGenerationProvider`,
-  `LlamaCppJniAiGenerationProvider`, `LlamaCppJniConfig` + `LlamaCppJniConfigFactory` (the pure 26-field
+  `LlamaCppJniAiGenerationProvider`, `LlamaCppJniConfig` (built through `LlamaCppJniConfig.builder(modelPath)`; the
+  positional constructor is private, and every value the caller does not name defaults to the matching
+  `AiGenerationConfig.DEFAULT_*`) + `LlamaCppJniConfigFactory` (the pure 37-field
   mapping from a resolved `AiGenerationConfig` to the native binding's parameter objects — extracted
   from the old mojo so it is unit- and PIT-testable without a Maven runtime), `AiCompletionParser`.
 - **`support/`** — foundation helpers with no dependency on anything above them: `AiChecksumSupport`,

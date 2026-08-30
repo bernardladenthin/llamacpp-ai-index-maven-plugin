@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package net.ladenthin.srcmorph.provider;
 
-import java.util.Collections;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
 
 /**
@@ -34,44 +33,44 @@ public final class LlamaCppJniConfigFactory {
      * @return the fully populated llama.cpp configuration
      */
     public static LlamaCppJniConfig fromGenerationConfig(final AiGenerationConfig config) {
-        return new LlamaCppJniConfig(
-                config.getModelPath(),
-                config.getContextSize(),
-                config.getMaxOutputTokens(),
-                config.getTemperature(),
-                config.getThreads(),
-                config.getTopP(),
-                config.getTopK(),
-                config.getMinP(),
-                config.getTopNSigma(),
-                config.getRepeatPenalty(),
-                config.isChatTemplateEnableThinking(),
-                config.isCachePrompt(),
-                config.isSwaFull(),
-                config.getCacheReuse(),
-                config.getGpuLayers(),
-                config.getSeed(),
-                config.getCpuMoeLayers(),
-                config.getCpuFfnLayers(),
-                config.getKvUnifiedPerSlot(),
-                config.getTensorReadLazy(),
-                config.getRepeatLastN(),
-                config.getCacheTypeK(),
-                config.getCacheTypeV(),
-                config.isFlashAttn(),
-                config.getBatchSize(),
-                config.getUbatchSize(),
-                config.getThreadsBatch(),
-                config.getMainGpu(),
-                config.getDevices(),
-                config.getReasoningEffort(),
-                config.getReasoningBudgetTokens(),
-                config.getDryMultiplier(),
-                config.getDryBase(),
-                config.getDryAllowedLength(),
-                config.getDryPenaltyLastN(),
-                config.getDrySequenceBreakers(),
-                config.getStopStrings());
+        return LlamaCppJniConfig.builder(config.getModelPath())
+                .contextSize(config.getContextSize())
+                .maxOutputTokens(config.getMaxOutputTokens())
+                .temperature(config.getTemperature())
+                .threads(config.getThreads())
+                .topP(config.getTopP())
+                .topK(config.getTopK())
+                .minP(config.getMinP())
+                .topNSigma(config.getTopNSigma())
+                .repeatPenalty(config.getRepeatPenalty())
+                .chatTemplateEnableThinking(config.isChatTemplateEnableThinking())
+                .cachePrompt(config.isCachePrompt())
+                .swaFull(config.isSwaFull())
+                .cacheReuse(config.getCacheReuse())
+                .gpuLayers(config.getGpuLayers())
+                .seed(config.getSeed())
+                .cpuMoeLayers(config.getCpuMoeLayers())
+                .cpuFfnLayers(config.getCpuFfnLayers())
+                .kvUnifiedPerSlot(config.getKvUnifiedPerSlot())
+                .tensorReadLazy(config.getTensorReadLazy())
+                .repeatLastN(config.getRepeatLastN())
+                .cacheTypeK(config.getCacheTypeK())
+                .cacheTypeV(config.getCacheTypeV())
+                .flashAttn(config.isFlashAttn())
+                .batchSize(config.getBatchSize())
+                .ubatchSize(config.getUbatchSize())
+                .threadsBatch(config.getThreadsBatch())
+                .mainGpu(config.getMainGpu())
+                .devices(config.getDevices())
+                .reasoningEffort(config.getReasoningEffort())
+                .reasoningBudgetTokens(config.getReasoningBudgetTokens())
+                .dryMultiplier(config.getDryMultiplier())
+                .dryBase(config.getDryBase())
+                .dryAllowedLength(config.getDryAllowedLength())
+                .dryPenaltyLastN(config.getDryPenaltyLastN())
+                .drySequenceBreakers(config.getDrySequenceBreakers())
+                .stopStrings(config.getStopStrings())
+                .build();
     }
 
     /**
@@ -92,43 +91,14 @@ public final class LlamaCppJniConfigFactory {
             final int maxOutputTokens,
             final float temperature,
             final int threads) {
-        return new LlamaCppJniConfig(
-                modelPath,
-                contextSize,
-                maxOutputTokens,
-                temperature,
-                threads,
-                AiGenerationConfig.DEFAULT_TOP_P,
-                AiGenerationConfig.DEFAULT_TOP_K,
-                AiGenerationConfig.DEFAULT_MIN_P,
-                AiGenerationConfig.DEFAULT_TOP_N_SIGMA,
-                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
-                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING,
-                AiGenerationConfig.DEFAULT_CACHE_PROMPT,
-                AiGenerationConfig.DEFAULT_SWA_FULL,
-                AiGenerationConfig.DEFAULT_CACHE_REUSE,
-                AiGenerationConfig.DEFAULT_GPU_LAYERS,
-                AiGenerationConfig.DEFAULT_SEED,
-                AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
-                AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
-                AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
-                AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY,
-                AiGenerationConfig.DEFAULT_REPEAT_LAST_N,
-                AiGenerationConfig.DEFAULT_CACHE_TYPE_K,
-                AiGenerationConfig.DEFAULT_CACHE_TYPE_V,
-                AiGenerationConfig.DEFAULT_FLASH_ATTN,
-                AiGenerationConfig.DEFAULT_BATCH_SIZE,
-                AiGenerationConfig.DEFAULT_UBATCH_SIZE,
-                AiGenerationConfig.DEFAULT_THREADS_BATCH,
-                AiGenerationConfig.DEFAULT_MAIN_GPU,
-                AiGenerationConfig.DEFAULT_DEVICES,
-                AiGenerationConfig.DEFAULT_REASONING_EFFORT,
-                AiGenerationConfig.DEFAULT_REASONING_BUDGET_TOKENS,
-                AiGenerationConfig.DEFAULT_DRY_MULTIPLIER,
-                AiGenerationConfig.DEFAULT_DRY_BASE,
-                AiGenerationConfig.DEFAULT_DRY_ALLOWED_LENGTH,
-                AiGenerationConfig.DEFAULT_DRY_PENALTY_LAST_N,
-                Collections.<String>emptyList(),
-                Collections.<String>emptyList());
+        // Every other value is left at the builder's default, which IS the matching
+        // AiGenerationConfig.DEFAULT_* -- restating them here is what used to make this method thirty
+        // lines long and let a new knob silently default differently than the config class says.
+        return LlamaCppJniConfig.builder(modelPath)
+                .contextSize(contextSize)
+                .maxOutputTokens(maxOutputTokens)
+                .temperature(temperature)
+                .threads(threads)
+                .build();
     }
 }

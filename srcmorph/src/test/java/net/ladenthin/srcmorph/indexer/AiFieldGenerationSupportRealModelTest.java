@@ -16,7 +16,6 @@ import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiFactCounter;
 import net.ladenthin.srcmorph.config.AiFactExtractor;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
-import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.config.AiModelDefinition;
 import net.ladenthin.srcmorph.config.AiModelDefinitionSupport;
 import net.ladenthin.srcmorph.document.AiGenerationResult;
@@ -76,44 +75,12 @@ public class AiFieldGenerationSupportRealModelTest {
 
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiPromptPreparationSupport prep = new AiPromptPreparationSupport(promptSupport);
-        final LlamaCppJniConfig jniConfig = new LlamaCppJniConfig(
-                MODEL_PATH,
-                SMALL_CONTEXT,
-                48,
-                0.15f,
-                8,
-                AiGenerationConfig.DEFAULT_TOP_P,
-                AiGenerationConfig.DEFAULT_TOP_K,
-                AiGenerationConfig.DEFAULT_MIN_P,
-                AiGenerationConfig.DEFAULT_TOP_N_SIGMA,
-                AiGenerationConfig.DEFAULT_REPEAT_PENALTY,
-                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING,
-                AiGenerationConfig.DEFAULT_CACHE_PROMPT,
-                AiGenerationConfig.DEFAULT_SWA_FULL,
-                AiGenerationConfig.DEFAULT_CACHE_REUSE,
-                AiGenerationConfig.DEFAULT_GPU_LAYERS,
-                AiGenerationConfig.DEFAULT_SEED,
-                AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
-                AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
-                AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
-                AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY,
-                -1,
-                "",
-                "",
-                false,
-                -1,
-                -1,
-                -1,
-                AiGenerationConfig.DEFAULT_MAIN_GPU,
-                AiGenerationConfig.DEFAULT_DEVICES,
-                AiGenerationConfig.DEFAULT_REASONING_EFFORT,
-                AiGenerationConfig.DEFAULT_REASONING_BUDGET_TOKENS,
-                AiGenerationConfig.DEFAULT_DRY_MULTIPLIER,
-                AiGenerationConfig.DEFAULT_DRY_BASE,
-                AiGenerationConfig.DEFAULT_DRY_ALLOWED_LENGTH,
-                AiGenerationConfig.DEFAULT_DRY_PENALTY_LAST_N,
-                Collections.emptyList(),
-                Collections.emptyList());
+        final LlamaCppJniConfig jniConfig = LlamaCppJniConfig.builder(MODEL_PATH)
+                .contextSize(SMALL_CONTEXT)
+                .maxOutputTokens(48)
+                .temperature(0.15f)
+                .threads(8)
+                .build();
 
         final AiFieldGenerationConfig rule = new AiFieldGenerationConfig();
         rule.setPromptKey(CommonTestFixtures.PROMPT_KEY_FILE_BODY);
