@@ -308,4 +308,87 @@ public class AiGenerationConfigTest {
         // guard forwards it.
         assertThat(c.getSeed(), is(0));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="prefill + KV-cache knobs">
+
+    @Test
+    public void repeatLastNDefaultsToUnsetAndRoundTrips() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        // -1 leaves llama.cpp's own window; 0 is a meaningful value (disables the penalty), which is why
+        // the forwarding guard is >= 0 -- pinned here so the default cannot drift onto the wrong side.
+        assertThat(c.getRepeatLastN(), is(-1));
+        c.setRepeatLastN(0);
+        assertThat(c.getRepeatLastN(), is(0));
+        c.setRepeatLastN(256);
+        assertThat(c.getRepeatLastN(), is(256));
+    }
+
+    @Test
+    public void cacheTypeKDefaultsEmptyAndRoundTrips() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        assertThat(c.getCacheTypeK(), is(""));
+        c.setCacheTypeK("q8_0");
+        assertThat(c.getCacheTypeK(), is("q8_0"));
+    }
+
+    @Test
+    public void setCacheTypeKNullResetsToEmpty() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        c.setCacheTypeK("q8_0");
+        c.setCacheTypeK(null);
+        assertThat(c.getCacheTypeK(), is(""));
+    }
+
+    @Test
+    public void cacheTypeVDefaultsEmptyAndRoundTrips() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        assertThat(c.getCacheTypeV(), is(""));
+        c.setCacheTypeV("q4_0");
+        // Distinct from the K value above: the two are separate fields, not one shared setting.
+        assertThat(c.getCacheTypeV(), is("q4_0"));
+        assertThat(c.getCacheTypeK(), is(""));
+    }
+
+    @Test
+    public void setCacheTypeVNullResetsToEmpty() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        c.setCacheTypeV("q4_0");
+        c.setCacheTypeV(null);
+        assertThat(c.getCacheTypeV(), is(""));
+    }
+
+    @Test
+    public void flashAttnDefaultsOffAndRoundTrips() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        // llama.cpp's own default is off; enabling it is opt-in because it is also the precondition
+        // for a quantized V cache.
+        assertThat(c.isFlashAttn(), is(false));
+        c.setFlashAttn(true);
+        assertThat(c.isFlashAttn(), is(true));
+    }
+
+    @Test
+    public void batchSizesDefaultToUnsetAndRoundTripIndependently() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        assertThat(c.getBatchSize(), is(-1));
+        assertThat(c.getUbatchSize(), is(-1));
+        c.setBatchSize(512);
+        c.setUbatchSize(256);
+        // Different values on purpose: logical and physical batch size are separate knobs.
+        assertThat(c.getBatchSize(), is(512));
+        assertThat(c.getUbatchSize(), is(256));
+    }
+
+    @Test
+    public void threadsBatchDefaultsToUnsetAndRoundTrips() {
+        final AiGenerationConfig c = new AiGenerationConfig();
+        // -1 means "reuse threads"; it must not collide with the decode thread count.
+        assertThat(c.getThreadsBatch(), is(-1));
+        c.setThreads(4);
+        c.setThreadsBatch(12);
+        assertThat(c.getThreadsBatch(), is(12));
+        assertThat(c.getThreads(), is(4));
+    }
+
+    // </editor-fold>
 }

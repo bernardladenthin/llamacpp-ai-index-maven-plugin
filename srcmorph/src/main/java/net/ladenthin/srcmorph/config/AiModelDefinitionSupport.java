@@ -128,6 +128,13 @@ public final class AiModelDefinitionSupport {
         config.setCpuFfnLayers(definition.getCpuFfnLayers());
         config.setKvUnifiedPerSlot(definition.getKvUnifiedPerSlot());
         config.setTensorReadLazy(definition.getTensorReadLazy());
+        config.setRepeatLastN(definition.getRepeatLastN());
+        config.setCacheTypeK(definition.getCacheTypeK());
+        config.setCacheTypeV(definition.getCacheTypeV());
+        config.setFlashAttn(definition.isFlashAttn());
+        config.setBatchSize(definition.getBatchSize());
+        config.setUbatchSize(definition.getUbatchSize());
+        config.setThreadsBatch(definition.getThreadsBatch());
         config.setMainGpu(definition.getMainGpu());
         config.setDevices(definition.getDevices());
         config.setReasoningEffort(definition.getReasoningEffort());

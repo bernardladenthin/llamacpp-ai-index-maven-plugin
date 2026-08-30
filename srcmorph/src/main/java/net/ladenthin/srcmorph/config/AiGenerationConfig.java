@@ -237,6 +237,73 @@ public class AiGenerationConfig {
     public static final String DEFAULT_TENSOR_READ_LAZY = "";
 
     /**
+     * Default repeat-penalty window ({@code --repeat-last-n}). {@code -1} (default) means "do not set
+     * it" — llama.cpp applies its own window (64 tokens). {@code 0} disables the penalty entirely and is
+     * a meaningful value, so the forwarding guard is {@code >= 0}, not {@code > 0}; the binding rejects
+     * negatives.
+     *
+     * <p>This is the window {@link #DEFAULT_REPEAT_PENALTY} acts on. Configuring a penalty without its
+     * range leaves the strength adjustable but the reach fixed, which is why the two belong together.</p>
+     */
+    public static final int DEFAULT_REPEAT_LAST_N = -1;
+
+    /**
+     * Default KV-cache data type for K ({@code --cache-type-k}). Empty (default) means "do not set it".
+     * Recognised values are the llama.cpp cache types: {@code f32}, {@code f16}, {@code bf16},
+     * {@code q8_0}, {@code q4_0}, {@code q4_1}, {@code iq4_nl}, {@code q5_0}, {@code q5_1}.
+     *
+     * <p>Quantizing the KV cache is the most direct trade of quality for context length: at {@code q8_0}
+     * the cache costs about half of {@code f16}, so a larger {@code contextSize} — or {@code swaFull} —
+     * fits the same VRAM. Whether it pays off is measurable: {@code srcmorph:calibrate} reports the
+     * prompt-cache reuse the extra room buys.</p>
+     */
+    public static final String DEFAULT_CACHE_TYPE_K = "";
+
+    /**
+     * Default KV-cache data type for V ({@code --cache-type-v}). Same values and defaults as
+     * {@link #DEFAULT_CACHE_TYPE_K}.
+     *
+     * <p><b>Quantizing V generally requires Flash Attention</b> — see {@link #DEFAULT_FLASH_ATTN}.
+     * Without it llama.cpp will usually refuse to load, so set the two together.</p>
+     */
+    public static final String DEFAULT_CACHE_TYPE_V = "";
+
+    /**
+     * Default Flash Attention setting ({@code --flash-attn}). {@code false} (default) leaves it off, as
+     * llama.cpp does. Enabling it lowers KV-cache memory and speeds up attention on backends that
+     * support it, and it is the precondition for quantizing the V cache
+     * ({@link #DEFAULT_CACHE_TYPE_V}).
+     */
+    public static final boolean DEFAULT_FLASH_ATTN = false;
+
+    /**
+     * Default logical batch size ({@code --batch-size}). {@code -1} (default) means "do not set it" —
+     * the binding's own default is {@code 0}, which llama.cpp reads as "decide for me", so {@code 0} is
+     * not a meaningful user value and the forwarding guard is {@code > 0}.
+     *
+     * <p>This is a prefill-throughput knob, and prefill is what dominates an indexing run: every file is
+     * one large prompt with a short answer. {@code srcmorph:calibrate} measures the effect directly.</p>
+     */
+    public static final int DEFAULT_BATCH_SIZE = -1;
+
+    /**
+     * Default physical batch size ({@code --ubatch-size}). Same {@code -1} = "do not set it" convention
+     * and {@code > 0} guard as {@link #DEFAULT_BATCH_SIZE}; it bounds how much of a logical batch is
+     * submitted to the backend at once, so it is the knob that trades prefill speed against peak memory.
+     */
+    public static final int DEFAULT_UBATCH_SIZE = -1;
+
+    /**
+     * Default batch/prompt-processing thread count ({@code --threads-batch}). {@code -1} (default) means
+     * "do not set it" — llama.cpp then reuses {@code threads}. Guard is {@code > 0}.
+     *
+     * <p>Prefill parallelises differently from decode, so the optimum is often not the decode thread
+     * count: on a machine with efficiency cores, more threads help prompt processing while hurting
+     * token generation. This knob is what lets the two be tuned apart.</p>
+     */
+    public static final int DEFAULT_THREADS_BATCH = -1;
+
+    /**
      * Default primary GPU index ({@code --main-gpu}). {@code -1} (default) means "do not set it" — the
      * binding/native build decides (llama.cpp's own default is device {@code 0}). Set a non-negative
      * index to pick a specific device. This matters on machines with more than one GPU visible to the
@@ -305,6 +372,13 @@ public class AiGenerationConfig {
     private int cpuFfnLayers = DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = DEFAULT_KV_UNIFIED_PER_SLOT;
     private String tensorReadLazy = DEFAULT_TENSOR_READ_LAZY;
+    private int repeatLastN = DEFAULT_REPEAT_LAST_N;
+    private String cacheTypeK = DEFAULT_CACHE_TYPE_K;
+    private String cacheTypeV = DEFAULT_CACHE_TYPE_V;
+    private boolean flashAttn = DEFAULT_FLASH_ATTN;
+    private int batchSize = DEFAULT_BATCH_SIZE;
+    private int ubatchSize = DEFAULT_UBATCH_SIZE;
+    private int threadsBatch = DEFAULT_THREADS_BATCH;
     private int mainGpu = DEFAULT_MAIN_GPU;
     private String devices = DEFAULT_DEVICES;
     private String reasoningEffort = DEFAULT_REASONING_EFFORT;
@@ -724,6 +798,136 @@ public class AiGenerationConfig {
      */
     public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
         this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : DEFAULT_TENSOR_READ_LAZY;
+    }
+
+    /**
+     * Returns the repeat-penalty window ({@code --repeat-last-n}).
+     *
+     * @return the number of last tokens the repeat penalty considers, {@code 0} to disable it, or
+     *         {@code -1} to leave llama.cpp's own window
+     */
+    public int getRepeatLastN() {
+        return repeatLastN;
+    }
+
+    /**
+     * Sets the repeat-penalty window ({@code --repeat-last-n}).
+     *
+     * @param repeatLastN the window ({@code -1} = leave default, {@code 0} = disable the penalty)
+     */
+    public void setRepeatLastN(final int repeatLastN) {
+        this.repeatLastN = repeatLastN;
+    }
+
+    /**
+     * Returns the KV-cache data type for K ({@code --cache-type-k}).
+     *
+     * @return a llama.cpp cache type such as {@code q8_0}, or empty to leave the default
+     */
+    public String getCacheTypeK() {
+        return cacheTypeK;
+    }
+
+    /**
+     * Sets the KV-cache data type for K ({@code --cache-type-k}).
+     *
+     * @param cacheTypeK a llama.cpp cache type, or empty/{@code null} to leave the default
+     */
+    public void setCacheTypeK(final @Nullable String cacheTypeK) {
+        this.cacheTypeK = cacheTypeK != null ? cacheTypeK : DEFAULT_CACHE_TYPE_K;
+    }
+
+    /**
+     * Returns the KV-cache data type for V ({@code --cache-type-v}).
+     *
+     * @return a llama.cpp cache type such as {@code q8_0}, or empty to leave the default
+     */
+    public String getCacheTypeV() {
+        return cacheTypeV;
+    }
+
+    /**
+     * Sets the KV-cache data type for V ({@code --cache-type-v}). Usually requires
+     * {@link #setFlashAttn(boolean)}.
+     *
+     * @param cacheTypeV a llama.cpp cache type, or empty/{@code null} to leave the default
+     */
+    public void setCacheTypeV(final @Nullable String cacheTypeV) {
+        this.cacheTypeV = cacheTypeV != null ? cacheTypeV : DEFAULT_CACHE_TYPE_V;
+    }
+
+    /**
+     * Returns whether Flash Attention is enabled ({@code --flash-attn}).
+     *
+     * @return {@code true} when Flash Attention is enabled
+     */
+    public boolean isFlashAttn() {
+        return flashAttn;
+    }
+
+    /**
+     * Sets whether Flash Attention is enabled ({@code --flash-attn}).
+     *
+     * @param flashAttn {@code true} to enable it (lower KV memory, and the precondition for a
+     *                  quantized V cache)
+     */
+    public void setFlashAttn(final boolean flashAttn) {
+        this.flashAttn = flashAttn;
+    }
+
+    /**
+     * Returns the logical batch size ({@code --batch-size}).
+     *
+     * @return the logical batch size, or {@code -1} to leave the default
+     */
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    /**
+     * Sets the logical batch size ({@code --batch-size}).
+     *
+     * @param batchSize the logical batch size ({@code -1} = leave default, must be positive when set)
+     */
+    public void setBatchSize(final int batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    /**
+     * Returns the physical batch size ({@code --ubatch-size}).
+     *
+     * @return the physical batch size, or {@code -1} to leave the default
+     */
+    public int getUbatchSize() {
+        return ubatchSize;
+    }
+
+    /**
+     * Sets the physical batch size ({@code --ubatch-size}).
+     *
+     * @param ubatchSize the physical batch size ({@code -1} = leave default, must be positive when set)
+     */
+    public void setUbatchSize(final int ubatchSize) {
+        this.ubatchSize = ubatchSize;
+    }
+
+    /**
+     * Returns the batch/prompt-processing thread count ({@code --threads-batch}).
+     *
+     * @return the batch thread count, or {@code -1} to reuse {@code threads}
+     */
+    public int getThreadsBatch() {
+        return threadsBatch;
+    }
+
+    /**
+     * Sets the batch/prompt-processing thread count ({@code --threads-batch}).
+     *
+     * @param threadsBatch the batch thread count ({@code -1} = reuse {@code threads}, must be positive
+     *                     when set)
+     */
+    public void setThreadsBatch(final int threadsBatch) {
+        this.threadsBatch = threadsBatch;
     }
 
     /**

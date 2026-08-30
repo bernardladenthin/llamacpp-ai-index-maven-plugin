@@ -72,6 +72,40 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   second request against the same system prompt finds it cached, so the reuse is proven end to end and
   not just plumbed.
 
+- **Seven further model-definition knobs**, wired through to `net.ladenthin:llama` 5.1.0 exactly like the
+  existing `gpuLayers` / `cpuMoeLayers` set — an `<aiDefinition>` element in the Maven plugin, or a key
+  under `srcMorph.aiDefinitions[]` in a CLI JSON/YAML config — and each forwarded to the binding only when
+  explicitly set, so an unconfigured build behaves exactly as before. They are added now rather than later
+  because configuration surface is the part of this library that cannot be extended without a release.
+  - `repeatLastN` (`--repeat-last-n`, default `-1`) — **the gap this closes is a pair that was half
+    wired**: `repeatPenalty` was configurable, the window it acts on was not, so the strength was
+    adjustable while the reach stayed on llama.cpp's default of 64 tokens. `0` disables the penalty and is
+    a meaningful value, so the guard is `>= 0`; the binding rejects negatives. Per-request, next to
+    `repeatPenalty` itself.
+  - `cacheTypeK` / `cacheTypeV` (`--cache-type-k` / `--cache-type-v`, default empty) — KV-cache
+    quantization, the most direct trade of quality for context length: at `q8_0` the cache costs about
+    half of `f16`, so a larger `contextSize` (or `swaFull`) fits the same VRAM. Carried as a `String`
+    through the `config` package — the `jniConfinedToProvider` ArchUnit rule keeps `net.ladenthin.llama`
+    types out of it — and resolved to the binding's `CacheType` inside the provider, matched
+    case-insensitively against the CLI strings the enum itself declares. An unrecognised value is
+    **rejected**, and the message names which of the two knobs was wrong, since one resolver serves both.
+  - `flashAttn` (`--flash-attn`, default `false`) — lower KV memory and faster attention where the
+    backend supports it, and the precondition for quantizing the V cache.
+  - `batchSize` / `ubatchSize` (`--batch-size` / `--ubatch-size`, default `-1`) — prefill sizing, and
+    prefill is what dominates an indexing run: every file is one large prompt with a short answer. The
+    binding's own default for both is `0`, which llama.cpp reads as "decide for me", so `0` is not a
+    meaningful user value and the guard is `> 0`.
+  - `threadsBatch` (`--threads-batch`, default `-1`) — prompt-processing threads, separate from the
+    decode `threads`. The two optima differ on machines with efficiency cores; `-1` keeps llama.cpp's
+    behaviour of reusing `threads`.
+
+  `srcmorph:calibrate` is what makes these measurable rather than guesswork: it reports prefill and
+  decode throughput, and — since this release — the prompt-cache reuse the extra KV room buys.
+
+  Note the cost this exposes: `LlamaCppJniConfig`'s positional constructor is now 37 arguments. It is
+  covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
+  mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
+
 ### Fixed
 - **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
   seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced

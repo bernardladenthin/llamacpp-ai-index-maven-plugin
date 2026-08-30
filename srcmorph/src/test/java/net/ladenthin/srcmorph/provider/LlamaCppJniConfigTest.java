@@ -55,6 +55,13 @@ public class LlamaCppJniConfigTest {
                 -1,
                 "",
                 "",
+                false,
+                -1,
+                -1,
+                -1,
+                -1,
+                "",
+                "",
                 -1,
                 0.0f,
                 1.75f,
@@ -97,7 +104,7 @@ public class LlamaCppJniConfigTest {
     }
 
     @Test
-    public void constructor_nullTensorReadLazy_normalisedToEmptyString() {
+    public void constructor_nullStringKnobs_normalisedToEmptyString() {
         // arrange / act
         final LlamaCppJniConfig config = new LlamaCppJniConfig(
                 "model.gguf",
@@ -121,6 +128,13 @@ public class LlamaCppJniConfigTest {
                 -1,
                 null,
                 -1,
+                null,
+                null,
+                false,
+                -1,
+                -1,
+                -1,
+                -1,
                 "",
                 "",
                 -1,
@@ -131,8 +145,11 @@ public class LlamaCppJniConfigTest {
                 Collections.<String>emptyList(),
                 Collections.<String>emptyList());
 
-        // assert
+        // assert -- every String knob the constructor null-guards normalises to empty, so a caller
+        // building one directly cannot produce a config whose accessors return null.
         assertThat(config.tensorReadLazy(), is(""));
+        assertThat(config.cacheTypeK(), is(""));
+        assertThat(config.cacheTypeV(), is(""));
     }
 
     // </editor-fold>
@@ -186,6 +203,13 @@ public class LlamaCppJniConfigTest {
                         -1,
                         -1,
                         "",
+                        -1,
+                        "",
+                        "",
+                        false,
+                        -1,
+                        -1,
+                        -1,
                         -1,
                         "",
                         "",

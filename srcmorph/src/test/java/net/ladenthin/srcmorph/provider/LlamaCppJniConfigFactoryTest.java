@@ -40,6 +40,13 @@ public class LlamaCppJniConfigFactoryTest {
         config.setCpuFfnLayers(16);
         config.setKvUnifiedPerSlot(4096);
         config.setTensorReadLazy("on");
+        config.setRepeatLastN(128);
+        config.setCacheTypeK("q8_0");
+        config.setCacheTypeV("q4_0");
+        config.setFlashAttn(true);
+        config.setBatchSize(512);
+        config.setUbatchSize(256);
+        config.setThreadsBatch(6);
         config.setMainGpu(3);
         config.setDevices("Vulkan1");
         config.setReasoningEffort("high");
@@ -77,6 +84,14 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.cpuFfnLayers(), is(16));
         assertThat(result.kvUnifiedPerSlot(), is(4096));
         assertThat(result.tensorReadLazy(), is("on"));
+        assertThat(result.repeatLastN(), is(128));
+        assertThat(result.cacheTypeK(), is("q8_0"));
+        assertThat(result.cacheTypeV(), is("q4_0"));
+        // Distinct from swaFull above (false), so a swap of the two adjacent booleans is caught.
+        assertThat(result.flashAttn(), is(true));
+        assertThat(result.batchSize(), is(512));
+        assertThat(result.ubatchSize(), is(256));
+        assertThat(result.threadsBatch(), is(6));
         assertThat(result.mainGpu(), is(3));
         assertThat(result.devices(), is("Vulkan1"));
         assertThat(result.reasoningEffort(), is("high"));
@@ -138,6 +153,13 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
         assertThat(result.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));
         assertThat(result.tensorReadLazy(), is(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY));
+        assertThat(result.repeatLastN(), is(AiGenerationConfig.DEFAULT_REPEAT_LAST_N));
+        assertThat(result.cacheTypeK(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_K));
+        assertThat(result.cacheTypeV(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_V));
+        assertThat(result.flashAttn(), is(AiGenerationConfig.DEFAULT_FLASH_ATTN));
+        assertThat(result.batchSize(), is(AiGenerationConfig.DEFAULT_BATCH_SIZE));
+        assertThat(result.ubatchSize(), is(AiGenerationConfig.DEFAULT_UBATCH_SIZE));
+        assertThat(result.threadsBatch(), is(AiGenerationConfig.DEFAULT_THREADS_BATCH));
         assertThat(result.mainGpu(), is(AiGenerationConfig.DEFAULT_MAIN_GPU));
         assertThat(result.devices(), is(AiGenerationConfig.DEFAULT_DEVICES));
         assertThat(result.reasoningEffort(), is(AiGenerationConfig.DEFAULT_REASONING_EFFORT));

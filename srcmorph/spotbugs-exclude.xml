@@ -437,6 +437,20 @@ SPDX-License-Identifier: Apache-2.0
     </Match>
 
     <!--
+        IMPROPER_UNICODE on LlamaCppJniAiGenerationProvider.cacheType. Same shape and rationale as the
+        tensorReadLazyMode suppression directly above: the method resolves a configured
+        &lt;cacheTypeK&gt;/&lt;cacheTypeV&gt; value against the fixed, closed set of ASCII tokens the
+        binding's own CacheType enum declares (f32/f16/bf16/q8_0/q4_0/q4_1/iq4_nl/q5_0/q5_1), authored by
+        the operator in POM XML or a CLI JSON/YAML config - not user or locale text. Matching that token
+        case-insensitively is the intended, safe behaviour. Scoped to the one resolution method.
+    -->
+    <Match>
+        <Class name="net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider"/>
+        <Method name="cacheType"/>
+        <Bug pattern="IMPROPER_UNICODE"/>
+    </Match>
+
+    <!--
         PATH_TRAVERSAL_IN on EngineSupport.validateRoutedModelPaths. find-sec-bugs flags the
         `new File(modelPath)` because the path is not a compile-time constant. Reading a configured
         path is the entire purpose of this method: it exists so that a typo in a modelPath fails at
