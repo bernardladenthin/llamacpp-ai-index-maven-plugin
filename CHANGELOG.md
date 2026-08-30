@@ -11,45 +11,32 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
-### Removed
-- **`llamaLibraryPath` / `srcmorph.llama.libraryPath` — a parameter that never worked.**
-
-  It was declared on every mojo and threaded through
-  `SrcMorphConfiguration`, `EngineSupport`, both `LlamaCppJniConfigFactory` methods and
-  `LlamaCppJniConfig` — and no code read it, so setting it was a silent no-op. Git history shows this
-  was never a working feature a refactor broke: in `a1df3e0 "Initial version."` it is already the
-  first field of the then six-field `LlamaCppJniConfig` record, next to `modelPath`, while that
-  commit's provider built its `ModelParameters` from `modelPath` / `contextSize` / `threads` alone.
-
-  It is removed rather than implemented, because the binding already offers the same knob and offers
-  it *better*. `net.ladenthin.llama.lib.path` is an ordinary JVM system property and the loader's
-  highest-precedence source; `MAVEN_OPTS` and `.mvn/jvm.config` set it before the JVM starts, so it
-  is in place before any class loads. A plugin parameter can only act once the provider builds a
-  model — by then `LlamaModel`'s static initializer may already have resolved the library, and every
-  later value is silently ignored. Implementing it would have added a weaker path with a
-  silent-failure mode alongside one that always works. Verified empirically that the property reaches
-  the build JVM: `mvn -Dnet.ladenthin.llama.lib.path=…` is readable via `System.getProperty` from
-  inside the build.
-
-  **Migration:** replace `<llamaLibraryPath>DIR</llamaLibraryPath>` with
-  `-Dnet.ladenthin.llama.lib.path=DIR` on the command line, in `MAVEN_OPTS`, or in `.mvn/jvm.config`.
-  A POM that still sets the element will fail with an unknown-parameter error; it was doing nothing
-  before, so no behaviour changes with it gone. The plugin README's GPU section already documented
-  the property as the runtime override.
-
-- **`config.AiGenerationKind` — dead code from a superseded design.** The enum (`FILE_SUMMARY`,
-  `PACKAGE_SUMMARY`, `FILE_KEYWORDS`, `PACKAGE_KEYWORDS`) is the original *fixed* generation taxonomy
-  from when the goals were `SummarizeFilesMojo` / `SummarizePackagesMojo`, and `8d1be51` and `0a6f462` deliberately replaced
-  that with configurable prompt keys and rule routing — which is design principle 6, "prompt templates
-  and routing rules are data, never hardcoded in Java". No production class referenced it in any
-  commit. Its two apparent users were concurrency-infrastructure examples that had borrowed the name:
-  the Lincheck one never touched the enum at all (it exercises an `AtomicInteger`) and is now
-  `AtomicCounterLincheckTest`; the jcstress one now races a real enum and is `AiOversizeStrategyRace`.
-  Both examples are kept — only their misleading names and the dead enum are gone. It was `public` in
-  a published artifact, so formally a breaking change; nothing could construct or receive it, so
-  practically not.
+## [1.2.0] - 2026-08-30
 
 ### Added
+- **Four new model-definition knobs, wired through to `net.ladenthin:llama` 5.1.0's new
+  `ModelParameters` setters.** They are configured exactly like the existing `gpuLayers` /
+  `mainGpu` / `devices` knobs — as elements of an `<aiDefinition>` in the Maven plugin, or as
+  keys under `srcMorph.aiDefinitions[]` in a CLI JSON/YAML config — and each is only forwarded
+  to the binding when explicitly set, so an unconfigured build behaves exactly as before:
+  - `cpuMoeLayers` (`--n-cpu-moe` / `-ncmoe`, default `-1`) — keep the MoE expert weights of the
+    first *n* layers on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE
+    model: it moves only the expert weights (the class that dominates such a model's size), so a
+    substantially larger model fits the same VRAM at a smaller speed cost. `0` is a valid,
+    meaningful value, so the forwarding guard is `>= 0`, not `> 0`.
+  - `cpuFfnLayers` (`--n-cpu-ffn` / `-ncffn`, default `-1`) — the dense-model counterpart; same
+    `>= 0` guard for the same reason.
+  - `kvUnifiedPerSlot` (`--kv-unified-per-slot`, default `-1`) — per-slot unified KV context cap.
+    The binding rejects `0` and negatives, so only a positive value is forwarded.
+  - `tensorReadLazy` (`--tensor-read-lazy`, default empty) — `off` / `auto` / `on`. Shortens model
+    load time, which matters here because a run loads one model per model group and `calibrate`
+    preflights every model in turn. Carried as a `String` through the `config` package (the
+    `jniConfinedToProvider` ArchUnit rule keeps `net.ladenthin.llama` types out of it) and
+    resolved to the binding's `TensorReadLazyMode` inside the provider, matched
+    case-insensitively against the CLI strings the enum itself declares. An unrecognised value is
+    **rejected**, not silently dropped — a typo there would otherwise hand the user a run that
+    quietly did not do what was asked.
+
 - **`seed` model-definition knob** (`InferenceParameters.withSeed`, default `-1`). Upstream draws a
   random seed per request, so with a non-zero temperature every generation samples differently: a
   re-index of an unchanged file, or any `force=true` run, produced a different `.ai.md` body than the
@@ -106,6 +93,26 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
   mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
 
+- **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
+  phase — walk, classify, rendered plan — and only died inside the native loader, which with several
+  model groups means *after* the earlier groups had already generated. The check joins the fail-fast
+  block the engines already run.
+
+  Two placement constraints, both load-bearing. It is **gated on
+  `generationProvider == llamacpp-jni`**, because only that provider loads a GGUF and every shipped
+  example deliberately points at a non-existent `unused-with-mock-provider.gguf` while running the
+  mock; an ungated check would red the examples, their binding tests, the CLI end-to-end test and the
+  fat-jar release smoke. And it runs **after the `planOnly` early-out**, because `planOnly` is
+  documented to "stop before loading any model" and `Plan` is the CLI's default command — the
+  workflow it serves is configuring routing on a machine where the GGUFs are not present and running
+  for real on the one that has them. Stat'ing a file is not loading it, but failing the plan on a
+  missing model would break that workflow all the same.
+
+  The ordering was wrong in the first cut and no test saw it: every other `GenerateEngineTest`
+  fixture uses the `mock` provider, so the check never ran through the engine at all. Both halves are
+  now pinned — a plan-only run with the real provider and a missing model still plans; the same
+  configuration without `planOnly` still fails fast.
+
 ### Changed
 - **`LlamaCppJniConfig` is built through a builder; its positional constructor is private.** Breaking for
   anyone who constructed one directly — deliberately taken in this release rather than later, because the
@@ -131,7 +138,75 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   `builder_everySetterWritesItsOwnField` (36 distinct values — reds when `ubatchSize(…)` is made to write
   `batchSize`). The old positional-constructor tests they supersede are removed.
 
+- **`net.ladenthin:llama` 5.0.6 → 5.1.0** (llama.cpp b10456 → b10682). Unlike the earlier bumps in
+  this series, 5.1.0 is **not** purely additive: it deprecates six `InferenceParameters` methods that
+  were always silent no-ops, and this provider called one of them — `withUseChatTemplate(true)`.
+  Because `srcmorph` compiles with `-Xlint:all -Werror`, that deprecation is a **compile error**, so
+  the bump would have broken the build. The call was **removed rather than suppressed**: it never had
+  an effect (upstream reads no such key from a request body), and llama.cpp defaults `use_jinja` to
+  true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
+  — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
+  `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
+  `clean test`: 30 + 17 tests, 0 failures, all four modules SUCCESS.
+
+- CI actions bumped to latest: `actions/setup-java` v5 → v6.
+
+- **Build tooling bumped and NullAway aligned with the sibling repos**: `nullaway` 0.13.8 → 0.14.0,
+  `spotless-maven-plugin` 3.10.0 → 3.10.1, `palantir-java-format` 2.96.0 → 2.97.0, `pitest-maven`
+  1.25.9 → 1.30.0. All three of the first are declared **per module** here (`srcmorph`,
+  `srcmorph-cli`, `srcmorph-maven-plugin`), not in the reactor parent, and `pitest-maven` has two
+  separate version declarations — every one was moved. nullaway is an alignment rather than a plain
+  bump: streambuffer had already merged a Dependabot bump to 0.14.0, so the four repos had silently
+  stopped being identical. Deliberately **not** taken: `jqwik` 1.9.3 → 1.10.1, forbidden by
+  [`workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md).
+
+- `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is
+  initialised to an empty list and the setter normalises `null`, so the documented "or `null` if not
+  set" case was unreachable; the getter now matches its sibling `getDrySequenceBreakers()`. The two
+  null-guards this made dead in `LlamaCppJniConfigFactory` were dropped with it — the real guard lives
+  in `LlamaCppJniConfig`'s constructor, and is now pinned directly by a new `LlamaCppJniConfigTest`.
+
+- **PIT gate widened from 632 to 717 mutations, all killed at `mutationThreshold` 100.** Newly gated:
+  `provider.LlamaCppJniConfig`, `config.AiConditionGroup` (both already at 100% with no new test —
+  `TODO.md` had listed them as needing "careful fixtures", which was stale), `document.AiMdDocumentCodec`
+  and `indexer.AiIndexPlan` (survivors killed here). `document.AiMdHeaderCodec` is documented as
+  permanently out: its last two survivors are equivalent mutants in the colon-position guard, unkillable
+  through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
+  six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
+  missing-subtree and unknown-`factsKey` paths.
+
+- **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and
+  the condition layer was tested directly, but no test ever made the indexer's `anyRuleUsesLines`
+  return true, so `countLines` never ran during planning. A silent failure there would send every
+  file to the fallback rule with nothing failing. Verified by inverting the `usesLines` check: the
+  new test goes red. Writing it also surfaced a semantic worth knowing — a condition node evaluates
+  exactly one leaf and returns on the first present, with `extensions` before `lines`, so combining
+  the two needs an `<and>` group; the first version of the fixture set both on one node and matched
+  on extension alone.
+
+- **`AiSourceChunker`'s observable boundaries are pinned** (28/34 mutants, up from 25): `maxChars == 1`,
+  the guard that stops the last chunk being trimmed and re-split, and the guard that stops a chunk
+  beginning on a newline collapsing to a single character — the last two are silent-content-change
+  shapes. The six remaining mutants are equivalent (capacity hint, empty-list return, two arithmetic
+  terms an enclosing `Math.max` absorbs, a loop head an earlier `break` already guarantees, and a
+  subset branch that at equality reproduces its input); they are enumerated in `TODO.md` so nobody
+  re-hunts them.
+
 ### Fixed
+- **`publish.yml` concurrency group: every non-PR run now gets its own group.** The block previously
+  claimed a push to `main` or a `v*` tag *"always runs to completion"* because `cancel-in-progress`
+  is scoped to `pull_request`. GitHub cancels a **pending** run whenever a newer run joins the same
+  group behind an in-progress one, and that rule is **independent of** `cancel-in-progress` — so a
+  queued release run on `main` could be dropped silently by a later push. The group expression now
+  appends the unique `github.run_id` for non-PR runs; PR runs still share a group per ref and
+  supersede each other as intended.
+
+- Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
+  pinned in the parent `pom.xml`) to close
+  [GHSA-5jmj-h7xm-6q6v](https://github.com/advisories/GHSA-5jmj-h7xm-6q6v) (CVSS 5.3, Medium),
+  flagged by OSV-Scanner against `srcmorph/pom.xml` and `srcmorph-cli/pom.xml` after the `main`
+  merge of the relocation-stub removal.
+
 - **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
   seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced
   wholesale with `return false;` and the class's tests stayed green — verified, not inferred. Two of
@@ -141,6 +216,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   nothing failing. Both tests now write a body, and a parameterized case covers each compared field
   (`h`/`x`/`title`/`c`/`d`/`g`/`a`) plus the unchanged-header negative. Re-running the same mutation
   now fails 9 of 15 tests, and removing a single disjunct fails 2.
+
 - **`srcmorph:calibrate`'s chars-per-token silently depended on a cache hit nothing checked.** It divided
   the near-window run's *source* characters by the prompt tokens the model had *evaluated* — a figure that
   excludes whatever the KV cache served. That is only the source's own token count while the base prompt
@@ -157,118 +233,6 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   model and written files under `-Dsrcmorph.skip=true`. All four goals now assert it, `CalibrateMojo`
   included (it previously had no test constructing it at all).
 
-### Added
-- **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
-  phase — walk, classify, rendered plan — and only died inside the native loader, which with several
-  model groups means *after* the earlier groups had already generated. The check joins the fail-fast
-  block the engines already run.
-
-  Two placement constraints, both load-bearing. It is **gated on
-  `generationProvider == llamacpp-jni`**, because only that provider loads a GGUF and every shipped
-  example deliberately points at a non-existent `unused-with-mock-provider.gguf` while running the
-  mock; an ungated check would red the examples, their binding tests, the CLI end-to-end test and the
-  fat-jar release smoke. And it runs **after the `planOnly` early-out**, because `planOnly` is
-  documented to "stop before loading any model" and `Plan` is the CLI's default command — the
-  workflow it serves is configuring routing on a machine where the GGUFs are not present and running
-  for real on the one that has them. Stat'ing a file is not loading it, but failing the plan on a
-  missing model would break that workflow all the same.
-
-  The ordering was wrong in the first cut and no test saw it: every other `GenerateEngineTest`
-  fixture uses the `mock` provider, so the check never ran through the engine at all. Both halves are
-  now pinned — a plan-only run with the real provider and a missing model still plans; the same
-  configuration without `planOnly` still fails fast.
-
-### Changed
-- `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is
-  initialised to an empty list and the setter normalises `null`, so the documented "or `null` if not
-  set" case was unreachable; the getter now matches its sibling `getDrySequenceBreakers()`. The two
-  null-guards this made dead in `LlamaCppJniConfigFactory` were dropped with it — the real guard lives
-  in `LlamaCppJniConfig`'s constructor, and is now pinned directly by a new `LlamaCppJniConfigTest`.
-- **PIT gate widened from 632 to 717 mutations, all killed at `mutationThreshold` 100.** Newly gated:
-  `provider.LlamaCppJniConfig`, `config.AiConditionGroup` (both already at 100% with no new test —
-  `TODO.md` had listed them as needing "careful fixtures", which was stale), `document.AiMdDocumentCodec`
-  and `indexer.AiIndexPlan` (survivors killed here). `document.AiMdHeaderCodec` is documented as
-  permanently out: its last two survivors are equivalent mutants in the colon-position guard, unkillable
-  through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
-  six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
-  missing-subtree and unknown-`factsKey` paths.
-- **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and
-  the condition layer was tested directly, but no test ever made the indexer's `anyRuleUsesLines`
-  return true, so `countLines` never ran during planning. A silent failure there would send every
-  file to the fallback rule with nothing failing. Verified by inverting the `usesLines` check: the
-  new test goes red. Writing it also surfaced a semantic worth knowing — a condition node evaluates
-  exactly one leaf and returns on the first present, with `extensions` before `lines`, so combining
-  the two needs an `<and>` group; the first version of the fixture set both on one node and matched
-  on extension alone.
-- **`AiSourceChunker`'s observable boundaries are pinned** (28/34 mutants, up from 25): `maxChars == 1`,
-  the guard that stops the last chunk being trimmed and re-split, and the guard that stops a chunk
-  beginning on a newline collapsing to a single character — the last two are silent-content-change
-  shapes. The six remaining mutants are equivalent (capacity hint, empty-list return, two arithmetic
-  terms an enclosing `Math.max` absorbs, a loop head an earlier `break` already guarantees, and a
-  subset branch that at equality reproduces its input); they are enumerated in `TODO.md` so nobody
-  re-hunts them.
-
-## [1.2.0] - 2026-08-29
-
-### Added
-- **Four new model-definition knobs, wired through to `net.ladenthin:llama` 5.1.0's new
-  `ModelParameters` setters.** They are configured exactly like the existing `gpuLayers` /
-  `mainGpu` / `devices` knobs — as elements of an `<aiDefinition>` in the Maven plugin, or as
-  keys under `srcMorph.aiDefinitions[]` in a CLI JSON/YAML config — and each is only forwarded
-  to the binding when explicitly set, so an unconfigured build behaves exactly as before:
-  - `cpuMoeLayers` (`--n-cpu-moe` / `-ncmoe`, default `-1`) — keep the MoE expert weights of the
-    first *n* layers on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE
-    model: it moves only the expert weights (the class that dominates such a model's size), so a
-    substantially larger model fits the same VRAM at a smaller speed cost. `0` is a valid,
-    meaningful value, so the forwarding guard is `>= 0`, not `> 0`.
-  - `cpuFfnLayers` (`--n-cpu-ffn` / `-ncffn`, default `-1`) — the dense-model counterpart; same
-    `>= 0` guard for the same reason.
-  - `kvUnifiedPerSlot` (`--kv-unified-per-slot`, default `-1`) — per-slot unified KV context cap.
-    The binding rejects `0` and negatives, so only a positive value is forwarded.
-  - `tensorReadLazy` (`--tensor-read-lazy`, default empty) — `off` / `auto` / `on`. Shortens model
-    load time, which matters here because a run loads one model per model group and `calibrate`
-    preflights every model in turn. Carried as a `String` through the `config` package (the
-    `jniConfinedToProvider` ArchUnit rule keeps `net.ladenthin.llama` types out of it) and
-    resolved to the binding's `TensorReadLazyMode` inside the provider, matched
-    case-insensitively against the CLI strings the enum itself declares. An unrecognised value is
-    **rejected**, not silently dropped — a typo there would otherwise hand the user a run that
-    quietly did not do what was asked.
-
-### Changed
-- **`net.ladenthin:llama` 5.0.6 → 5.1.0** (llama.cpp b10456 → b10682). Unlike the earlier bumps in
-  this series, 5.1.0 is **not** purely additive: it deprecates six `InferenceParameters` methods that
-  were always silent no-ops, and this provider called one of them — `withUseChatTemplate(true)`.
-  Because `srcmorph` compiles with `-Xlint:all -Werror`, that deprecation is a **compile error**, so
-  the bump would have broken the build. The call was **removed rather than suppressed**: it never had
-  an effect (upstream reads no such key from a request body), and llama.cpp defaults `use_jinja` to
-  true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
-  — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
-  `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
-  `clean test`: 30 + 17 tests, 0 failures, all four modules SUCCESS.
-- CI actions bumped to latest: `actions/setup-java` v5 → v6.
-- **Build tooling bumped and NullAway aligned with the sibling repos**: `nullaway` 0.13.8 → 0.14.0,
-  `spotless-maven-plugin` 3.10.0 → 3.10.1, `palantir-java-format` 2.96.0 → 2.97.0, `pitest-maven`
-  1.25.9 → 1.30.0. All three of the first are declared **per module** here (`srcmorph`,
-  `srcmorph-cli`, `srcmorph-maven-plugin`), not in the reactor parent, and `pitest-maven` has two
-  separate version declarations — every one was moved. nullaway is an alignment rather than a plain
-  bump: streambuffer had already merged a Dependabot bump to 0.14.0, so the four repos had silently
-  stopped being identical. Deliberately **not** taken: `jqwik` 1.9.3 → 1.10.1, forbidden by
-  [`workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md).
-
-### Fixed
-- **`publish.yml` concurrency group: every non-PR run now gets its own group.** The block previously
-  claimed a push to `main` or a `v*` tag *"always runs to completion"* because `cancel-in-progress`
-  is scoped to `pull_request`. GitHub cancels a **pending** run whenever a newer run joins the same
-  group behind an in-progress one, and that rule is **independent of** `cancel-in-progress` — so a
-  queued release run on `main` could be dropped silently by a later push. The group expression now
-  appends the unique `github.run_id` for non-PR runs; PR runs still share a group per ref and
-  supersede each other as intended.
-- Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
-  pinned in the parent `pom.xml`) to close
-  [GHSA-5jmj-h7xm-6q6v](https://github.com/advisories/GHSA-5jmj-h7xm-6q6v) (CVSS 5.3, Medium),
-  flagged by OSV-Scanner against `srcmorph/pom.xml` and `srcmorph-cli/pom.xml` after the `main`
-  merge of the relocation-stub removal.
-
 ### Removed
 - **Relocation-stub module** (`llamacpp-ai-index-maven-plugin/`, `net.ladenthin:llamacpp-ai-index-maven-plugin`)
   removed from the active reactor. It was published once at `1.0.4` as part of the `1.1.1` release
@@ -279,6 +243,43 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   carrying the module (and the `versions:set -Dexcludes=...` caveat it required) in ongoing
   development. `.github/workflows/publish.yml` updated accordingly (no more per-module handling for
   a fourth artifact).
+
+- **`llamaLibraryPath` / `srcmorph.llama.libraryPath` — a parameter that never worked.**
+
+  It was declared on every mojo and threaded through
+  `SrcMorphConfiguration`, `EngineSupport`, both `LlamaCppJniConfigFactory` methods and
+  `LlamaCppJniConfig` — and no code read it, so setting it was a silent no-op. Git history shows this
+  was never a working feature a refactor broke: in `a1df3e0 "Initial version."` it is already the
+  first field of the then six-field `LlamaCppJniConfig` record, next to `modelPath`, while that
+  commit's provider built its `ModelParameters` from `modelPath` / `contextSize` / `threads` alone.
+
+  It is removed rather than implemented, because the binding already offers the same knob and offers
+  it *better*. `net.ladenthin.llama.lib.path` is an ordinary JVM system property and the loader's
+  highest-precedence source; `MAVEN_OPTS` and `.mvn/jvm.config` set it before the JVM starts, so it
+  is in place before any class loads. A plugin parameter can only act once the provider builds a
+  model — by then `LlamaModel`'s static initializer may already have resolved the library, and every
+  later value is silently ignored. Implementing it would have added a weaker path with a
+  silent-failure mode alongside one that always works. Verified empirically that the property reaches
+  the build JVM: `mvn -Dnet.ladenthin.llama.lib.path=…` is readable via `System.getProperty` from
+  inside the build.
+
+  **Migration:** replace `<llamaLibraryPath>DIR</llamaLibraryPath>` with
+  `-Dnet.ladenthin.llama.lib.path=DIR` on the command line, in `MAVEN_OPTS`, or in `.mvn/jvm.config`.
+  A POM that still sets the element will fail with an unknown-parameter error; it was doing nothing
+  before, so no behaviour changes with it gone. The plugin README's GPU section already documented
+  the property as the runtime override.
+
+- **`config.AiGenerationKind` — dead code from a superseded design.** The enum (`FILE_SUMMARY`,
+  `PACKAGE_SUMMARY`, `FILE_KEYWORDS`, `PACKAGE_KEYWORDS`) is the original *fixed* generation taxonomy
+  from when the goals were `SummarizeFilesMojo` / `SummarizePackagesMojo`, and `8d1be51` and `0a6f462` deliberately replaced
+  that with configurable prompt keys and rule routing — which is design principle 6, "prompt templates
+  and routing rules are data, never hardcoded in Java". No production class referenced it in any
+  commit. Its two apparent users were concurrency-infrastructure examples that had borrowed the name:
+  the Lincheck one never touched the enum at all (it exercises an `AtomicInteger`) and is now
+  `AtomicCounterLincheckTest`; the jcstress one now races a real enum and is `AiOversizeStrategyRace`.
+  Both examples are kept — only their misleading names and the dead enum are gone. It was `public` in
+  a published artifact, so formally a breaking change; nothing could construct or receive it, so
+  practically not.
 
 ## [1.1.1] - 2026-07-15
 
