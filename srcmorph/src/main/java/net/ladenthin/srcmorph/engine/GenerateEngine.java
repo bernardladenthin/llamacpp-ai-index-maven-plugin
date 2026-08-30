@@ -110,9 +110,6 @@ public final class GenerateEngine {
         final AiFieldGenerationSelector selector = new AiFieldGenerationSelector();
         // Fail fast on a bad rule set (e.g. >1 fallback, a route rule missing prompt/model).
         selector.validate(fieldGenerations);
-        // Fail fast on a typo'd <modelPath> before the walk, not an hour into the run.
-        EngineSupport.validateRoutedModelPaths(
-                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
 
         final SourceFileIndexer fileIndexer = new SourceFileIndexer(
                 basePath,
@@ -170,6 +167,17 @@ public final class GenerateEngine {
             LOGGER.info("planOnly=true: stopping after the plan; no model loaded, nothing generated.");
             return GenerateResult.planned();
         }
+
+        // Fail fast on a typo'd modelPath before the model-group loop below, not an hour into it.
+        //
+        // Deliberately AFTER the planOnly return: planOnly is documented to "stop before loading any
+        // model", and the workflow it exists for is configuring routing on a machine where the GGUFs
+        // are not present and running for real elsewhere. Stat'ing the file is not loading it, but
+        // failing the plan on a missing model would break that workflow all the same -- and Plan is
+        // the CLI's default command. Nothing between here and the loop loads a model, so the check
+        // loses nothing by moving down.
+        EngineSupport.validateRoutedModelPaths(
+                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
 
         // 4. Execute model group by model group: load each model once, index its files, close.
         //    Progress is the running sum of each finished file's PLAN estimate over the grand total

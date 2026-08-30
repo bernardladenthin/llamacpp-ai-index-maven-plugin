@@ -78,11 +78,22 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 - **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
   phase — walk, classify, rendered plan — and only died inside the native loader, which with several
   model groups means *after* the earlier groups had already generated. The check joins the fail-fast
-  block the engines already run and is gated on `generationProvider == llamacpp-jni`: only that
-  provider loads a GGUF, and every shipped example deliberately points at a non-existent
-  `unused-with-mock-provider.gguf` while running the mock, so an ungated check would red the
-  examples, their binding tests, the CLI end-to-end test and the fat-jar release smoke. Verified that
-  it does not: `ExamplesConfigBindingTest` and `CliEndToEndTest` stay green.
+  block the engines already run.
+
+  Two placement constraints, both load-bearing. It is **gated on
+  `generationProvider == llamacpp-jni`**, because only that provider loads a GGUF and every shipped
+  example deliberately points at a non-existent `unused-with-mock-provider.gguf` while running the
+  mock; an ungated check would red the examples, their binding tests, the CLI end-to-end test and the
+  fat-jar release smoke. And it runs **after the `planOnly` early-out**, because `planOnly` is
+  documented to "stop before loading any model" and `Plan` is the CLI's default command — the
+  workflow it serves is configuring routing on a machine where the GGUFs are not present and running
+  for real on the one that has them. Stat'ing a file is not loading it, but failing the plan on a
+  missing model would break that workflow all the same.
+
+  The ordering was wrong in the first cut and no test saw it: every other `GenerateEngineTest`
+  fixture uses the `mock` provider, so the check never ran through the engine at all. Both halves are
+  now pinned — a plan-only run with the real provider and a missing model still plans; the same
+  configuration without `planOnly` still fails fast.
 
 ### Changed
 - `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is

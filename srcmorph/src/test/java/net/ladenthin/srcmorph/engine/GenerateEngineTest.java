@@ -25,6 +25,7 @@ import net.ladenthin.srcmorph.config.AiCondition;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
 import net.ladenthin.srcmorph.config.AiModelDefinition;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
+import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -286,6 +287,63 @@ public class GenerateEngineTest {
 
         // assert
         assertThat(thrown.getMessage(), containsString("Invalid factDefinitions/factsKey configuration"));
+    }
+
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="planOnly stays model-free">
+
+    /**
+     * A plan-only run must not require the model file to exist.
+     *
+     * <p>{@code planOnly} is documented to "stop before loading any model" (plugin README) and the
+     * CLI's {@code Plan} command promises "no model is loaded" — and it is the CLI's default. The
+     * workflow it exists for is configuring routing on a machine where the GGUFs are not present and
+     * running for real on the box that has them. Stat'ing the file is not loading it, but failing the
+     * plan on a missing model breaks that workflow all the same.
+     *
+     * <p>This is the test the suite did not have: every other fixture here sets the {@code mock}
+     * provider, so the routed-model-path check never ran through {@link GenerateEngine} at all. It
+     * was briefly ordered before the plan-only return, which made a plan on a model-free machine
+     * throw.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void execute_planOnlyWithRealProviderAndMissingModel_stillPlans() throws Exception {
+        // arrange -- the real provider name, and a model path that deliberately does not exist
+        final SrcMorphConfiguration config = baseConfig();
+        config.setGenerationProvider(AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI);
+        config.setPlanOnly(true);
+
+        // act
+        final GenerateResult result = new GenerateEngine(config).execute();
+
+        // assert -- planned, not thrown, and nothing written
+        assertThat(result.planOnly(), is(true));
+        assertThat(result.written(), is(0));
+        assertThat(Files.exists(tempDir.resolve("out")), is(false));
+    }
+
+    /**
+     * The counterpart: the same configuration WITHOUT {@code planOnly} must still fail fast on the
+     * missing model, so moving the check below the plan-only return did not disable it.
+     *
+     * @throws IOException if the fixture cannot be built
+     */
+    @Test
+    public void execute_realProviderAndMissingModel_failsFastBeforeLoading() throws IOException {
+        // arrange
+        final SrcMorphConfiguration config = baseConfig();
+        config.setGenerationProvider(AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI);
+
+        // act
+        final SrcMorphException thrown =
+                assertThrows(SrcMorphException.class, () -> new GenerateEngine(config).execute());
+
+        // assert
+        assertThat(thrown.getMessage(), containsString("does not exist"));
+        assertThat(thrown.getMessage(), containsString("mock.gguf"));
     }
 
     // </editor-fold>

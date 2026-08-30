@@ -583,7 +583,8 @@ mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dsrc
 > loader from `LlamaModel`'s static initializer, i.e. once per class-load — so setting it before the
 > JVM starts (`MAVEN_OPTS`, `.mvn/jvm.config`, or `-D` on the command line as above) always works,
 > while a plugin parameter could only act after the library may already have been resolved. A
-> `llamaLibraryPath` parameter existed up to 1.2.0 but never read by any code; see the CHANGELOG.
+> `llamaLibraryPath` parameter existed up to 1.1.1 and was removed in 1.2.0; no code ever read it,
+> so it never had an effect. See the CHANGELOG.
 
 In both cases:
 
