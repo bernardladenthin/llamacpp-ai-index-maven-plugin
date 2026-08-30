@@ -56,6 +56,10 @@ public class AiModelDefinition {
     private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
     private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
     private int gpuLayers = AiGenerationConfig.DEFAULT_GPU_LAYERS;
+    private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
+    private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
+    private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
+    private String tensorReadLazy = AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
     private int mainGpu = AiGenerationConfig.DEFAULT_MAIN_GPU;
     private String devices = AiGenerationConfig.DEFAULT_DEVICES;
     private String reasoningEffort = AiGenerationConfig.DEFAULT_REASONING_EFFORT;
@@ -405,6 +409,78 @@ public class AiModelDefinition {
      */
     public void setGpuLayers(final int gpuLayers) {
         this.gpuLayers = gpuLayers;
+    }
+
+    /**
+     * Returns the number of MoE layers kept on the CPU ({@code --n-cpu-moe}) for this model.
+     *
+     * @return CPU MoE layers; defaults to {@link AiGenerationConfig#DEFAULT_CPU_MOE_LAYERS} (-1 = leave default)
+     */
+    public int getCpuMoeLayers() {
+        return cpuMoeLayers;
+    }
+
+    /**
+     * Sets the number of MoE layers kept on the CPU ({@code --n-cpu-moe}) for this model.
+     *
+     * @param cpuMoeLayers CPU MoE layers ({@code -1} = leave default, {@code >= 0} = keep that many)
+     */
+    public void setCpuMoeLayers(final int cpuMoeLayers) {
+        this.cpuMoeLayers = cpuMoeLayers;
+    }
+
+    /**
+     * Returns the number of FFN layers kept on the CPU ({@code --n-cpu-ffn}) for this model.
+     *
+     * @return CPU FFN layers; defaults to {@link AiGenerationConfig#DEFAULT_CPU_FFN_LAYERS} (-1 = leave default)
+     */
+    public int getCpuFfnLayers() {
+        return cpuFfnLayers;
+    }
+
+    /**
+     * Sets the number of FFN layers kept on the CPU ({@code --n-cpu-ffn}) for this model.
+     *
+     * @param cpuFfnLayers CPU FFN layers ({@code -1} = leave default, {@code >= 0} = keep that many)
+     */
+    public void setCpuFfnLayers(final int cpuFfnLayers) {
+        this.cpuFfnLayers = cpuFfnLayers;
+    }
+
+    /**
+     * Returns the per-slot unified KV context cap ({@code --kv-unified-per-slot}) for this model.
+     *
+     * @return the cap; defaults to {@link AiGenerationConfig#DEFAULT_KV_UNIFIED_PER_SLOT} (-1 = leave default)
+     */
+    public int getKvUnifiedPerSlot() {
+        return kvUnifiedPerSlot;
+    }
+
+    /**
+     * Sets the per-slot unified KV context cap ({@code --kv-unified-per-slot}) for this model.
+     *
+     * @param kvUnifiedPerSlot the cap ({@code -1} = leave default, must be positive when set)
+     */
+    public void setKvUnifiedPerSlot(final int kvUnifiedPerSlot) {
+        this.kvUnifiedPerSlot = kvUnifiedPerSlot;
+    }
+
+    /**
+     * Returns the tensor-read laziness ({@code --tensor-read-lazy}) for this model.
+     *
+     * @return {@code off}, {@code auto}, {@code on}, or empty to leave the default
+     */
+    public String getTensorReadLazy() {
+        return tensorReadLazy;
+    }
+
+    /**
+     * Sets the tensor-read laziness ({@code --tensor-read-lazy}) for this model.
+     *
+     * @param tensorReadLazy {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
+     */
+    public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
+        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
     }
 
     /**

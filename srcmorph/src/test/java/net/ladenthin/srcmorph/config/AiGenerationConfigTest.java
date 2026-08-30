@@ -124,6 +124,72 @@ public class AiGenerationConfigTest {
     }
 
     @Test
+    public void cpuMoeLayersDefaultsMinusOneAndRoundTrips() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        // Default -1 (leave binding/build default) kills the inline-constant / "return 0" getter mutants.
+        assertThat(c.getCpuMoeLayers(), is(-1));
+        c.setCpuMoeLayers(24);
+        // Round-tripped value kills the "return 0" getter and removed-assignment setter mutants.
+        assertThat(c.getCpuMoeLayers(), is(24));
+    }
+
+    @Test
+    public void cpuMoeLayersAcceptsZero() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        c.setCpuMoeLayers(0);
+        // 0 is a meaningful value ("keep no expert layer on the CPU"), not "unset" — it must survive
+        // the setter unchanged, which is what makes the provider's >= 0 guard forward it.
+        assertThat(c.getCpuMoeLayers(), is(0));
+    }
+
+    @Test
+    public void cpuFfnLayersDefaultsMinusOneAndRoundTrips() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        // Default -1 (leave binding/build default) kills the inline-constant / "return 0" getter mutants.
+        assertThat(c.getCpuFfnLayers(), is(-1));
+        c.setCpuFfnLayers(16);
+        // Round-tripped value kills the "return 0" getter and removed-assignment setter mutants.
+        assertThat(c.getCpuFfnLayers(), is(16));
+    }
+
+    @Test
+    public void cpuFfnLayersAcceptsZero() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        c.setCpuFfnLayers(0);
+        // Same "0 is meaningful, not unset" contract as cpuMoeLayers.
+        assertThat(c.getCpuFfnLayers(), is(0));
+    }
+
+    @Test
+    public void kvUnifiedPerSlotDefaultsMinusOneAndRoundTrips() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        // Default -1 (leave binding/build default) kills the inline-constant / "return 0" getter mutants.
+        assertThat(c.getKvUnifiedPerSlot(), is(-1));
+        c.setKvUnifiedPerSlot(4096);
+        // Round-tripped value kills the "return 0" getter and removed-assignment setter mutants.
+        assertThat(c.getKvUnifiedPerSlot(), is(4096));
+    }
+
+    @Test
+    public void tensorReadLazyDefaultsEmptyAndRoundTrips() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        // Default "" (leave binding/build default) kills the null/non-empty return mutants on the getter.
+        assertThat(c.getTensorReadLazy(), is(""));
+        c.setTensorReadLazy("on");
+        // Round-tripped value kills the empty-return getter and removed-assignment setter mutants.
+        assertThat(c.getTensorReadLazy(), is("on"));
+    }
+
+    @Test
+    public void setTensorReadLazyNullResetsToEmpty() {
+        AiGenerationConfig c = new AiGenerationConfig();
+        c.setTensorReadLazy("auto");
+        c.setTensorReadLazy(null);
+        // null arg resets to "" — kills the negate mutant on the setter ternary (which would store null).
+        assertThat(c.getTensorReadLazy(), is(""));
+    }
+
+    @Test
     public void mainGpuDefaultsMinusOneAndRoundTrips() {
         AiGenerationConfig c = new AiGenerationConfig();
         // Default -1 (leave binding/build default) kills the inline-constant / "return 0" getter mutants.

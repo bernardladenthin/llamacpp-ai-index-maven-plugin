@@ -36,6 +36,10 @@ public class LlamaCppJniConfigFactoryTest {
         config.setSwaFull(false);
         config.setCacheReuse(101);
         config.setGpuLayers(12);
+        config.setCpuMoeLayers(24);
+        config.setCpuFfnLayers(16);
+        config.setKvUnifiedPerSlot(4096);
+        config.setTensorReadLazy("on");
         config.setMainGpu(3);
         config.setDevices("Vulkan1");
         config.setReasoningEffort("high");
@@ -69,6 +73,10 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(false));
         assertThat(result.cacheReuse(), is(101));
         assertThat(result.gpuLayers(), is(12));
+        assertThat(result.cpuMoeLayers(), is(24));
+        assertThat(result.cpuFfnLayers(), is(16));
+        assertThat(result.kvUnifiedPerSlot(), is(4096));
+        assertThat(result.tensorReadLazy(), is("on"));
         assertThat(result.mainGpu(), is(3));
         assertThat(result.devices(), is("Vulkan1"));
         assertThat(result.reasoningEffort(), is("high"));
@@ -129,6 +137,10 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(AiGenerationConfig.DEFAULT_SWA_FULL));
         assertThat(result.cacheReuse(), is(AiGenerationConfig.DEFAULT_CACHE_REUSE));
         assertThat(result.gpuLayers(), is(AiGenerationConfig.DEFAULT_GPU_LAYERS));
+        assertThat(result.cpuMoeLayers(), is(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS));
+        assertThat(result.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
+        assertThat(result.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));
+        assertThat(result.tensorReadLazy(), is(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY));
         assertThat(result.mainGpu(), is(AiGenerationConfig.DEFAULT_MAIN_GPU));
         assertThat(result.devices(), is(AiGenerationConfig.DEFAULT_DEVICES));
         assertThat(result.reasoningEffort(), is(AiGenerationConfig.DEFAULT_REASONING_EFFORT));

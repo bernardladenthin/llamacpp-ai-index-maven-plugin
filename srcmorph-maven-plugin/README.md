@@ -432,6 +432,10 @@ below are the shipped values (`AiGenerationConfig.DEFAULT_*`).
 | `swaFull` | `true` | Keep the full-size sliding-window-attention KV cache (`--swa-full`) |
 | `cacheReuse` | `256` | KV prefix-reuse minimum chunk size in tokens (`--cache-reuse`; `0` = off) |
 | `gpuLayers` | `-1` | GPU layers to offload (`--gpu-layers`); `-1` = auto-fit to free VRAM, `0` = force CPU, `>0` = partial. GPU native only |
+| `cpuMoeLayers` | `-1` | Keep the MoE expert weights of the first *n* layers on the CPU (`--n-cpu-moe` / `-ncmoe`); `-1` = leave default, `0` = keep none on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE model: it moves only the expert weights, so a much larger model fits the same VRAM at a smaller speed cost. GPU native only |
+| `cpuFfnLayers` | `-1` | Dense-model counterpart of `cpuMoeLayers`: keep the FFN weights of the first *n* layers on the CPU (`--n-cpu-ffn` / `-ncffn`); `-1` = leave default, `0` = keep none on the CPU. GPU native only |
+| `kvUnifiedPerSlot` | `-1` | Per-slot unified KV context cap (`--kv-unified-per-slot`); `-1` = leave default. Must be positive when set |
+| `tensorReadLazy` | *(empty)* | On-demand reading of lazy-loadable tensors (`--tensor-read-lazy`): `off`, `auto` or `on`; empty leaves the default. Trades resident memory for disk reads and shortens model load time; **requires mmap** |
 | `mainGpu` | `-1` | Primary GPU index (`--main-gpu`); `-1` = leave default. Matters on multi-GPU hosts (e.g. a Vulkan build enumerates every GPU) |
 | `devices` | *(empty)* | Explicit device selection (`--device`), comma-separated backend device names (e.g. `Vulkan1`); takes precedence over `mainGpu` |
 | `chatTemplateEnableThinking` | `true` | Enable the chat template's thinking mode |

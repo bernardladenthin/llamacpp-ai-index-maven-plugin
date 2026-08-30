@@ -12,6 +12,7 @@ import java.util.Objects;
 import lombok.ToString;
 import net.ladenthin.llama.LlamaModel;
 import net.ladenthin.llama.args.ReasoningFormat;
+import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.llama.json.ChatResponseParser;
 import net.ladenthin.llama.parameters.InferenceParameters;
 import net.ladenthin.llama.parameters.ModelParameters;
@@ -113,6 +114,29 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             if (config.gpuLayers() >= 0) {
                 modelParameters.setGpuLayers(config.gpuLayers());
             }
+            // Keep the MoE expert weights of the first n layers on the CPU. Unlike --gpu-layers this
+            // moves only the expert weights (the bulk of a MoE model), so a much larger model fits the
+            // same VRAM at a smaller speed cost. 0 is meaningful ("keep none on the CPU"), so the guard
+            // is >= 0; -1 leaves the binding/native-build default.
+            if (config.cpuMoeLayers() >= 0) {
+                modelParameters.setCpuMoeLayers(config.cpuMoeLayers());
+            }
+            // Dense-model counterpart of --n-cpu-moe: keep the FFN weights of the first n layers on the
+            // CPU. Same >= 0 guard and same "0 is meaningful" reasoning.
+            if (config.cpuFfnLayers() >= 0) {
+                modelParameters.setCpuFfnLayers(config.cpuFfnLayers());
+            }
+            // Cap the unified KV context budget per slot. The binding rejects 0 and negatives, so only
+            // a positive value is forwarded; -1 leaves the binding/native-build default.
+            if (config.kvUnifiedPerSlot() > 0) {
+                modelParameters.setKvUnifiedPerSlot(config.kvUnifiedPerSlot());
+            }
+            // Read lazy-loadable tensors on demand instead of keeping them resident. Shortens model
+            // load time, which matters here because a run loads one model per model group and
+            // calibrate preflights every model in turn. Empty leaves the binding/native-build default.
+            if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
+                modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
+            }
             // Pick a specific GPU when configured (>= 0). Matters on multi-GPU hosts: a Vulkan build
             // enumerates every GPU (an integrated GPU may be device 0), so the default can select the
             // slower one. -1 leaves the binding/native-build default.
@@ -128,6 +152,47 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             model = current;
         }
         return current;
+    }
+
+    /**
+     * Resolves a configured {@code --tensor-read-lazy} value to the binding's enum.
+     *
+     * <p>Matched case-insensitively against the CLI strings the enum itself declares
+     * ({@code off}, {@code auto}, {@code on}), so this never drifts from the binding. An
+     * unrecognised value is rejected rather than silently ignored: it is always a configuration
+     * typo, and dropping it would hand the user a run that quietly did not do what was asked.</p>
+     *
+     * <p>Package-private rather than private so it can be unit-tested without loading a model: it is
+     * otherwise reachable only from the lazy {@code model()} path, which needs a real GGUF.</p>
+     *
+     * @param value the configured value; must not be blank (callers guard on that)
+     * @return the matching mode
+     * @throws IllegalArgumentException if no mode declares that CLI string
+     */
+    static TensorReadLazyMode tensorReadLazyMode(final String value) {
+        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+            if (mode.getArgValue().equalsIgnoreCase(value)) {
+                return mode;
+            }
+        }
+        throw new IllegalArgumentException("Invalid tensorReadLazy value: \"" + value + "\" (expected one of: "
+                + knownTensorReadLazyValues() + ")");
+    }
+
+    /**
+     * Renders the accepted {@code --tensor-read-lazy} values for an error message.
+     *
+     * @return the CLI strings the binding's enum declares, comma-separated in declaration order
+     */
+    private static String knownTensorReadLazyValues() {
+        final StringBuilder known = new StringBuilder();
+        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+            if (known.length() > 0) {
+                known.append(", ");
+            }
+            known.append(mode.getArgValue());
+        }
+        return known.toString();
     }
 
     @Override
