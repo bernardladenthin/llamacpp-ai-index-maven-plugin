@@ -8,19 +8,28 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiCondition;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
 import net.ladenthin.srcmorph.config.AiModelDefinition;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
 
 public class GenerateEngineTest {
 
@@ -154,4 +163,130 @@ public class GenerateEngineTest {
         final SrcMorphException e = assertThrows(SrcMorphException.class, () -> new GenerateEngine(config).execute());
         assertThat(e.getMessage(), containsString("exceed their routed model's context window"));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="user-facing failure paths">
+
+    private ListAppender<ILoggingEvent> logAppender;
+
+    /**
+     * Both loggers that can report a missing subtree. The warning a user actually sees comes from
+     * {@code EngineSupport.resolveSubtrees}, not from {@link GenerateEngine} -- see the test below.
+     */
+    private static List<Logger> subtreeLoggers() {
+        return Arrays.asList((Logger) LoggerFactory.getLogger(GenerateEngine.class), (Logger)
+                LoggerFactory.getLogger(EngineSupport.class));
+    }
+
+    @BeforeEach
+    public void attachLogAppender() {
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        for (final Logger logger : subtreeLoggers()) {
+            logger.setLevel(Level.DEBUG);
+            logger.addAppender(logAppender);
+        }
+    }
+
+    @AfterEach
+    public void detachLogAppender() {
+        for (final Logger logger : subtreeLoggers()) {
+            logger.detachAppender(logAppender);
+        }
+    }
+
+    private List<String> capturedMessages(final Level level) {
+        final List<String> messages = new ArrayList<>();
+        for (final ILoggingEvent event : logAppender.list) {
+            if (event.getLevel() == level) {
+                messages.add(event.getFormattedMessage());
+            }
+        }
+        return messages;
+    }
+
+    /**
+     * A configured subtree that does not exist must be reported, and this test pins what the run then
+     * actually does -- which is not what one would guess.
+     *
+     * <p>{@code EngineSupport.resolveSubtrees} filters missing entries out (logging the warning) before
+     * {@link GenerateEngine} ever looks at the list. Every configured subtree being wrong therefore
+     * leaves the resolved list EMPTY, which the engine treats as "none configured" and falls back to
+     * the default {@code src/main/java}. So a typo'd {@code <subtree>} does not index nothing -- it
+     * silently indexes the default tree instead, and the warning is the only signal that anything was
+     * off. That behaviour is asserted here rather than assumed: the first version of this test expected
+     * zero files written and failed against one.
+     *
+     * <p>A consequence worth knowing when touching this code: the second "Skipping missing subtree"
+     * warning inside {@code GenerateEngine.execute()} itself is unreachable in practice, since the list
+     * it iterates has already been filtered. Only a directory deleted between the two checks reaches it.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void execute_configuredSubtreeDoesNotExist_warnsAndFallsBackToTheDefaultTree() throws Exception {
+        // arrange
+        final SrcMorphConfiguration config = baseConfig();
+        config.setSubtrees(Collections.singletonList("does/not/exist"));
+
+        // act
+        final GenerateResult result = new GenerateEngine(config).execute();
+
+        // assert
+        boolean warned = false;
+        for (final String message : capturedMessages(Level.WARN)) {
+            if (message.contains("Skipping missing subtree")) {
+                warned = true;
+            }
+        }
+        assertThat("a missing subtree must be reported, not silently dropped", warned, is(true));
+        // The fallback ran: the default src/main/java (created by baseConfig) was indexed.
+        assertThat(result.written(), is(1));
+    }
+
+    /**
+     * The counterpart: a subtree that DOES exist is used, and no warning is emitted. Without it, a
+     * mutant that warns unconditionally -- or that never resolves a subtree at all -- survives.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void execute_configuredSubtreeExists_isUsedWithoutWarning() throws Exception {
+        // arrange
+        final SrcMorphConfiguration config = baseConfig();
+        config.setSubtrees(Collections.singletonList("src/main/java"));
+
+        // act
+        final GenerateResult result = new GenerateEngine(config).execute();
+
+        // assert
+        assertThat(result.written(), is(1));
+        for (final String message : capturedMessages(Level.WARN)) {
+            assertThat("no subtree warning expected", message.contains("Skipping missing subtree"), is(false));
+        }
+    }
+
+    /**
+     * A {@code factsKey} that matches no {@code factDefinitions} group is a configuration error and
+     * must surface as a {@link SrcMorphException} naming the offending setting -- the message is what
+     * the user sees, so it is part of the contract.
+     *
+     * @throws IOException if the fixture cannot be built
+     */
+    @Test
+    public void execute_unknownFactsKey_throwsWithTheConfigurationHint() throws IOException {
+        // arrange
+        final SrcMorphConfiguration config = baseConfig();
+        final AiFieldGenerationConfig rule = javaFileRule();
+        rule.setFactsKey("no-such-group");
+        config.setFieldGenerations(Collections.singletonList(rule));
+
+        // act
+        final SrcMorphException thrown =
+                assertThrows(SrcMorphException.class, () -> new GenerateEngine(config).execute());
+
+        // assert
+        assertThat(thrown.getMessage(), containsString("Invalid factDefinitions/factsKey configuration"));
+    }
+
+    // </editor-fold>
 }

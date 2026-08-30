@@ -11,6 +11,46 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Added
+- **`seed` model-definition knob** (`InferenceParameters.withSeed`, default `-1`). Upstream draws a
+  random seed per request, so with a non-zero temperature every generation samples differently: a
+  re-index of an unchanged file, or any `force=true` run, produced a different `.ai.md` body than the
+  one already committed. That sat awkwardly next to the project's own "deterministic indexing"
+  principle. Setting a seed makes the body stable for a given machine and configuration, which turns a
+  re-index into a reviewable diff. Forwarded only when `>= 0`, so an unconfigured run is byte-identical
+  to before. Documented deliberately as *not* bit-reproducibility: llama.cpp results move with thread
+  count, batch size and backend, so the seed pins the sampling, not the arithmetic.
+
+### Fixed
+- **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
+  seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced
+  wholesale with `return false;` and the class's tests stayed green — verified, not inferred. Two of
+  them wrote the fixture document with a header but no body, so the method returned at its blank-body
+  guard before the comparison ever ran. Since checksum-driven regeneration is a stated design
+  principle, dropping any disjunct would have meant stale files silently never regenerating, with
+  nothing failing. Both tests now write a body, and a parameterized case covers each compared field
+  (`h`/`x`/`title`/`c`/`d`/`g`/`a`) plus the unchanged-header negative. Re-running the same mutation
+  now fails 9 of 15 tests, and removing a single disjunct fails 2.
+- **No `execute()` verified that it honours the skip flag.** `shouldSkip()` itself was well tested, but
+  a mojo that never called it would have passed every one of those tests — and would have loaded a
+  model and written files under `-Dsrcmorph.skip=true`. All four goals now assert it, `CalibrateMojo`
+  included (it previously had no test constructing it at all).
+
+### Changed
+- `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is
+  initialised to an empty list and the setter normalises `null`, so the documented "or `null` if not
+  set" case was unreachable; the getter now matches its sibling `getDrySequenceBreakers()`. The two
+  null-guards this made dead in `LlamaCppJniConfigFactory` were dropped with it — the real guard lives
+  in `LlamaCppJniConfig`'s constructor, and is now pinned directly by a new `LlamaCppJniConfigTest`.
+- **PIT gate widened from 632 to 717 mutations, all killed at `mutationThreshold` 100.** Newly gated:
+  `provider.LlamaCppJniConfig`, `config.AiConditionGroup` (both already at 100% with no new test —
+  `TODO.md` had listed them as needing "careful fixtures", which was stale), `document.AiMdDocumentCodec`
+  and `indexer.AiIndexPlan` (survivors killed here). `document.AiMdHeaderCodec` is documented as
+  permanently out: its last two survivors are equivalent mutants in the colon-position guard, unkillable
+  through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
+  six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
+  missing-subtree and unknown-`factsKey` paths.
+
 ## [1.2.0] - 2026-08-29
 
 ### Added

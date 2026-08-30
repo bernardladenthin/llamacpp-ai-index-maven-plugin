@@ -96,4 +96,116 @@ public class CliEndToEndTest {
         // The original configuration object handed to Main must not have been mutated in place.
         assertThat(configuration.srcMorph.isPlanOnly(), is(false));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="each CCommand dispatch arm">
+
+    /**
+     * Runs one command against the shared mock fixture and returns the output root.
+     *
+     * @param command the command to dispatch
+     * @return the output directory the run wrote into
+     * @throws IOException if the fixture cannot be built
+     */
+    private Path runCommand(final CCommand command) throws IOException {
+        final CConfiguration configuration = buildAllCommandConfiguration();
+        configuration.command = command;
+        new Main(configuration).run();
+        return tempDir.resolve("out");
+    }
+
+    /**
+     * Runs {@code GenerateFileIndex} and then {@code command} over the same fixture.
+     *
+     * <p>The aggregation commands summarise an existing {@code .ai.md} tree, so running one against an
+     * empty output directory legitimately writes nothing -- each has to follow the phases it reads,
+     * the way {@code All} sequences them. Verified, not assumed: both aggregation tests failed exactly
+     * this way first, and {@code AggregateProject} needed the package phase too, not just the file
+     * phase, because it lists the {@code package.ai.md} files.
+     *
+     * @param command   the aggregation command whose own output is under test
+     * @param preceding the phases it depends on, dispatched in order first
+     * @return the output directory the runs wrote into
+     * @throws IOException if the fixture cannot be built
+     */
+    private Path runAfter(final CCommand command, final CCommand... preceding) throws IOException {
+        final CConfiguration configuration = buildAllCommandConfiguration();
+        for (final CCommand phase : preceding) {
+            configuration.command = phase;
+            new Main(configuration).run();
+        }
+        configuration.command = command;
+        new Main(configuration).run();
+        return tempDir.resolve("out");
+    }
+
+    /**
+     * Only {@code Plan} and {@code All} were ever dispatched by a test, leaving four arms of the
+     * command switch dead. A copy-paste slip -- {@code case AggregatePackages:} constructing
+     * {@code AggregateProjectEngine}, say -- would produce the wrong artifacts with nothing failing.
+     * Each of the four tests below therefore asserts both what its arm DOES write and what it does
+     * NOT, so a swapped engine is caught in either direction.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void run_generateFileIndexCommand_writesTheFileIndexButNoProjectIndex() throws Exception {
+        // act
+        final Path outputRoot = runCommand(CCommand.GenerateFileIndex);
+
+        // assert
+        assertThat(Files.exists(outputRoot.resolve("main/java/com/example/Foo.java.ai.md")), is(true));
+        assertThat(Files.exists(outputRoot.resolve(AiMdHeaderCodec.PROJECT_AI_MD_FILENAME)), is(false));
+    }
+
+    /**
+     * Package aggregation writes the per-directory index, not the project one.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void run_aggregatePackagesCommand_writesPackageIndexButNoProjectIndex() throws Exception {
+        // act
+        final Path outputRoot = runAfter(CCommand.AggregatePackages, CCommand.GenerateFileIndex);
+
+        // assert
+        assertThat(
+                Files.exists(outputRoot.resolve("main/java/com/example/" + AiMdHeaderCodec.PACKAGE_AI_MD_FILENAME)),
+                is(true));
+        assertThat(Files.exists(outputRoot.resolve(AiMdHeaderCodec.PROJECT_AI_MD_FILENAME)), is(false));
+    }
+
+    /**
+     * Project aggregation writes the project index at the output root.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void run_aggregateProjectCommand_writesTheProjectIndex() throws Exception {
+        // act
+        final Path outputRoot =
+                runAfter(CCommand.AggregateProject, CCommand.GenerateFileIndex, CCommand.AggregatePackages);
+
+        // assert
+        assertThat(Files.exists(outputRoot.resolve(AiMdHeaderCodec.PROJECT_AI_MD_FILENAME)), is(true));
+    }
+
+    /**
+     * {@code Calibrate} is cheap and safe to dispatch here: the mock provider reports synthetic
+     * throughput, so no GGUF and no native library are involved. Without this the arm is never
+     * entered at all.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void run_calibrateCommand_completesAgainstTheMockProvider() throws Exception {
+        // arrange
+        final CConfiguration configuration = buildAllCommandConfiguration();
+        configuration.command = CCommand.Calibrate;
+
+        // act / assert -- calibrate measures and reports; it writes no .ai.md tree
+        new Main(configuration).run();
+        assertThat(Files.exists(tempDir.resolve("out").resolve(AiMdHeaderCodec.PROJECT_AI_MD_FILENAME)), is(false));
+    }
+
+    // </editor-fold>
 }

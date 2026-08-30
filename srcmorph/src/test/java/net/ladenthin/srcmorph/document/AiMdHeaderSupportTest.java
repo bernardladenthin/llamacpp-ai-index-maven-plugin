@@ -10,8 +10,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class AiMdHeaderSupportTest {
 
@@ -39,6 +43,15 @@ public class AiMdHeaderSupportTest {
 
     /** Fixed checksum used in tests that do not exercise checksum-change detection. */
     private static final String FIXED_CHECKSUM = "12345678";
+
+    /**
+     * Non-blank body written into every stored document under test.
+     *
+     * <p>{@code shouldWrite} returns early on a blank body (a previously failed generation), so a
+     * test that writes only the header can never reach the header-field comparison it means to
+     * exercise -- it passes for the wrong reason.
+     */
+    private static final String EXISTING_BODY = "Existing body content.\n";
 
     /**
      * Builds an {@link AiMdHeader} for {@link #FIXED_TITLE} / {@link AiMdHeaderCodec#NODE_TYPE_FILE}
@@ -127,7 +140,9 @@ public class AiMdHeaderSupportTest {
         // arrange
         final Path target = folder.resolve("test.ai.md");
         final AiMdHeader original = buildHeader("AAAAAAAA", FIXED_G);
-        Files.write(target, headerCodec.write(original).getBytes(StandardCharsets.UTF_8));
+        // The body matters: a blank one short-circuits shouldWrite before the field comparison runs,
+        // so writing header-only here would make this test pass without exercising the checksum check.
+        documentCodec.write(target, new AiMdDocument(original, EXISTING_BODY));
 
         final AiMdHeader changed = buildHeader("BBBBBBBB", FIXED_G);
 
@@ -143,7 +158,8 @@ public class AiMdHeaderSupportTest {
         // arrange
         final Path target = folder.resolve("test.ai.md");
         final AiMdHeader original = buildHeader(FIXED_CHECKSUM, FIXED_G);
-        Files.write(target, headerCodec.write(original).getBytes(StandardCharsets.UTF_8));
+        // Body required for the same reason as in the checksum test above.
+        documentCodec.write(target, new AiMdDocument(original, EXISTING_BODY));
 
         final AiMdHeader changed = buildHeader(FIXED_CHECKSUM, "2.0.0");
 
@@ -167,5 +183,163 @@ public class AiMdHeaderSupportTest {
         // assert
         assertThat(result, is(true));
     }
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="shouldWrite -- every compared header field">
+
+    /**
+     * The header stored on disk in {@link #shouldWrite_singleHeaderFieldChanged_returnsTrue}. Every
+     * case writes this one and then passes an expected header differing in exactly one field.
+     */
+    private static AiMdHeader storedHeader() {
+        return new AiMdHeader(
+                FIXED_TITLE,
+                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                FIXED_CHECKSUM,
+                FIXED_D,
+                FIXED_T,
+                FIXED_G,
+                FIXED_A,
+                AiMdHeaderCodec.NODE_TYPE_FILE);
+    }
+
+    /**
+     * One case per field {@code shouldWrite} compares: {@code h}, {@code x}, {@code title},
+     * {@code c}, {@code d}, {@code g}, {@code a}. Each argument pair is the field name (for the
+     * failure message) and a header differing from {@link #storedHeader()} in that field alone.
+     *
+     * <p>Note {@code t} (the generation timestamp) is deliberately absent: it changes on every run
+     * by design and comparing it would force a rewrite of every file, every time.
+     *
+     * @return the seven single-field-changed cases
+     */
+    private static Stream<Arguments> changedHeaderFields() {
+        return Stream.of(
+                Arguments.of(
+                        "h",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                "2.0",
+                                FIXED_CHECKSUM,
+                                FIXED_D,
+                                FIXED_T,
+                                FIXED_G,
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_FILE)),
+                Arguments.of(
+                        "x",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                FIXED_CHECKSUM,
+                                FIXED_D,
+                                FIXED_T,
+                                FIXED_G,
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_PACKAGE)),
+                Arguments.of(
+                        "title",
+                        new AiMdHeader(
+                                "Other.java",
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                FIXED_CHECKSUM,
+                                FIXED_D,
+                                FIXED_T,
+                                FIXED_G,
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_FILE)),
+                Arguments.of(
+                        "c",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                "DEADBEEF",
+                                FIXED_D,
+                                FIXED_T,
+                                FIXED_G,
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_FILE)),
+                Arguments.of(
+                        "d",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                FIXED_CHECKSUM,
+                                "2020-01-01T00:00:00Z",
+                                FIXED_T,
+                                FIXED_G,
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_FILE)),
+                Arguments.of(
+                        "g",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                FIXED_CHECKSUM,
+                                FIXED_D,
+                                FIXED_T,
+                                "9.9.9",
+                                FIXED_A,
+                                AiMdHeaderCodec.NODE_TYPE_FILE)),
+                Arguments.of(
+                        "a",
+                        new AiMdHeader(
+                                FIXED_TITLE,
+                                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                                FIXED_CHECKSUM,
+                                FIXED_D,
+                                FIXED_T,
+                                FIXED_G,
+                                "9.9.9",
+                                AiMdHeaderCodec.NODE_TYPE_FILE)));
+    }
+
+    /**
+     * Pins every disjunct of {@code shouldWrite}'s field-comparison chain individually.
+     *
+     * <p>This exists because the chain was provably unreachable from this test class: replacing the
+     * whole seven-way condition with {@code return false;} left all tests green, since the two
+     * change-detection tests wrote a header with no body and returned at the blank-body guard first.
+     * Dropping a disjunct means a stale {@code .ai.md} silently never regenerates, which contradicts
+     * the project's incremental-update principle -- and nothing would have failed.
+     *
+     * @param fieldName      the single header field that differs (used in the failure message)
+     * @param expectedHeader the header the caller expects, differing from the stored one in that field
+     * @throws IOException if the fixture document cannot be written
+     */
+    @ParameterizedTest(name = "field {0} changed forces a rewrite")
+    @MethodSource("changedHeaderFields")
+    public void shouldWrite_singleHeaderFieldChanged_returnsTrue(
+            final String fieldName, final AiMdHeader expectedHeader) throws IOException {
+        // arrange
+        final Path target = folder.resolve("test.ai.md");
+        documentCodec.write(target, new AiMdDocument(storedHeader(), EXISTING_BODY));
+
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, expectedHeader);
+
+        // assert
+        assertThat("a changed " + fieldName + " must force a rewrite", result, is(true));
+    }
+
+    /**
+     * The negative counterpart: an unchanged header must NOT force a rewrite. Without this, a mutant
+     * turning the chain into a constant {@code true} would survive every case above.
+     *
+     * @throws IOException if the fixture document cannot be written
+     */
+    @Test
+    public void shouldWrite_noHeaderFieldChanged_returnsFalse() throws IOException {
+        // arrange
+        final Path target = folder.resolve("test.ai.md");
+        documentCodec.write(target, new AiMdDocument(storedHeader(), EXISTING_BODY));
+
+        // act
+        final boolean result = headerSupport.shouldWrite(false, target, storedHeader());
+
+        // assert
+        assertThat(result, is(false));
+    }
+
     // </editor-fold>
 }

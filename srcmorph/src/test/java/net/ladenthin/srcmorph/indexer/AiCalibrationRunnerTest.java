@@ -72,4 +72,77 @@ public class AiCalibrationRunnerTest {
                 new AiCalibrationRunner().windowChars(config(), CommonTestFixtures.PROMPT_KEY_FILE_BODY, prep());
         assertThat(window > 0, is(true));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="wall-clock fallback divide-by-zero guards">
+
+    /**
+     * A provider returning empty text drives {@code outputTokens} to zero, which must yield a decode
+     * rate of exactly zero rather than a division by it.
+     *
+     * <p>Scoped deliberately: most of {@code wallClockFallback}'s surviving mutants are arithmetic on
+     * {@code System.nanoTime()} deltas and cannot be pinned without injecting a clock, so this class
+     * stays off the PIT gate. These guards are the part that is both reachable and worth pinning --
+     * they are what stands between a degenerate measurement and a {@code NaN}/{@code Infinity} leaking
+     * into the calibration report.
+     *
+     * @throws Exception if the measurement fails
+     */
+    @Test
+    public void measure_providerReturningEmptyText_yieldsZeroDecodeRateInsteadOfDividingByZero() throws Exception {
+        // arrange
+        final AiGenerationProvider emptyOutputProvider = new AiGenerationProvider() {
+            @Override
+            public String generate(final AiGenerationRequest request) {
+                return "";
+            }
+
+            @Override
+            public AiGenerationTimings generateWithTimings(final AiGenerationRequest request) {
+                return new AiGenerationTimings("", 0, 0.0d, 0, 0.0d);
+            }
+        };
+
+        // act
+        final AiCalibrationMeasurement measurement = new AiCalibrationRunner()
+                .measure(emptyOutputProvider, config(), CommonTestFixtures.PROMPT_KEY_FILE_BODY, prep());
+
+        // assert
+        assertThat(measurement.decodeTokensPerSecond(), is(0.0d));
+        assertThat(Double.isFinite(measurement.decodeTokensPerSecond()), is(true));
+        assertThat(Double.isFinite(measurement.prefillTokensPerSecond()), is(true));
+    }
+
+    /**
+     * A non-positive configured {@code charsPerToken} must fall back to the built-in constant rather
+     * than being used as a divisor.
+     *
+     * @throws Exception if the measurement fails
+     */
+    @Test
+    public void measure_zeroCharsPerToken_fallsBackToTheBuiltInRatio() throws Exception {
+        // arrange
+        final AiGenerationConfig zeroRatio = config();
+        zeroRatio.setCharsPerToken(0);
+        final AiGenerationProvider zeroRateProvider = new AiGenerationProvider() {
+            @Override
+            public String generate(final AiGenerationRequest request) {
+                return "t";
+            }
+
+            @Override
+            public AiGenerationTimings generateWithTimings(final AiGenerationRequest request) {
+                return new AiGenerationTimings("t", 0, 0.0d, 0, 0.0d);
+            }
+        };
+
+        // act
+        final AiCalibrationMeasurement measurement = new AiCalibrationRunner()
+                .measure(zeroRateProvider, zeroRatio, CommonTestFixtures.PROMPT_KEY_FILE_BODY, prep());
+
+        // assert -- not the configured 0, and finite: the fallback ratio was used as the divisor
+        assertThat(measurement.charsPerToken() > 0.0d, is(true));
+        assertThat(Double.isFinite(measurement.charsPerToken()), is(true));
+    }
+
+    // </editor-fold>
 }

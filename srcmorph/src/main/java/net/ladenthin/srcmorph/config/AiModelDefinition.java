@@ -56,6 +56,7 @@ public class AiModelDefinition {
     private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
     private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
     private int gpuLayers = AiGenerationConfig.DEFAULT_GPU_LAYERS;
+    private int seed = AiGenerationConfig.DEFAULT_SEED;
     private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
@@ -427,6 +428,24 @@ public class AiModelDefinition {
      */
     public void setCpuMoeLayers(final int cpuMoeLayers) {
         this.cpuMoeLayers = cpuMoeLayers;
+    }
+
+    /**
+     * Returns the RNG seed for this model.
+     *
+     * @return the seed; defaults to {@link AiGenerationConfig#DEFAULT_SEED} (-1 = random per request)
+     */
+    public int getSeed() {
+        return seed;
+    }
+
+    /**
+     * Sets the RNG seed for this model.
+     *
+     * @param seed the seed ({@code -1} = leave upstream's random-per-request default)
+     */
+    public void setSeed(final int seed) {
+        this.seed = seed;
     }
 
     /**

@@ -237,4 +237,91 @@ public class AiMdDocumentCodecTest {
         assertThat(document.body(), containsString("- F: this looks like a child link but is body text"));
     }
     // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="header/body boundary and trailing newline">
+
+    /**
+     * A body that starts immediately after the header block, with no blank separator line, must keep
+     * its first line.
+     *
+     * <p>This pins the blank-line check in {@code read}: negating it makes the parser treat the first
+     * body line as the header terminator and drop it. That is silent data loss -- the document still
+     * reads, just one line shorter -- so nothing else in the suite would catch it.
+     */
+    @Test
+    public void read_bodyStartsWithoutBlankSeparatorLine_keepsFirstBodyLine() {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "- H: 1.0", "First body line.", "Second body line.");
+
+        // act
+        final AiMdDocument document = new AiMdDocumentCodec().read(lines);
+
+        // assert
+        assertThat(document.body(), containsString("First body line."));
+        assertThat(document.body(), containsString("Second body line."));
+    }
+
+    /**
+     * A blank line between header and body is consumed as the separator, not kept as body content.
+     * The counterpart to {@link #read_bodyStartsWithoutBlankSeparatorLine_keepsFirstBodyLine}: without
+     * it, a mutant that always treats a line as the terminator would survive.
+     */
+    @Test
+    public void read_blankSeparatorLine_isNotPartOfTheBody() {
+        // arrange
+        final List<String> lines = Arrays.asList("### Test.java", "- H: 1.0", "", "First body line.");
+
+        // act
+        final AiMdDocument document = new AiMdDocumentCodec().read(lines);
+
+        // assert
+        assertThat(document.body(), is(equalTo("First body line.\n")));
+    }
+
+    /** A body without a trailing newline gets exactly one appended, so files end cleanly. */
+    @Test
+    public void write_bodyWithoutTrailingNewline_appendsExactlyOne() {
+        // arrange
+        final AiMdDocument document = new AiMdDocument(headerFixture(), "Body without newline");
+
+        // act
+        final String rendered = new AiMdDocumentCodec().write(document);
+
+        // assert
+        assertThat(rendered.endsWith("Body without newline\n"), is(true));
+        assertThat(rendered.endsWith("Body without newline\n\n"), is(false));
+    }
+
+    /** A body that already ends with a newline must not gain a second one. */
+    @Test
+    public void write_bodyAlreadyEndingWithNewline_doesNotAddASecond() {
+        // arrange
+        final AiMdDocument document = new AiMdDocument(headerFixture(), "Body with newline\n");
+
+        // act
+        final String rendered = new AiMdDocumentCodec().write(document);
+
+        // assert
+        assertThat(rendered.endsWith("Body with newline\n"), is(true));
+        assertThat(rendered.endsWith("Body with newline\n\n"), is(false));
+    }
+
+    /**
+     * Minimal valid header for the {@code write} round-trip tests above.
+     *
+     * @return a header whose exact field values are irrelevant to what those tests assert
+     */
+    private static AiMdHeader headerFixture() {
+        return new AiMdHeader(
+                "Test.java",
+                AiMdHeaderCodec.HEADER_VERSION_1_0,
+                "12345678",
+                "2026-03-16T00:00:00Z",
+                "2026-03-16T00:00:10Z",
+                "1.0.0",
+                "0.0.0",
+                AiMdHeaderCodec.NODE_TYPE_FILE);
+    }
+
+    // </editor-fold>
 }

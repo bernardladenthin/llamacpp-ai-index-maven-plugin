@@ -180,6 +180,22 @@ public class AiGenerationConfig {
     public static final int DEFAULT_GPU_LAYERS = -1;
 
     /**
+     * Default RNG seed for generation ({@code seed}). {@code -1} (default) means "do not set it", and
+     * upstream then draws a random seed <em>per request</em>.
+     *
+     * <p>That default is why a re-run is not reproducible: with a non-zero temperature every
+     * generation samples differently, so re-indexing an unchanged file (or any run with
+     * {@code force=true}) produces a different {@code .ai.md} body than the one already committed.
+     * Setting a fixed seed makes the body stable for a given machine and configuration, which is what
+     * turns a re-index into a reviewable diff instead of noise.</p>
+     *
+     * <p><strong>Not bit-reproducibility.</strong> llama.cpp results are not identical across thread
+     * counts, batch sizes or backends, so a fixed seed pins the sampling, not the arithmetic. Change
+     * {@code threads}, the model, the prompt or the native build and the output can still move.</p>
+     */
+    public static final int DEFAULT_SEED = -1;
+
+    /**
      * Default number of MoE (mixture-of-experts) layers to keep on the CPU ({@code --n-cpu-moe},
      * {@code -ncmoe}). {@code -1} (default) means "do not set it".
      *
@@ -284,6 +300,7 @@ public class AiGenerationConfig {
     private boolean swaFull = DEFAULT_SWA_FULL;
     private int cacheReuse = DEFAULT_CACHE_REUSE;
     private int gpuLayers = DEFAULT_GPU_LAYERS;
+    private int seed = DEFAULT_SEED;
     private int cpuMoeLayers = DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = DEFAULT_KV_UNIFIED_PER_SLOT;
@@ -638,6 +655,24 @@ public class AiGenerationConfig {
     }
 
     /**
+     * Returns the RNG seed used for generation.
+     *
+     * @return the seed; defaults to {@link #DEFAULT_SEED} (-1 = random per request)
+     */
+    public int getSeed() {
+        return seed;
+    }
+
+    /**
+     * Sets the RNG seed used for generation.
+     *
+     * @param seed the seed ({@code -1} = leave upstream's random-per-request default)
+     */
+    public void setSeed(final int seed) {
+        this.seed = seed;
+    }
+
+    /**
      * Returns the number of FFN layers kept on the CPU ({@code --n-cpu-ffn}).
      *
      * @return CPU FFN layers ({@code -1} = leave the binding/build default)
@@ -866,10 +901,10 @@ public class AiGenerationConfig {
     /**
      * Returns an unmodifiable view of the configured stop strings.
      *
-     * @return unmodifiable list of stop strings, or {@code null} if not set
+     * @return unmodifiable list of stop strings (empty = no stop strings configured)
      */
-    public @Nullable List<String> getStopStrings() {
-        return stopStrings != null ? Collections.unmodifiableList(stopStrings) : null;
+    public List<String> getStopStrings() {
+        return Collections.unmodifiableList(stopStrings);
     }
 
     /**

@@ -4,7 +4,6 @@
 package net.ladenthin.srcmorph.provider;
 
 import java.util.Collections;
-import java.util.List;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import org.jspecify.annotations.Nullable;
 
@@ -28,8 +27,9 @@ public final class LlamaCppJniConfigFactory {
     /**
      * Builds a {@link LlamaCppJniConfig} by copying every field from a resolved
      * {@link AiGenerationConfig} (an {@link net.ladenthin.srcmorph.config.AiModelDefinition} looked up by
-     * key). {@code null} {@link AiGenerationConfig#getStopStrings()} /
-     * {@link AiGenerationConfig#getDrySequenceBreakers()} are normalised to an empty list.
+     * key). Both list-valued getters already normalise a {@code null} to an empty list in their own
+     * setters, so this method forwards them as-is; {@link LlamaCppJniConfig}'s constructor keeps its
+     * own null guard for callers that build one directly.
      *
      * @param libraryPath native library path; may be {@code null} to use the bundled native library
      * @param config      the resolved AI model generation config
@@ -37,8 +37,6 @@ public final class LlamaCppJniConfigFactory {
      */
     public static LlamaCppJniConfig fromGenerationConfig(
             final @Nullable String libraryPath, final AiGenerationConfig config) {
-        final List<String> stopStrings = config.getStopStrings();
-        final List<String> drySequenceBreakers = config.getDrySequenceBreakers();
         return new LlamaCppJniConfig(
                 libraryPath,
                 config.getModelPath(),
@@ -56,6 +54,7 @@ public final class LlamaCppJniConfigFactory {
                 config.isSwaFull(),
                 config.getCacheReuse(),
                 config.getGpuLayers(),
+                config.getSeed(),
                 config.getCpuMoeLayers(),
                 config.getCpuFfnLayers(),
                 config.getKvUnifiedPerSlot(),
@@ -68,8 +67,8 @@ public final class LlamaCppJniConfigFactory {
                 config.getDryBase(),
                 config.getDryAllowedLength(),
                 config.getDryPenaltyLastN(),
-                drySequenceBreakers != null ? drySequenceBreakers : Collections.<String>emptyList(),
-                stopStrings != null ? stopStrings : Collections.<String>emptyList());
+                config.getDrySequenceBreakers(),
+                config.getStopStrings());
     }
 
     /**
@@ -109,6 +108,7 @@ public final class LlamaCppJniConfigFactory {
                 AiGenerationConfig.DEFAULT_SWA_FULL,
                 AiGenerationConfig.DEFAULT_CACHE_REUSE,
                 AiGenerationConfig.DEFAULT_GPU_LAYERS,
+                AiGenerationConfig.DEFAULT_SEED,
                 AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
                 AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
                 AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,

@@ -6,9 +6,15 @@ package net.ladenthin.maven.srcmorph.mojo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.File;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Verifies the per-phase skip mechanism: the generalized {@code shouldSkip()} rule in
@@ -119,4 +125,117 @@ public class MojoPhaseSkipTest {
         }
         throw new NoSuchFieldException(fieldName);
     }
+
+    // <editor-fold defaultstate="collapsed" desc="execute() honours the skip flag">
+
+    @TempDir
+    Path tempDir;
+
+    /**
+     * Captures {@code info} lines so a test can assert what a mojo logged.
+     *
+     * <p>Extends {@link SystemStreamLog} rather than implementing the ~20-method {@code Log}
+     * interface by hand; this module has no mocking framework on the test classpath.
+     */
+    private static final class CapturingLog extends SystemStreamLog {
+
+        private final List<String> infoMessages = new ArrayList<>();
+
+        @Override
+        public void info(final CharSequence content) {
+            infoMessages.add(String.valueOf(content));
+        }
+
+        List<String> infoMessages() {
+            return infoMessages;
+        }
+    }
+
+    /**
+     * Runs a mojo with the global skip flag set and returns what it logged.
+     *
+     * <p>The output directory is a path inside the temp dir that does not exist yet: if the mojo did
+     * NOT honour the flag it would run the engine and create it, so the directory's continued absence
+     * is the second, independent assertion that nothing ran.
+     *
+     * @param mojo the mojo under test, already constructed
+     * @return the captured info lines
+     * @throws Exception if the mojo throws or a field cannot be set
+     */
+    private List<String> executeWithGlobalSkip(final AbstractAiIndexMojo mojo) throws Exception {
+        final CapturingLog log = new CapturingLog();
+        mojo.setLog(log);
+        setBooleanField(mojo, "skip", true);
+        mojo.baseDirectory = tempDir.toFile();
+        mojo.outputDirectory = new File(tempDir.toFile(), "never-created");
+
+        mojo.execute();
+
+        assertThat("skipping must not create the output directory", mojo.outputDirectory.exists(), is(false));
+        return log.infoMessages();
+    }
+
+    /**
+     * The risk this closes: nothing verified that any {@code execute()} actually consults
+     * {@code shouldSkip()}. {@code shouldSkip()} itself was well tested, but a mojo that never called
+     * it would still pass every one of those tests -- and would load a model and write files under
+     * {@code -Dsrcmorph.skip=true}.
+     *
+     * @throws Exception if the mojo throws
+     */
+    @Test
+    public void generateMojo_globalSkip_returnsWithoutRunningTheEngine() throws Exception {
+        assertThat(executeWithGlobalSkip(new GenerateMojo()).contains("AI index generation skipped."), is(true));
+    }
+
+    /**
+     * Same contract for the package-aggregation goal.
+     *
+     * @throws Exception if the mojo throws
+     */
+    @Test
+    public void aggregatePackagesMojo_globalSkip_returnsWithoutRunningTheEngine() throws Exception {
+        assertThat(
+                executeWithGlobalSkip(new AggregatePackagesMojo()).contains("AI package aggregation skipped."),
+                is(true));
+    }
+
+    /**
+     * Same contract for the project-aggregation goal.
+     *
+     * @throws Exception if the mojo throws
+     */
+    @Test
+    public void aggregateProjectMojo_globalSkip_returnsWithoutRunningTheEngine() throws Exception {
+        assertThat(
+                executeWithGlobalSkip(new AggregateProjectMojo()).contains("AI project index aggregation skipped."),
+                is(true));
+    }
+
+    /**
+     * Same contract for the calibrate goal, which had no test constructing it at all.
+     *
+     * @throws Exception if the mojo throws
+     */
+    @Test
+    public void calibrateMojo_globalSkip_returnsWithoutRunningTheEngine() throws Exception {
+        assertThat(executeWithGlobalSkip(new CalibrateMojo()).contains("AI index calibration skipped."), is(true));
+    }
+
+    /**
+     * {@code calibrate} is a manual diagnostic goal with no phase flag of its own -- its
+     * {@code isPhaseSkipped()} is a hard {@code false}, so only the global flag disables it. That is a
+     * documented contract with no guard behind it, which makes it worth pinning.
+     */
+    @Test
+    public void calibrateMojo_hasNoPhaseFlagOfItsOwn() {
+        // arrange
+        final CalibrateMojo mojo = new CalibrateMojo();
+
+        // act / assert
+        assertThat(mojo.isPhaseSkipped(), is(false));
+        assertThat(mojo.shouldSkip(), is(false));
+    }
+
+    // </editor-fold>
 }

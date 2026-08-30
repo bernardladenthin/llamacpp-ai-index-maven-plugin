@@ -23,8 +23,23 @@ recorded in git history and `crossrepostatus.md`, not here.
   `<mutationThreshold>100</mutationThreshold>` over an explicit `<targetClasses>` list (config /
   document / engine / prompt / provider / support value+logic classes, plus `indexer.AiInputWindowCalculator`
   and `support.AiProgressBar`), all killed at 100%. Still out (optional, need careful fixtures):
-  `document.AiMdDocumentCodec` / `AiMdHeaderCodec`, `prompt.AiPromptPreparationSupport`, and the newer
-  `indexer.AiIndexPlan` / `config.AiConditionGroup`. The orchestration layers (`indexer.*` walk,
+  `indexer.AiIndexPlan` (32/37) — a handful of named survivors rather than a coverage hole.
+  `document.AiMdDocumentCodec` reached 100% (13/13) and is now on the gate. **`document.AiMdHeaderCodec`
+  is permanently out, and this is worth not re-litigating:** its last two survivors are *equivalent
+  mutants* in the colon-position guard at `read`'s `colonIndex < 0 || colonIndex < HEADER_FIELD_PREFIX.length() + 1`.
+  The preceding `startsWith(HEADER_FIELD_PREFIX)` guard means `colonIndex` is either `-1` or `>= 2`,
+  so (a) the `< 0` boundary mutant `<= 0` differs only at the unreachable `colonIndex == 0`, and
+  (b) the `+1 -> -1` arithmetic mutant differs only at `colonIndex == 2`, i.e. an empty field key,
+  which `values.put("", value)` swallows invisibly because no `AiMdHeader` field is keyed `""`. Both
+  are unkillable through the public API; reaching 100% would mean either exposing the parsed map or
+  simplifying the (deliberately defensive, and strictly redundant) first disjunct away. The class's
+  real coverage gaps *were* closed — the `read(Path)` overload and the malformed-input branches now
+  have tests. `config.AiConditionGroup`
+  and `provider.LlamaCppJniConfig` were listed here too, but both measured 100% (2/2 and 36/36) without
+  a single new test — the existing `AiConditionGroupTest` and
+  `LlamaCppJniConfigFactoryTest#fromGenerationConfig_threadsEveryFieldThrough` already killed
+  everything — so they are now on the gate. `prompt.AiPromptPreparationSupport` was likewise stale: it
+  has been on the gate for a while. The orchestration layers (`indexer.*` walk,
   the plugin's `mojo.*`) and the JNI provider stay out of PIT — they need a Maven/native context
   rather than pure-unit mutation (see crossrepostatus "Deliberate non-parity").
 

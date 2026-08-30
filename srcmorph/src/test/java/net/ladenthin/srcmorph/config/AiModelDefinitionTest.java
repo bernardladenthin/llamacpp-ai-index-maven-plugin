@@ -276,4 +276,24 @@ public class AiModelDefinitionTest {
         d.setDrySequenceBreakers(null);
         assertThat(d.getDrySequenceBreakers(), is(nullValue()));
     }
+
+    @Test
+    public void seedDefaultsMinusOneAndRoundTrips() {
+        AiModelDefinition c = new AiModelDefinition();
+        // Default -1 (upstream draws a random seed per request) kills the inline-constant / "return 0"
+        // getter mutants.
+        assertThat(c.getSeed(), is(-1));
+        c.setSeed(12345);
+        // Round-tripped value kills the "return 0" getter and removed-assignment setter mutants.
+        assertThat(c.getSeed(), is(12345));
+    }
+
+    @Test
+    public void seedAcceptsZero() {
+        AiModelDefinition c = new AiModelDefinition();
+        c.setSeed(0);
+        // 0 is a legitimate seed, not "unset" -- it must survive the setter so the provider's >= 0
+        // guard forwards it.
+        assertThat(c.getSeed(), is(0));
+    }
 }

@@ -431,6 +431,7 @@ below are the shipped values (`AiGenerationConfig.DEFAULT_*`).
 | `cachePrompt` | `true` | Reuse the shared prompt-prefix KV across files (`cache_prompt`) |
 | `swaFull` | `true` | Keep the full-size sliding-window-attention KV cache (`--swa-full`) |
 | `cacheReuse` | `256` | KV prefix-reuse minimum chunk size in tokens (`--cache-reuse`; `0` = off) |
+| `seed` | `-1` | RNG seed for generation; `-1` leaves upstream's random-seed-per-request default. Set it to make a re-run produce the same `.ai.md` body instead of a fresh sample, so re-indexing yields a reviewable diff. **Not bit-reproducibility** — llama.cpp is not identical across thread counts, batch sizes or backends, so this pins the sampling, not the arithmetic; same machine + same config is the guarantee |
 | `gpuLayers` | `-1` | GPU layers to offload (`--gpu-layers`); `-1` = auto-fit to free VRAM, `0` = force CPU, `>0` = partial. GPU native only |
 | `cpuMoeLayers` | `-1` | Keep the MoE expert weights of the first *n* layers on the CPU (`--n-cpu-moe` / `-ncmoe`); `-1` = leave default, `0` = keep none on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE model: it moves only the expert weights, so a much larger model fits the same VRAM at a smaller speed cost. GPU native only |
 | `cpuFfnLayers` | `-1` | Dense-model counterpart of `cpuMoeLayers`: keep the FFN weights of the first *n* layers on the CPU (`--n-cpu-ffn` / `-ncffn`); `-1` = leave default, `0` = keep none on the CPU. GPU native only |

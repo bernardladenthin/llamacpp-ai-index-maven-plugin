@@ -268,11 +268,18 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
                 .withCachePrompt(config.cachePrompt())
                 .withSlotId(REUSE_SLOT_ID);
 
+        // Pin the RNG seed only when explicitly configured (>= 0). Upstream's default is a random seed
+        // per request, so an unconfigured run keeps exactly the behaviour it had; a configured one makes
+        // the generated body stable for a given machine and configuration, which is what turns a
+        // re-index into a reviewable diff. Not bit-reproducibility -- see AiGenerationConfig.DEFAULT_SEED.
+        final InferenceParameters seededParameters =
+                config.seed() >= 0 ? baseParameters.withSeed(config.seed()) : baseParameters;
+
         // Only override the DRY sequence breakers when explicitly configured; an empty list keeps
         // the binding/model default set instead of clearing it.
         return config.drySequenceBreakers().isEmpty()
-                ? baseParameters
-                : baseParameters.withDrySequenceBreakers(
+                ? seededParameters
+                : seededParameters.withDrySequenceBreakers(
                         config.drySequenceBreakers().toArray(new String[0]));
     }
 

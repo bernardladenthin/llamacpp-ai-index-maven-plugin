@@ -36,6 +36,7 @@ public class LlamaCppJniConfigFactoryTest {
         config.setSwaFull(false);
         config.setCacheReuse(101);
         config.setGpuLayers(12);
+        config.setSeed(12345);
         config.setCpuMoeLayers(24);
         config.setCpuFfnLayers(16);
         config.setKvUnifiedPerSlot(4096);
@@ -73,6 +74,7 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(false));
         assertThat(result.cacheReuse(), is(101));
         assertThat(result.gpuLayers(), is(12));
+        assertThat(result.seed(), is(12345));
         assertThat(result.cpuMoeLayers(), is(24));
         assertThat(result.cpuFfnLayers(), is(16));
         assertThat(result.kvUnifiedPerSlot(), is(4096));
@@ -98,7 +100,11 @@ public class LlamaCppJniConfigFactoryTest {
     }
 
     @Test
-    public void fromGenerationConfig_nullStopStringsAndDrySequenceBreakersBecomeEmpty() {
+    public void fromGenerationConfig_listsNullifiedThroughTheSetters_arriveAsEmptyLists() {
+        // Note what this does and does not pin: the setters normalise null to an empty list, so the
+        // factory never sees a null here. It proves the empty list survives the mapping, NOT that the
+        // factory itself guards against null -- that guard lives in LlamaCppJniConfig's constructor
+        // and is pinned by LlamaCppJniConfigTest.
         final AiGenerationConfig config = fullConfig();
         config.setStopStrings(null);
         config.setDrySequenceBreakers(null);
@@ -137,6 +143,7 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.swaFull(), is(AiGenerationConfig.DEFAULT_SWA_FULL));
         assertThat(result.cacheReuse(), is(AiGenerationConfig.DEFAULT_CACHE_REUSE));
         assertThat(result.gpuLayers(), is(AiGenerationConfig.DEFAULT_GPU_LAYERS));
+        assertThat(result.seed(), is(AiGenerationConfig.DEFAULT_SEED));
         assertThat(result.cpuMoeLayers(), is(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS));
         assertThat(result.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
         assertThat(result.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));

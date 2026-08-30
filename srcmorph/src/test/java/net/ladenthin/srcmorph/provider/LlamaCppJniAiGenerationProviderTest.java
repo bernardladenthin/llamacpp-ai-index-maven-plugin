@@ -63,6 +63,7 @@ public class LlamaCppJniAiGenerationProviderTest {
                 AiGenerationConfig.DEFAULT_SWA_FULL,
                 AiGenerationConfig.DEFAULT_CACHE_REUSE,
                 AiGenerationConfig.DEFAULT_GPU_LAYERS,
+                AiGenerationConfig.DEFAULT_SEED,
                 AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
                 AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
                 AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
