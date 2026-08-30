@@ -64,26 +64,33 @@ recorded in git history and `crossrepostatus.md`, not here.
   Switching the hot path to `generateWithTimings(...)` and logging the reuse at `DEBUG` would close it;
   weigh that against touching the per-file path and its tests for a diagnostic.
 
-- **A PIT mutation minion runs out of memory on every `mutationCoverage` run, and nothing reports it.**
-  The gate is unaffected (762/762, `MEMORY_ERROR 0`, exit 0) because pitest restarts the dead minion,
-  so the only evidence was a 1.2 GB `.hprof` appearing in `srcmorph/` each run. Twelve of them once
-  filled the disk mid-run. `srcmorph/pom.xml` now sets `parseSurefireConfig=false` + explicit
-  `<jvmArgs>` so the minions stop inheriting surefire's `-XX:+HeapDumpOnOutOfMemoryError` (an OOM is a
-  bug in a test JVM, but a normal operating condition in a mutation minion) — **that stops the file,
-  not the OOM.**
+- **A PIT mutation minion runs out of memory on every `mutationCoverage` run — diagnosed, closed, not a
+  defect.** The cause is an infinite-loop mutant, proven from the heap dump's own thread stack rather
+  than inferred: PIT mutates the `i += 1` that advances the scan loop in
+  `AiSourceExcludeFilter.globToRegex` (a gated class), the loop then appends `"[^/]"` forever, and
+  `StringBuilder` grows until the heap ends. The surviving 1.2 GB array reads literally
+  `^A[^/]A[^/]A[^/]…`, and the OOM frame sits under
+  `AiSourceExcludeFilterTest.questionMark_matchesExactlyOneNonSeparatorChar`. `timeoutConstant` exists
+  for runaway mutants, but this one allocates its way out of a 2 GB heap long before 30 s elapse; PIT
+  restarts the minion and the mutation is killed on the retry, which is why every run still reports
+  762/762, `MEMORY_ERROR 0`, exit 0.
 
-  What was measured, so the next person does not repeat it:
+  Nothing in production code needs changing — bounding `globToRegex` would be complexity added purely to
+  appease a mutant, and no real `<excludes>` glob can produce a gigabyte-scale regex. What *was* wrong is
+  where the crash diagnostics were applied: `srcmorph/pom.xml` now sets `parseSurefireConfig=false` plus
+  explicit `<jvmArgs>` so minions stop inheriting surefire's `-XX:+HeapDumpOnOutOfMemoryError`. An OOM is
+  a bug in a test JVM and a normal operating condition in a mutation minion; only the former deserves a
+  1.2 GB `.hprof`. Twelve of them filled the disk mid-run once, and CI wrote one per run too.
+
+  Dead ends, recorded so nobody repeats them:
   - `<jvmArgs>` alone is inert. Pitest places them *before* the inherited `argLine`, so surefire's
-    `-Xmx2g` wins. The dump size did not move until `parseSurefireConfig=false` was added.
+    `-Xmx2g` wins; the dump size did not move until `parseSurefireConfig=false` was added, then jumped
+    1.2 GB → 2.2 GB.
   - `-Xmx4g` makes it worse, not better: two minions died at 2.2 GB each instead of one at 1.2 GB.
-  - It is not ArchUnit. Excluding `CoreArchitectureTest` (the obvious memory suspect, and the top hit
-    when the dump's class-name strings are counted) changed nothing.
-  - It is not the JaCoCo agent that `@{argLine}` drags in; the current config runs without it and a
-    control run with the dump flags re-enabled still produced the same 1.2 GB dump.
-  - A class histogram of the dump is ~1.21 GB of `byte[]` and nothing else above a megabyte, so it is
-    one huge allocation rather than a leak of many objects. Which allocation is the open question;
-    `AiChecksumSupport`'s `Files.readAllBytes` is the only `byte[]` producer in main code, and its size
-    comes from a file, not from anything a mutation can inflate.
+  - Not ArchUnit. Excluding `CoreArchitectureTest` — the top hit when the dump's class-name *strings* are
+    counted — changed nothing. That count was a wrong inference; the class histogram (1.21 GB of `byte[]`,
+    nothing else above a megabyte) and then the stack trace were what actually settled it.
+  - Not the JaCoCo agent either; a control run without it still produced the same dump.
 
   To reproduce: add `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=.` back to the `<jvmArgs>` block.
 
