@@ -77,7 +77,6 @@ public class AiFieldGenerationSupportRealModelTest {
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final AiPromptPreparationSupport prep = new AiPromptPreparationSupport(promptSupport);
         final LlamaCppJniConfig jniConfig = new LlamaCppJniConfig(
-                null,
                 MODEL_PATH,
                 SMALL_CONTEXT,
                 48,

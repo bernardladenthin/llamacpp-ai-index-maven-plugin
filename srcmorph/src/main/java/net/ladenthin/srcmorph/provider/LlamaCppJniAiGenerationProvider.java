@@ -14,7 +14,6 @@ import net.ladenthin.llama.LlamaModel;
 import net.ladenthin.llama.args.ReasoningFormat;
 import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.llama.json.ChatResponseParser;
-import net.ladenthin.llama.loader.LlamaSystemProperties;
 import net.ladenthin.llama.parameters.InferenceParameters;
 import net.ladenthin.llama.parameters.ModelParameters;
 import net.ladenthin.llama.value.ChatResponse;
@@ -60,15 +59,6 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * re-prefilling it for every file. Reuse is exact, so generated output is unchanged.
      */
     private static final int REUSE_SLOT_ID = 0;
-
-    /**
-     * System property the binding's loader reads to find the native {@code jllama} library.
-     *
-     * <p>Built from {@link LlamaSystemProperties#PREFIX} so the prefix cannot drift from the binding;
-     * the suffix mirrors {@code LlamaSystemProperties.getLibPath()}. The value is a <em>directory</em>
-     * containing the shared library, not the library file itself.</p>
-     */
-    private static final String NATIVE_LIB_PATH_PROPERTY = LlamaSystemProperties.PREFIX + ".lib.path";
 
     /** Chat-template kwarg controlling Qwen-style thinking (ignored by non-Qwen templates). */
     private static final String ENABLE_THINKING_KWARG = "enable_thinking";
@@ -158,39 +148,10 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             if (!config.devices().isEmpty()) {
                 modelParameters.setDevices(config.devices());
             }
-            // Must happen before the FIRST LlamaModel construction in this JVM -- see applyLibraryPath.
-            applyLibraryPath(config.libraryPath());
             current = new LlamaModel(modelParameters);
             model = current;
         }
         return current;
-    }
-
-    /**
-     * Points the binding's native-library loader at a caller-supplied directory.
-     *
-     * <p>Sets {@value #NATIVE_LIB_PATH_PROPERTY} when a {@code libraryPath} is configured; a blank or
-     * absent value leaves the property untouched so the loader falls back to {@code java.library.path}
-     * and then to the copy bundled in the jar. The configured value is a <em>directory</em> containing
-     * the shared library, not the library file itself.</p>
-     *
-     * <p><strong>Only the first model load in a JVM is affected.</strong> The binding runs
-     * {@code LlamaLoader.initialize()} from {@code LlamaModel}'s static initializer, so the library is
-     * resolved once per class-load and every later value is ignored. A run with several model groups,
-     * or a Maven JVM reused across modules, therefore honours whichever path the first load saw. That
-     * is a property of the binding, not something this provider can work around; it is why the setting
-     * is documented as a local-development aid (point at a self-built {@code libjllama}) rather than a
-     * per-model knob.</p>
-     *
-     * <p>Package-private so it can be unit-tested without loading a model: the only caller is the lazy
-     * {@code model()} path, which needs a real GGUF.</p>
-     *
-     * @param libraryPath the configured directory, or {@code null}/blank to leave the loader's default
-     */
-    static void applyLibraryPath(final @Nullable String libraryPath) {
-        if (libraryPath != null && !libraryPath.trim().isEmpty()) {
-            System.setProperty(NATIVE_LIB_PATH_PROPERTY, libraryPath);
-        }
     }
 
     /**

@@ -5,7 +5,6 @@ package net.ladenthin.srcmorph.provider;
 
 import java.util.Collections;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Pure mapping from a resolved {@link AiGenerationConfig} (or a small set of fallback parameters) to an
@@ -31,14 +30,11 @@ public final class LlamaCppJniConfigFactory {
      * setters, so this method forwards them as-is; {@link LlamaCppJniConfig}'s constructor keeps its
      * own null guard for callers that build one directly.
      *
-     * @param libraryPath native library path; may be {@code null} to use the bundled native library
      * @param config      the resolved AI model generation config
      * @return the fully populated llama.cpp configuration
      */
-    public static LlamaCppJniConfig fromGenerationConfig(
-            final @Nullable String libraryPath, final AiGenerationConfig config) {
+    public static LlamaCppJniConfig fromGenerationConfig(final AiGenerationConfig config) {
         return new LlamaCppJniConfig(
-                libraryPath,
                 config.getModelPath(),
                 config.getContextSize(),
                 config.getMaxOutputTokens(),
@@ -76,7 +72,6 @@ public final class LlamaCppJniConfigFactory {
      * no {@code fieldGenerations}/routing rule is configured), applying every other
      * {@link AiGenerationConfig} default (sampling, DRY, GPU, …) unchanged.
      *
-     * @param libraryPath     native library path; may be {@code null} to use the bundled native library
      * @param modelPath       path to the GGUF model file
      * @param contextSize     context window size in tokens
      * @param maxOutputTokens maximum number of output tokens per call
@@ -85,14 +80,12 @@ public final class LlamaCppJniConfigFactory {
      * @return the fully populated llama.cpp configuration
      */
     public static LlamaCppJniConfig fromFallbackParameters(
-            final @Nullable String libraryPath,
             final String modelPath,
             final int contextSize,
             final int maxOutputTokens,
             final float temperature,
             final int threads) {
         return new LlamaCppJniConfig(
-                libraryPath,
                 modelPath,
                 contextSize,
                 maxOutputTokens,

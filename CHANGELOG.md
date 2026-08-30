@@ -11,17 +11,43 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
-### Fixed
-- **`llamaLibraryPath` did nothing, and had done nothing since the project's first commit.** The
-  parameter was declared on every mojo and threaded through `SrcMorphConfiguration`, `EngineSupport`,
-  both `LlamaCppJniConfigFactory` methods and `LlamaCppJniConfig` — and no code ever read it, so
-  setting it was a silent no-op. Git history confirms this is not a refactoring regression: in
-  `a1df3e0 "Initial version."` it was already the first field of the `LlamaCppJniConfig` record,
-  sitting next to `modelPath`, while the provider built its `ModelParameters` from `modelPath` /
-  `contextSize` / `threads` alone. It is now implemented — the provider sets
-  `net.ladenthin.llama.lib.path` from it before constructing the model, which is the binding loader's
-  highest-precedence source. Documented with the caveat that only the first model load in a JVM is
-  affected, since the binding resolves the library from `LlamaModel`'s static initializer.
+### Removed
+- **`llamaLibraryPath` / `srcmorph.llama.libraryPath` — a parameter that never worked.**
+
+  It was declared on every mojo and threaded through
+  `SrcMorphConfiguration`, `EngineSupport`, both `LlamaCppJniConfigFactory` methods and
+  `LlamaCppJniConfig` — and no code read it, so setting it was a silent no-op. Git history shows this
+  was never a working feature a refactor broke: in `a1df3e0 "Initial version."` it is already the
+  first field of the then six-field `LlamaCppJniConfig` record, next to `modelPath`, while that
+  commit's provider built its `ModelParameters` from `modelPath` / `contextSize` / `threads` alone.
+
+  It is removed rather than implemented, because the binding already offers the same knob and offers
+  it *better*. `net.ladenthin.llama.lib.path` is an ordinary JVM system property and the loader's
+  highest-precedence source; `MAVEN_OPTS` and `.mvn/jvm.config` set it before the JVM starts, so it
+  is in place before any class loads. A plugin parameter can only act once the provider builds a
+  model — by then `LlamaModel`'s static initializer may already have resolved the library, and every
+  later value is silently ignored. Implementing it would have added a weaker path with a
+  silent-failure mode alongside one that always works. Verified empirically that the property reaches
+  the build JVM: `mvn -Dnet.ladenthin.llama.lib.path=…` is readable via `System.getProperty` from
+  inside the build.
+
+  **Migration:** replace `<llamaLibraryPath>DIR</llamaLibraryPath>` with
+  `-Dnet.ladenthin.llama.lib.path=DIR` on the command line, in `MAVEN_OPTS`, or in `.mvn/jvm.config`.
+  A POM that still sets the element will fail with an unknown-parameter error; it was doing nothing
+  before, so no behaviour changes with it gone. The plugin README's GPU section already documented
+  the property as the runtime override.
+
+- **`config.AiGenerationKind` — dead code from a superseded design.** The enum (`FILE_SUMMARY`,
+  `PACKAGE_SUMMARY`, `FILE_KEYWORDS`, `PACKAGE_KEYWORDS`) is the original *fixed* generation taxonomy
+  from when the goals were `SummarizeFilesMojo` / `SummarizePackagesMojo`, and `8d1be51` and `0a6f462` deliberately replaced
+  that with configurable prompt keys and rule routing — which is design principle 6, "prompt templates
+  and routing rules are data, never hardcoded in Java". No production class referenced it in any
+  commit. Its two apparent users were concurrency-infrastructure examples that had borrowed the name:
+  the Lincheck one never touched the enum at all (it exercises an `AtomicInteger`) and is now
+  `AtomicCounterLincheckTest`; the jcstress one now races a real enum and is `AiOversizeStrategyRace`.
+  Both examples are kept — only their misleading names and the dead enum are gone. It was `public` in
+  a published artifact, so formally a breaking change; nothing could construct or receive it, so
+  practically not.
 
 ### Added
 - **`seed` model-definition knob** (`InferenceParameters.withSeed`, default `-1`). Upstream draws a

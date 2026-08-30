@@ -124,7 +124,7 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 
 **Test suite** (`srcmorph/src/test/java/net/ladenthin/srcmorph/`, package-renamed 1:1 with production):
 ~63 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
-(`AiGenerationKindLincheckTest`), and the model-backed real tests gated on
+(`AtomicCounterLincheckTest`), and the model-backed real tests gated on
 `src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 47 classes across
 config/document/engine/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
@@ -206,7 +206,7 @@ themselves.
   as documented; do not "fix" them to `srcmorph.*`.
 - **Architecture rules** (`PluginArchitectureTest`): Maven-annotation confinement to `mojo`, every mojo
   extends `AbstractMojo`, plus this module's slice of the shared conventions.
-- **jcstress** (`jcstress/AiGenerationKindRace.java`) and **vmlens**
+- **jcstress** (`jcstress/AiOversizeStrategyRace.java`) and **vmlens**
   (`vmlens/VmlensInterleavingSmokeTest.java`) tests/profiles currently live in this module, not in
   `srcmorph` — they were not relocated during the core extraction.
 - Full goal/parameter reference: `srcmorph-maven-plugin/README.md`.

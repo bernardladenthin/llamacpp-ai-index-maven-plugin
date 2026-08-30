@@ -190,7 +190,7 @@ public final class GenerateEngine {
                     group.getValue().size());
             try (AiGenerationProvider provider = providerFactory.create(
                     config.getGenerationProvider(),
-                    EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, aiDefinitionKey),
+                    EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, aiDefinitionKey),
                     promptSupport)) {
                 final AiFieldGenerationSupport support =
                         new AiFieldGenerationSupport(provider, promptPreparationSupport, modelDefinitionSupport);

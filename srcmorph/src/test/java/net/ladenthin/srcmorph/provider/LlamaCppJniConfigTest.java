@@ -4,7 +4,6 @@
 package net.ladenthin.srcmorph.provider;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
@@ -33,7 +32,6 @@ public class LlamaCppJniConfigTest {
     private static LlamaCppJniConfig configWithLists(
             final @Nullable List<String> drySequenceBreakers, final @Nullable List<String> stopStrings) {
         return new LlamaCppJniConfig(
-                null,
                 "model.gguf",
                 2048,
                 128,
@@ -102,7 +100,6 @@ public class LlamaCppJniConfigTest {
     public void constructor_nullTensorReadLazy_normalisedToEmptyString() {
         // arrange / act
         final LlamaCppJniConfig config = new LlamaCppJniConfig(
-                null,
                 "model.gguf",
                 2048,
                 128,
@@ -170,7 +167,6 @@ public class LlamaCppJniConfigTest {
                 NullPointerException.class,
                 () -> new LlamaCppJniConfig(
                         null,
-                        null,
                         2048,
                         128,
                         0.15f,
@@ -201,16 +197,6 @@ public class LlamaCppJniConfigTest {
                         Collections.<String>emptyList(),
                         Collections.<String>emptyList()));
         assertThat(thrown.getMessage(), is("modelPath"));
-    }
-
-    @Test
-    public void libraryPath_nullIsPreserved() {
-        // arrange / act
-        final LlamaCppJniConfig config =
-                configWithLists(Collections.<String>emptyList(), Collections.<String>emptyList());
-
-        // assert -- null means "use the bundled native library", it is not normalised away
-        assertThat(config.libraryPath(), is(nullValue()));
     }
 
     // </editor-fold>

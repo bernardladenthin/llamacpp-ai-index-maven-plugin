@@ -578,24 +578,12 @@ bundled native:
 mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dsrcmorph.generationProvider=llamacpp-jni
 ```
 
-The same override is available as a plugin parameter, so it can live in the POM instead of on the
-command line:
-
-| Parameter | Property | Default | Meaning |
-|---|---|---|---|
-| `llamaLibraryPath` | `srcmorph.llama.libraryPath` | *(empty)* | Directory holding the native `jllama` library. Sets `net.ladenthin.llama.lib.path` before the model is loaded, so it takes precedence over `java.library.path` and the native bundled in the jar. A blank value changes nothing. |
-
-```xml
-<configuration>
-  <llamaLibraryPath>/opt/jllama/gpu-native</llamaLibraryPath>
-</configuration>
-```
-
 > [!NOTE]
-> **Only the first model load in a JVM is affected.** The binding resolves the native library once,
-> from `LlamaModel`'s static initializer, so a run that loads several model groups — or a Maven JVM
-> reused across modules — uses whichever path the *first* load saw. Treat this as a
-> local-development aid for pointing at a self-built `jllama`, not a per-model setting.
+> There is deliberately **no plugin parameter** for this. The property is read by the binding's
+> loader from `LlamaModel`'s static initializer, i.e. once per class-load — so setting it before the
+> JVM starts (`MAVEN_OPTS`, `.mvn/jvm.config`, or `-D` on the command line as above) always works,
+> while a plugin parameter could only act after the library may already have been resolved. A
+> `llamaLibraryPath` parameter existed up to 1.2.0 but never read by any code; see the CHANGELOG.
 
 In both cases:
 

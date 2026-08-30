@@ -148,17 +148,14 @@ public class EngineSupportTest {
     @Test
     public void resolveLlamaCppJniConfig_byKey_looksUpNamedDefinition() {
         final SrcMorphConfiguration config = new SrcMorphConfiguration();
-        config.setLlamaLibraryPath("/opt/lib");
 
         final AiModelDefinition definition = new AiModelDefinition();
         definition.setKey("named");
         definition.setModelPath("named.gguf");
         final AiModelDefinitionSupport modelDefinitionSupport = new AiModelDefinitionSupport(Arrays.asList(definition));
 
-        final LlamaCppJniConfig result =
-                EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, "named");
+        final LlamaCppJniConfig result = EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, "named");
 
-        assertThat(result.libraryPath(), is("/opt/lib"));
         assertThat(result.modelPath(), is("named.gguf"));
     }
 
@@ -169,7 +166,7 @@ public class EngineSupportTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> EngineSupport.resolveLlamaCppJniConfig(config, modelDefinitionSupport, "missing"));
+                () -> EngineSupport.resolveLlamaCppJniConfig(modelDefinitionSupport, "missing"));
     }
     // </editor-fold>
 }

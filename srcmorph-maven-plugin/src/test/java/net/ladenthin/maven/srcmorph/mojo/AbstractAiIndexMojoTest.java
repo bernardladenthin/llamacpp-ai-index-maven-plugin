@@ -92,7 +92,6 @@ public class AbstractAiIndexMojoTest {
         mojo.promptDefinitions = prompts;
         mojo.aiDefinitions = models;
         mojo.fieldGenerations = rules;
-        mojo.llamaLibraryPath = "lib-path";
         mojo.llamaModelPath = "model.gguf";
         mojo.llamaMaxOutputTokens = 222;
         mojo.llamaTemperature = 0.33f;
@@ -109,7 +108,6 @@ public class AbstractAiIndexMojoTest {
         assertThat(config.getPromptDefinitions(), is(sameInstance(prompts)));
         assertThat(config.getAiDefinitions(), is(sameInstance(models)));
         assertThat(config.getFieldGenerations(), is(sameInstance(rules)));
-        assertThat(config.getLlamaLibraryPath(), is(equalTo("lib-path")));
         assertThat(config.getLlamaModelPath(), is(equalTo("model.gguf")));
         assertThat(config.getLlamaMaxOutputTokens(), is(equalTo(222)));
         assertThat(config.getLlamaTemperature(), is(equalTo(0.33f)));

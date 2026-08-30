@@ -19,7 +19,6 @@ public class AiGenerationProviderFactoryTest {
 
     private static LlamaCppJniConfig jniConfig() {
         return new LlamaCppJniConfig(
-                null,
                 "model.gguf",
                 2048,
                 128,

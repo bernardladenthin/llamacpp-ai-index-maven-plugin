@@ -113,14 +113,13 @@ final class EngineSupport {
         final List<AiFieldGenerationConfig> fieldGenerations = config.getFieldGenerations();
         if (fieldGenerations != null && !fieldGenerations.isEmpty()) {
             return resolveLlamaCppJniConfig(
-                    config, modelDefinitionSupport, fieldGenerations.get(0).getAiDefinitionKey());
+                    modelDefinitionSupport, fieldGenerations.get(0).getAiDefinitionKey());
         }
         final String modelPath = config.getLlamaModelPath();
         if (modelPath == null) {
             throw new NullPointerException("llamaModelPath");
         }
         return LlamaCppJniConfigFactory.fromFallbackParameters(
-                config.getLlamaLibraryPath(),
                 modelPath,
                 config.getLlamaContextSize(),
                 config.getLlamaMaxOutputTokens(),
@@ -133,17 +132,18 @@ final class EngineSupport {
      * key. Used by {@link GenerateEngine} (one provider per routing group) and {@link CalibrateEngine}
      * (one provider per calibrated model).
      *
-     * @param config                 the run configuration (supplies {@code llamaLibraryPath})
+     * <p>Takes no {@link SrcMorphConfiguration}: everything this needs comes from the named model
+     * definition. The run configuration used to contribute the (never-read) native library path; with
+     * that gone, passing it here would be an unused parameter.</p>
+     *
      * @param modelDefinitionSupport model lookup built from {@link SrcMorphConfiguration#getAiDefinitions()}
      * @param aiDefinitionKey        the {@link AiModelDefinition} key
      * @return the fully populated llama.cpp configuration for that definition
      * @throws IllegalArgumentException if {@code aiDefinitionKey} matches no registered definition
      */
     static LlamaCppJniConfig resolveLlamaCppJniConfig(
-            final SrcMorphConfiguration config,
-            final AiModelDefinitionSupport modelDefinitionSupport,
-            final String aiDefinitionKey) {
+            final AiModelDefinitionSupport modelDefinitionSupport, final String aiDefinitionKey) {
         final AiGenerationConfig modelConfig = modelDefinitionSupport.getConfig(aiDefinitionKey);
-        return LlamaCppJniConfigFactory.fromGenerationConfig(config.getLlamaLibraryPath(), modelConfig);
+        return LlamaCppJniConfigFactory.fromGenerationConfig(modelConfig);
     }
 }

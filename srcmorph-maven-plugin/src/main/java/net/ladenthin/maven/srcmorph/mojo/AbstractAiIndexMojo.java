@@ -103,13 +103,6 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
     @Parameter
     protected List<AiFieldGenerationConfig> fieldGenerations;
 
-    /**
-     * Optional native library path passed to the llama.cpp JNI provider.
-     * Leave unset to use the bundled native library.
-     */
-    @Parameter(property = "srcmorph.llama.libraryPath")
-    protected String llamaLibraryPath;
-
     /** Path to the GGUF model file used by the llama.cpp JNI provider. */
     @Parameter(property = "srcmorph.llama.modelPath")
     protected String llamaModelPath;
@@ -188,7 +181,6 @@ public abstract class AbstractAiIndexMojo extends AbstractMojo {
         config.setPromptDefinitions(promptDefinitions);
         config.setAiDefinitions(aiDefinitions);
         config.setFieldGenerations(fieldGenerations);
-        config.setLlamaLibraryPath(llamaLibraryPath);
         config.setLlamaModelPath(llamaModelPath);
         config.setLlamaContextSize(getLlamaContextSize());
         config.setLlamaMaxOutputTokens(llamaMaxOutputTokens);

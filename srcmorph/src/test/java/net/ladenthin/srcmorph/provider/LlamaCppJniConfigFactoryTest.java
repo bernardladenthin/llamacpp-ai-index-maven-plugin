@@ -5,7 +5,6 @@ package net.ladenthin.srcmorph.provider;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
@@ -56,9 +55,8 @@ public class LlamaCppJniConfigFactoryTest {
 
     @Test
     public void fromGenerationConfig_threadsEveryFieldThrough() {
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig("libpath", fullConfig());
+        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(fullConfig());
 
-        assertThat(result.libraryPath(), is("libpath"));
         assertThat(result.modelPath(), is("model.gguf"));
         assertThat(result.contextSize(), is(1111));
         assertThat(result.maxOutputTokens(), is(222));
@@ -93,13 +91,6 @@ public class LlamaCppJniConfigFactoryTest {
     }
 
     @Test
-    public void fromGenerationConfig_libraryPathNullIsPreserved() {
-        final AiGenerationConfig config = fullConfig();
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(null, config);
-        assertThat(result.libraryPath(), is(nullValue()));
-    }
-
-    @Test
     public void fromGenerationConfig_listsNullifiedThroughTheSetters_arriveAsEmptyLists() {
         // Note what this does and does not pin: the setters normalise null to an empty list, so the
         // factory never sees a null here. It proves the empty list survives the mapping, NOT that the
@@ -109,7 +100,7 @@ public class LlamaCppJniConfigFactoryTest {
         config.setStopStrings(null);
         config.setDrySequenceBreakers(null);
 
-        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig("lib", config);
+        final LlamaCppJniConfig result = LlamaCppJniConfigFactory.fromGenerationConfig(config);
 
         assertThat(result.stopStrings(), is(Collections.<String>emptyList()));
         assertThat(result.drySequenceBreakers(), is(Collections.<String>emptyList()));
@@ -118,9 +109,8 @@ public class LlamaCppJniConfigFactoryTest {
     @Test
     public void fromFallbackParameters_threadsFallbackArgumentsThrough() {
         final LlamaCppJniConfig result =
-                LlamaCppJniConfigFactory.fromFallbackParameters("lib", "fallback.gguf", 4096, 256, 0.42f, 6);
+                LlamaCppJniConfigFactory.fromFallbackParameters("fallback.gguf", 4096, 256, 0.42f, 6);
 
-        assertThat(result.libraryPath(), is("lib"));
         assertThat(result.modelPath(), is("fallback.gguf"));
         assertThat(result.contextSize(), is(4096));
         assertThat(result.maxOutputTokens(), is(256));
@@ -131,7 +121,7 @@ public class LlamaCppJniConfigFactoryTest {
     @Test
     public void fromFallbackParameters_appliesEveryAiGenerationConfigDefault() {
         final LlamaCppJniConfig result =
-                LlamaCppJniConfigFactory.fromFallbackParameters(null, "fallback.gguf", 4096, 256, 0.42f, 6);
+                LlamaCppJniConfigFactory.fromFallbackParameters("fallback.gguf", 4096, 256, 0.42f, 6);
 
         assertThat(result.topP(), is(AiGenerationConfig.DEFAULT_TOP_P));
         assertThat(result.topK(), is(AiGenerationConfig.DEFAULT_TOP_K));
