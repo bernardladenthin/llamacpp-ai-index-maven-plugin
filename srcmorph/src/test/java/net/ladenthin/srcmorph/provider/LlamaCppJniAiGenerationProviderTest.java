@@ -132,6 +132,12 @@ public class LlamaCppJniAiGenerationProviderTest {
             // A clearly larger, distinct prompt processes more prompt tokens -> proves it is the real
             // generation path (not a discarded/zero-timings one).
             assertThat(big.promptTokens() > small.promptTokens(), is(true));
+            // Both requests share the same system prompt, so the second one must find that prefix already
+            // in the KV cache. This is the end-to-end proof that the prefix-reuse settings (cachePrompt /
+            // cacheReuse / swaFull) actually engage -- without cache_n surfaced, their KV-memory cost was
+            // paid on faith alone.
+            assertThat(big.cachedPromptTokens() > 0, is(true));
+            assertThat(big.totalPromptTokens() > big.promptTokens(), is(true));
         }
     }
     // </editor-fold>

@@ -96,13 +96,13 @@ public final class AiCalibrationRunner {
 
         // Preferred path: the provider reports the model's OWN measured throughput (exact tokens/sec).
         if (near.prefillTokensPerSecond() > 0.0d) {
-            final double charsPerToken = near.promptTokens() > 0 ? (double) nearChars / near.promptTokens() : 0.0d;
             return new AiCalibrationMeasurement(
                     loadSeconds,
                     near.prefillTokensPerSecond(),
                     near.decodeTokensPerSecond(),
-                    charsPerToken,
-                    mid.prefillTokensPerSecond());
+                    charsPerToken(midChars, mid, nearChars, near),
+                    mid.prefillTokensPerSecond(),
+                    near.cachedPromptTokens());
         }
 
         // Fallback (no reported timings, e.g. mock): estimate by wall-clock. Only now do the decode probe
@@ -113,7 +113,46 @@ public final class AiCalibrationRunner {
                 provider.generateWithTimings(request(promptKey, contextFile, tinySource, header));
         final double probeWallSeconds = (System.nanoTime() - probeStartNanos) / NANOS_PER_SECOND;
         return wallClockFallback(
-                loadSeconds, midChars, nearChars, midWallSeconds, nearWallSeconds, probe, probeWallSeconds, config);
+                loadSeconds,
+                midChars,
+                nearChars,
+                midWallSeconds,
+                nearWallSeconds,
+                probe,
+                probeWallSeconds,
+                config,
+                near.cachedPromptTokens());
+    }
+
+    /**
+     * Derives characters per token from the mid&rarr;near <em>size differential</em>, so the result
+     * describes the source text alone.
+     *
+     * <p>Both runs share the same base prompt, so subtracting them cancels it: the remaining characters
+     * ({@code nearChars - midChars}) and the remaining tokens are pure source. The token side must be the
+     * <em>whole</em> prompt ({@link AiGenerationTimings#totalPromptTokens()}, i.e. processed <b>plus</b>
+     * KV-cache-served), never the processed count alone &mdash; the earlier
+     * {@code nearChars / near.promptTokens()} form only happened to be right while the base prompt was a
+     * cache hit, and nothing in the run enforced or even reported that. With the totals the derivation is
+     * correct whether or not the prefix was reused.</p>
+     *
+     * @param midChars  the mid-window source length
+     * @param mid       the mid-window run's timings
+     * @param nearChars the near-window source length
+     * @param near      the near-window run's timings
+     * @return characters per token, or {@code 0} when the run reported no prompt tokens at all
+     */
+    private static double charsPerToken(
+            final int midChars, final AiGenerationTimings mid, final int nearChars, final AiGenerationTimings near) {
+        final int nearTokens = near.totalPromptTokens();
+        final int deltaTokens = nearTokens - mid.totalPromptTokens();
+        if (deltaTokens > 0) {
+            return (double) (nearChars - midChars) / deltaTokens;
+        }
+        // Degenerate: both sizes clamped to the same floor (a tiny window), so there is no differential to
+        // read. Fall back to the near run's own whole-prompt ratio, which overstates chars/token by the
+        // base prompt's share -- still finite and far better than dividing by zero.
+        return nearTokens > 0 ? (double) nearChars / nearTokens : 0.0d;
     }
 
     /**
@@ -132,6 +171,7 @@ public final class AiCalibrationRunner {
      * @param probe           the tiny decode-probe result (its text is the actual generated output)
      * @param probeWallSeconds wall-clock seconds for the decode probe
      * @param config          the model config (chars/token)
+     * @param cachedPromptTokens the near-window run's KV-cache hit count, carried through unchanged
      * @return the measurement derived from wall-clock timing
      */
     private static AiCalibrationMeasurement wallClockFallback(
@@ -142,7 +182,8 @@ public final class AiCalibrationRunner {
             final double nearWallSeconds,
             final AiGenerationTimings probe,
             final double probeWallSeconds,
-            final AiGenerationConfig config) {
+            final AiGenerationConfig config,
+            final int cachedPromptTokens) {
         final double charsPerToken =
                 config.getCharsPerToken() > 0 ? config.getCharsPerToken() : FALLBACK_CHARS_PER_TOKEN;
         final double midTokens = midChars / charsPerToken;
@@ -158,7 +199,8 @@ public final class AiCalibrationRunner {
         final double outputTokens = probe.text().length() / charsPerToken;
         final double decodeTps = outputTokens > 0.0d ? outputTokens / decodeSeconds : 0.0d;
 
-        return new AiCalibrationMeasurement(loadSeconds, prefillTps, decodeTps, charsPerToken, prefillTps);
+        return new AiCalibrationMeasurement(
+                loadSeconds, prefillTps, decodeTps, charsPerToken, prefillTps, cachedPromptTokens);
     }
 
     /**

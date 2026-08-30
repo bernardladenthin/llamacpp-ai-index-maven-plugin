@@ -53,6 +53,17 @@ recorded in git history and `crossrepostatus.md`, not here.
   the plugin's `mojo.*`) and the JNI provider stay out of PIT — they need a Maven/native context
   rather than pure-unit mutation (see crossrepostatus "Deliberate non-parity").
 
+- **Prompt-cache reuse is observable during `calibrate`, not during a real `generate` run.** The
+  provider now surfaces llama.cpp's `cache_n` as `AiGenerationTimings#cachedPromptTokens()`, and
+  `srcmorph:calibrate` reports it per model (`AiCalibrationMeasurement#cachedPromptTokens()`), so the
+  prefix-reuse settings — `cachePrompt`, `cacheReuse`, `swaFull` — can finally be measured instead of
+  assumed. The indexing path does not see it: `AiFieldGenerationSupport` calls
+  `AiGenerationProvider#generate(...)`, which returns only the text, so a full run still cannot say how
+  much of each prompt was reused. Calibrate is a fair proxy (its runs share one system prompt, exactly
+  like an indexing run does), which is why this is a follow-up and not a gap in the measurement itself.
+  Switching the hot path to `generateWithTimings(...)` and logging the reuse at `DEBUG` would close it;
+  weigh that against touching the per-file path and its tests for a diagnostic.
+
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
 - **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.

@@ -24,6 +24,14 @@ public class MockAiGenerationProvider implements AiGenerationProvider {
     /** Synthetic decode token count reported by the mock. */
     private static final int MOCK_PREDICTED_TOKENS = 64;
 
+    /**
+     * Synthetic KV-cache hit count reported by the mock. A real run reuses the byte-identical system
+     * prompt on every call, so the mock models that as a <em>constant</em> cached prefix: it is present
+     * (so cache-aware callers see reuse) and it cancels out of any size differential, exactly as the real
+     * one does.
+     */
+    private static final int MOCK_CACHED_PROMPT_TOKENS = 32;
+
     /** Creates a new {@link MockAiGenerationProvider}. */
     public MockAiGenerationProvider() {
         // no-op
@@ -43,6 +51,7 @@ public class MockAiGenerationProvider implements AiGenerationProvider {
         return new AiGenerationTimings(
                 generate(request),
                 promptTokens,
+                MOCK_CACHED_PROMPT_TOKENS,
                 MOCK_PREFILL_TOKENS_PER_SECOND,
                 MOCK_PREDICTED_TOKENS,
                 MOCK_DECODE_TOKENS_PER_SECOND);

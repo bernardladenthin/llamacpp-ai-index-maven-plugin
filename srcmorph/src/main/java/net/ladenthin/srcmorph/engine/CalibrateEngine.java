@@ -153,6 +153,16 @@ public final class CalibrateEngine {
                         m.midPrefillTokensPerSecond(),
                         m.prefillTokensPerSecond()));
             }
+            // The only observable the prefix-reuse settings produce. Reporting it is what turns
+            // cachePrompt/cacheReuse/swaFull from an article of faith into a measurement.
+            if (m.cachedPromptTokens() > 0) {
+                LOGGER.info(
+                        "  (prompt cache: {} prompt token(s) reused from the KV cache - prefix reuse is working)",
+                        m.cachedPromptTokens());
+            } else {
+                LOGGER.warn("  (prompt cache: no prompt tokens were reused on this model; "
+                        + "cachePrompt/cacheReuse/swaFull are costing KV memory without paying for it)");
+            }
             return new CalibrationReport.ModelMeasurement(modelKey, m);
         } catch (final IOException e) {
             throw new SrcMorphException("Calibration failed for model '" + modelKey + "': " + e.getMessage(), e);

@@ -12,11 +12,12 @@ public class AiCalibrationMeasurementTest {
 
     @Test
     public void accessorsReturnConstructorValues() {
-        final AiCalibrationMeasurement m = new AiCalibrationMeasurement(3.5d, 900.0d, 45.0d, 4.2d, 1200.0d);
+        final AiCalibrationMeasurement m = new AiCalibrationMeasurement(3.5d, 900.0d, 45.0d, 4.2d, 1200.0d, 480);
         assertThat(m.loadSeconds(), is(3.5d));
         assertThat(m.prefillTokensPerSecond(), is(900.0d));
         assertThat(m.decodeTokensPerSecond(), is(45.0d));
         assertThat(m.charsPerToken(), is(4.2d));
         assertThat(m.midPrefillTokensPerSecond(), is(1200.0d));
+        assertThat(m.cachedPromptTokens(), is(480));
     }
 }

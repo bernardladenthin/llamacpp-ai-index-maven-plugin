@@ -59,6 +59,19 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   to before. Documented deliberately as *not* bit-reproducibility: llama.cpp results move with thread
   count, batch size and backend, so the seed pins the sampling, not the arithmetic.
 
+- **The prompt cache is now measured instead of assumed** — `cache_n` reaches Java. The binding has
+  always reported how many leading prompt tokens llama.cpp served straight from the KV cache; the
+  provider read the `Timings` object and dropped that number. It is the *only* observable the whole
+  prefix-reuse stack produces (`cachePrompt`, `cacheReuse`, `swaFull`), so with it discarded a run paid
+  `swaFull`'s KV-memory surcharge on the assumption that it was working, with no way to tell whether it
+  was. `AiGenerationTimings` now carries it as `cachedPromptTokens()` next to the evaluated
+  `promptTokens()`, plus their sum as `totalPromptTokens()`; `AiCalibrationMeasurement` carries the
+  near-window run's count, and `srcmorph:calibrate` logs it per model — an `INFO` line naming the reused
+  token count, or a `WARN` when nothing was reused, which is the case where those settings cost memory
+  and buy nothing. The opt-in real-model provider test (`-DrunNativeLlamaTests=true`) asserts that a
+  second request against the same system prompt finds it cached, so the reuse is proven end to end and
+  not just plumbed.
+
 ### Fixed
 - **`AiMdHeaderSupport.shouldWrite`'s change-detection chain was not covered by a single test.** The
   seven-way header comparison that decides whether a `.ai.md` is regenerated could be replaced
@@ -69,6 +82,17 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   nothing failing. Both tests now write a body, and a parameterized case covers each compared field
   (`h`/`x`/`title`/`c`/`d`/`g`/`a`) plus the unchanged-header negative. Re-running the same mutation
   now fails 9 of 15 tests, and removing a single disjunct fails 2.
+- **`srcmorph:calibrate`'s chars-per-token silently depended on a cache hit nothing checked.** It divided
+  the near-window run's *source* characters by the prompt tokens the model had *evaluated* — a figure that
+  excludes whatever the KV cache served. That is only the source's own token count while the base prompt
+  is a cache hit; with no reuse the same divisor also covers the base prompt, so the ratio came out too
+  low and the plan's time estimate with it. Nothing enforced the assumption and, until `cache_n` was
+  surfaced, nothing could even observe whether it held. The ratio is now read from the mid&rarr;near
+  *size differential* over `totalPromptTokens()` (evaluated **plus** cache-served): both runs share the
+  same base prompt, so subtracting them cancels it and the result describes the source text alone,
+  identically whether or not the prefix was reused. A regression test measures the same prompt twice —
+  once fully reused, once not — and requires both to agree; it fails on the previous formula.
+
 - **No `execute()` verified that it honours the skip flag.** `shouldSkip()` itself was well tested, but
   a mojo that never called it would have passed every one of those tests — and would have loaded a
   model and written files under `-Dsrcmorph.skip=true`. All four goals now assert it, `CalibrateMojo`

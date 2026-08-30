@@ -31,7 +31,7 @@ public interface AiGenerationProvider extends AutoCloseable {
      * @throws IOException if the underlying provider fails
      */
     default AiGenerationTimings generateWithTimings(final AiGenerationRequest request) throws IOException {
-        return new AiGenerationTimings(generate(request), 0, 0.0d, 0, 0.0d);
+        return new AiGenerationTimings(generate(request), 0, 0, 0.0d, 0, 0.0d);
     }
 
     @Override

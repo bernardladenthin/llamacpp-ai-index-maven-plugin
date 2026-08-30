@@ -216,11 +216,15 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         final Timings timings = response.getTimings();
         if (timings == null) {
             // A build/response without timings degrades to zero rates so the caller's fallback can act.
-            return new AiGenerationTimings(text, 0, 0.0d, 0, 0.0d);
+            return new AiGenerationTimings(text, 0, 0, 0.0d, 0, 0.0d);
         }
+        // cache_n is the leading prompt slice llama.cpp served straight from the KV cache. It is the only
+        // observable the prefix-reuse settings (cachePrompt / cacheReuse / swaFull) produce, so it is
+        // surfaced rather than dropped: without it a run pays swaFull's KV memory on faith.
         return new AiGenerationTimings(
                 text,
                 (int) timings.getPromptN(),
+                timings.getCacheN(),
                 timings.getPromptPerSecond(),
                 (int) timings.getPredictedN(),
                 timings.getPredictedPerSecond());

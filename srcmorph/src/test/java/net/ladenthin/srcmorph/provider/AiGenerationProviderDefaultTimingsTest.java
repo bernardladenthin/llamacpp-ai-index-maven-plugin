@@ -26,6 +26,8 @@ public class AiGenerationProviderDefaultTimingsTest {
 
         assertThat(timings.text(), is("TEXT"));
         assertThat(timings.promptTokens(), is(0));
+        assertThat(timings.cachedPromptTokens(), is(0));
+        assertThat(timings.totalPromptTokens(), is(0));
         assertThat(timings.prefillTokensPerSecond(), is(0.0d));
         assertThat(timings.predictedTokens(), is(0));
         assertThat(timings.decodeTokensPerSecond(), is(0.0d));

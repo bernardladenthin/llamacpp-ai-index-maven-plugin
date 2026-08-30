@@ -51,4 +51,23 @@ public class MockAiGenerationProviderTest {
         assertThat(timings.prefillTokensPerSecond() > 0.0d, is(true));
         assertThat(timings.decodeTokensPerSecond() > 0.0d, is(true));
     }
+
+    /**
+     * The mock models the system prompt being served from the KV cache: a fixed, non-zero cached prefix on
+     * top of the source-derived evaluated tokens. Pinned exactly, because "constant" is the property the
+     * calibration differential relies on -- a cached count that varied with the source would not cancel.
+     */
+    @Test
+    public void generateWithTimings_reportsAConstantCachedPrefixIndependentOfSourceSize() throws IOException {
+        final AiGenerationTimings small =
+                provider.generateWithTimings(new AiGenerationRequest("summary", Paths.get("Foo.java"), "0123", HEADER));
+        final AiGenerationTimings large = provider.generateWithTimings(
+                new AiGenerationRequest("summary", Paths.get("Foo.java"), "0123456789012345", HEADER));
+
+        assertThat(small.cachedPromptTokens(), is(32));
+        assertThat(large.cachedPromptTokens(), is(small.cachedPromptTokens()));
+        // Only the evaluated half grows with the source, so the totals differ by the source delta alone.
+        assertThat(small.totalPromptTokens(), is(33));
+        assertThat(large.totalPromptTokens(), is(36));
+    }
 }
