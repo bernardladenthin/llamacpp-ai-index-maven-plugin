@@ -180,6 +180,47 @@ public class AiGenerationConfig {
     public static final int DEFAULT_GPU_LAYERS = -1;
 
     /**
+     * Default number of MoE (mixture-of-experts) layers to keep on the CPU ({@code --n-cpu-moe},
+     * {@code -ncmoe}). {@code -1} (default) means "do not set it".
+     *
+     * <p>This is the companion to {@link #DEFAULT_GPU_LAYERS} and usually the better trade for this
+     * tool: {@code --gpu-layers} moves <em>whole layers</em> off the GPU and costs attention speed,
+     * whereas this moves only the expert weights &mdash; the class that dominates a MoE model's size
+     * &mdash; so a substantially larger model fits the same VRAM at a smaller speed cost. {@code 0}
+     * is a valid, meaningful value (keep no expert layer on the CPU). Only effective on a GPU native
+     * build and only for MoE models.</p>
+     */
+    public static final int DEFAULT_CPU_MOE_LAYERS = -1;
+
+    /**
+     * Default number of FFN (feed-forward) layers to keep on the CPU ({@code --n-cpu-ffn},
+     * {@code -ncffn}). {@code -1} (default) means "do not set it". The dense-model counterpart to
+     * {@link #DEFAULT_CPU_MOE_LAYERS}; {@code 0} is valid and meaningful.
+     */
+    public static final int DEFAULT_CPU_FFN_LAYERS = -1;
+
+    /**
+     * Default per-slot unified KV context cap ({@code --kv-unified-per-slot}). {@code -1} (default)
+     * means "do not set it".
+     *
+     * <p>Only the <em>cap</em> half of the upstream flag applies here: it becomes the slot's context
+     * budget. The other half &mdash; sizing the shared KV pool to {@code n_parallel * N} when no
+     * context size is given &mdash; lives in llama.cpp's standalone server, which this provider never
+     * enters, and it cannot trigger anyway because a context size is always set. Must be positive if
+     * set; the binding rejects {@code 0} and negatives.</p>
+     */
+    public static final int DEFAULT_KV_UNIFIED_PER_SLOT = -1;
+
+    /**
+     * Default tensor-read laziness ({@code --tensor-read-lazy}). Empty (default) means "do not set
+     * it"; recognised values are {@code off}, {@code auto} and {@code on}.
+     *
+     * <p>Deferring tensor reads can shorten model load time, which matters here because a run loads
+     * and unloads one model per model group and {@code calibrate} preflights every model in turn.</p>
+     */
+    public static final String DEFAULT_TENSOR_READ_LAZY = "";
+
+    /**
      * Default primary GPU index ({@code --main-gpu}). {@code -1} (default) means "do not set it" — the
      * binding/native build decides (llama.cpp's own default is device {@code 0}). Set a non-negative
      * index to pick a specific device. This matters on machines with more than one GPU visible to the
@@ -243,6 +284,10 @@ public class AiGenerationConfig {
     private boolean swaFull = DEFAULT_SWA_FULL;
     private int cacheReuse = DEFAULT_CACHE_REUSE;
     private int gpuLayers = DEFAULT_GPU_LAYERS;
+    private int cpuMoeLayers = DEFAULT_CPU_MOE_LAYERS;
+    private int cpuFfnLayers = DEFAULT_CPU_FFN_LAYERS;
+    private int kvUnifiedPerSlot = DEFAULT_KV_UNIFIED_PER_SLOT;
+    private String tensorReadLazy = DEFAULT_TENSOR_READ_LAZY;
     private int mainGpu = DEFAULT_MAIN_GPU;
     private String devices = DEFAULT_DEVICES;
     private String reasoningEffort = DEFAULT_REASONING_EFFORT;
@@ -572,6 +617,78 @@ public class AiGenerationConfig {
      */
     public void setGpuLayers(final int gpuLayers) {
         this.gpuLayers = gpuLayers;
+    }
+
+    /**
+     * Returns the number of MoE layers kept on the CPU ({@code --n-cpu-moe}).
+     *
+     * @return CPU MoE layers ({@code -1} = leave the binding/build default)
+     */
+    public int getCpuMoeLayers() {
+        return cpuMoeLayers;
+    }
+
+    /**
+     * Sets the number of MoE layers to keep on the CPU ({@code --n-cpu-moe}).
+     *
+     * @param cpuMoeLayers CPU MoE layers ({@code -1} = leave default, {@code >= 0} = keep that many)
+     */
+    public void setCpuMoeLayers(final int cpuMoeLayers) {
+        this.cpuMoeLayers = cpuMoeLayers;
+    }
+
+    /**
+     * Returns the number of FFN layers kept on the CPU ({@code --n-cpu-ffn}).
+     *
+     * @return CPU FFN layers ({@code -1} = leave the binding/build default)
+     */
+    public int getCpuFfnLayers() {
+        return cpuFfnLayers;
+    }
+
+    /**
+     * Sets the number of FFN layers to keep on the CPU ({@code --n-cpu-ffn}).
+     *
+     * @param cpuFfnLayers CPU FFN layers ({@code -1} = leave default, {@code >= 0} = keep that many)
+     */
+    public void setCpuFfnLayers(final int cpuFfnLayers) {
+        this.cpuFfnLayers = cpuFfnLayers;
+    }
+
+    /**
+     * Returns the per-slot unified KV context cap ({@code --kv-unified-per-slot}).
+     *
+     * @return the cap ({@code -1} = leave the binding/build default)
+     */
+    public int getKvUnifiedPerSlot() {
+        return kvUnifiedPerSlot;
+    }
+
+    /**
+     * Sets the per-slot unified KV context cap ({@code --kv-unified-per-slot}).
+     *
+     * @param kvUnifiedPerSlot the cap ({@code -1} = leave default, must be positive when set)
+     */
+    public void setKvUnifiedPerSlot(final int kvUnifiedPerSlot) {
+        this.kvUnifiedPerSlot = kvUnifiedPerSlot;
+    }
+
+    /**
+     * Returns the tensor-read laziness ({@code --tensor-read-lazy}).
+     *
+     * @return {@code off}, {@code auto}, {@code on}, or empty to leave the default
+     */
+    public String getTensorReadLazy() {
+        return tensorReadLazy;
+    }
+
+    /**
+     * Sets the tensor-read laziness ({@code --tensor-read-lazy}).
+     *
+     * @param tensorReadLazy {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
+     */
+    public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
+        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : DEFAULT_TENSOR_READ_LAZY;
     }
 
     /**

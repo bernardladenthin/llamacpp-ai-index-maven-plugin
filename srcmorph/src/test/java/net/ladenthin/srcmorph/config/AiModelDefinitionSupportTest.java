@@ -53,6 +53,10 @@ public class AiModelDefinitionSupportTest {
         definition.setSwaFull(false);
         definition.setCacheReuse(128);
         definition.setGpuLayers(20);
+        definition.setCpuMoeLayers(24);
+        definition.setCpuFfnLayers(16);
+        definition.setKvUnifiedPerSlot(4096);
+        definition.setTensorReadLazy("on");
         definition.setMainGpu(1);
         definition.setDevices("Vulkan1");
         definition.setReasoningEffort("high");
@@ -105,6 +109,12 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.isSwaFull(), is(false));
         assertThat(config.getCacheReuse(), is(equalTo(128)));
         assertThat(config.getGpuLayers(), is(equalTo(20)));
+        // The CPU-offload / KV / lazy-read knobs propagate — kill the dropped-setter void-call
+        // mutants in toConfig().
+        assertThat(config.getCpuMoeLayers(), is(equalTo(24)));
+        assertThat(config.getCpuFfnLayers(), is(equalTo(16)));
+        assertThat(config.getKvUnifiedPerSlot(), is(equalTo(4096)));
+        assertThat(config.getTensorReadLazy(), is(equalTo("on")));
         // mainGpu/devices propagate — kill the dropped-setter void-call mutants in toConfig().
         assertThat(config.getMainGpu(), is(equalTo(1)));
         assertThat(config.getDevices(), is(equalTo("Vulkan1")));
@@ -143,6 +153,10 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.isSwaFull(), is(AiGenerationConfig.DEFAULT_SWA_FULL));
         assertThat(config.getCacheReuse(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_REUSE)));
         assertThat(config.getGpuLayers(), is(equalTo(AiGenerationConfig.DEFAULT_GPU_LAYERS)));
+        assertThat(config.getCpuMoeLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS)));
+        assertThat(config.getCpuFfnLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS)));
+        assertThat(config.getKvUnifiedPerSlot(), is(equalTo(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT)));
+        assertThat(config.getTensorReadLazy(), is(equalTo(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY)));
         assertThat(config.getMainGpu(), is(equalTo(AiGenerationConfig.DEFAULT_MAIN_GPU)));
         assertThat(config.getDevices(), is(equalTo(AiGenerationConfig.DEFAULT_DEVICES)));
         assertThat(config.getReasoningEffort(), is(equalTo(AiGenerationConfig.DEFAULT_REASONING_EFFORT)));

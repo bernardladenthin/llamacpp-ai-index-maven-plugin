@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package net.ladenthin.srcmorph.provider;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,12 +11,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +63,10 @@ public class LlamaCppJniAiGenerationProviderTest {
                 AiGenerationConfig.DEFAULT_SWA_FULL,
                 AiGenerationConfig.DEFAULT_CACHE_REUSE,
                 AiGenerationConfig.DEFAULT_GPU_LAYERS,
+                AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS,
+                AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS,
+                AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT,
+                AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY,
                 AiGenerationConfig.DEFAULT_MAIN_GPU,
                 AiGenerationConfig.DEFAULT_DEVICES,
                 AiGenerationConfig.DEFAULT_REASONING_EFFORT,
@@ -128,4 +135,27 @@ public class LlamaCppJniAiGenerationProviderTest {
         }
     }
     // </editor-fold>
+
+    @Test
+    public void tensorReadLazyMode_mapsEveryDeclaredCliString() {
+        // Every mode the binding declares must resolve; a new upstream mode is then covered for free.
+        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+            assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode(mode.getArgValue()), is(mode));
+        }
+    }
+
+    @Test
+    public void tensorReadLazyMode_isCaseInsensitive() {
+        assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode("ON"), is(TensorReadLazyMode.ON));
+        assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode("Auto"), is(TensorReadLazyMode.AUTO));
+    }
+
+    @Test
+    public void tensorReadLazyMode_rejectsUnknownValueAndNamesTheAcceptedOnes() {
+        // A typo must fail loud rather than be dropped, and the message must name what is accepted.
+        final IllegalArgumentException thrown = Assertions.assertThrows(
+                IllegalArgumentException.class, () -> LlamaCppJniAiGenerationProvider.tensorReadLazyMode("lazy"));
+        assertThat(thrown.getMessage(), containsString("lazy"));
+        assertThat(thrown.getMessage(), containsString("off, auto, on"));
+    }
 }

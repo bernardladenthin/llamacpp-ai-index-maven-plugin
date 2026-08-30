@@ -123,6 +123,10 @@ public final class AiModelDefinitionSupport {
         config.setSwaFull(definition.isSwaFull());
         config.setCacheReuse(definition.getCacheReuse());
         config.setGpuLayers(definition.getGpuLayers());
+        config.setCpuMoeLayers(definition.getCpuMoeLayers());
+        config.setCpuFfnLayers(definition.getCpuFfnLayers());
+        config.setKvUnifiedPerSlot(definition.getKvUnifiedPerSlot());
+        config.setTensorReadLazy(definition.getTensorReadLazy());
         config.setMainGpu(definition.getMainGpu());
         config.setDevices(definition.getDevices());
         config.setReasoningEffort(definition.getReasoningEffort());

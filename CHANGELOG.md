@@ -13,6 +13,30 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [1.2.0] - 2026-08-29
 
+### Added
+- **Four new model-definition knobs, wired through to `net.ladenthin:llama` 5.1.0's new
+  `ModelParameters` setters.** They are configured exactly like the existing `gpuLayers` /
+  `mainGpu` / `devices` knobs — as elements of an `<aiDefinition>` in the Maven plugin, or as
+  keys under `srcMorph.aiDefinitions[]` in a CLI JSON/YAML config — and each is only forwarded
+  to the binding when explicitly set, so an unconfigured build behaves exactly as before:
+  - `cpuMoeLayers` (`--n-cpu-moe` / `-ncmoe`, default `-1`) — keep the MoE expert weights of the
+    first *n* layers on the CPU. Usually the better trade than lowering `gpuLayers` on a MoE
+    model: it moves only the expert weights (the class that dominates such a model's size), so a
+    substantially larger model fits the same VRAM at a smaller speed cost. `0` is a valid,
+    meaningful value, so the forwarding guard is `>= 0`, not `> 0`.
+  - `cpuFfnLayers` (`--n-cpu-ffn` / `-ncffn`, default `-1`) — the dense-model counterpart; same
+    `>= 0` guard for the same reason.
+  - `kvUnifiedPerSlot` (`--kv-unified-per-slot`, default `-1`) — per-slot unified KV context cap.
+    The binding rejects `0` and negatives, so only a positive value is forwarded.
+  - `tensorReadLazy` (`--tensor-read-lazy`, default empty) — `off` / `auto` / `on`. Shortens model
+    load time, which matters here because a run loads one model per model group and `calibrate`
+    preflights every model in turn. Carried as a `String` through the `config` package (the
+    `jniConfinedToProvider` ArchUnit rule keeps `net.ladenthin.llama` types out of it) and
+    resolved to the binding's `TensorReadLazyMode` inside the provider, matched
+    case-insensitively against the CLI strings the enum itself declares. An unrecognised value is
+    **rejected**, not silently dropped — a typo there would otherwise hand the user a run that
+    quietly did not do what was asked.
+
 ### Changed
 - **`net.ladenthin:llama` 5.0.6 → 5.1.0** (llama.cpp b10456 → b10682). Unlike the earlier bumps in
   this series, 5.1.0 is **not** purely additive: it deprecates six `InferenceParameters` methods that
