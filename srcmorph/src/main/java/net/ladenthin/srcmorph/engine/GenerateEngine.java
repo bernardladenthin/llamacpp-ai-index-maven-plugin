@@ -110,6 +110,9 @@ public final class GenerateEngine {
         final AiFieldGenerationSelector selector = new AiFieldGenerationSelector();
         // Fail fast on a bad rule set (e.g. >1 fallback, a route rule missing prompt/model).
         selector.validate(fieldGenerations);
+        // Fail fast on a typo'd <modelPath> before the walk, not an hour into the run.
+        EngineSupport.validateRoutedModelPaths(
+                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
 
         final SourceFileIndexer fileIndexer = new SourceFileIndexer(
                 basePath,

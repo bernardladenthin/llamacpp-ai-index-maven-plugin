@@ -74,6 +74,16 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   model and written files under `-Dsrcmorph.skip=true`. All four goals now assert it, `CalibrateMojo`
   included (it previously had no test constructing it at all).
 
+### Added
+- **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
+  phase — walk, classify, rendered plan — and only died inside the native loader, which with several
+  model groups means *after* the earlier groups had already generated. The check joins the fail-fast
+  block the engines already run and is gated on `generationProvider == llamacpp-jni`: only that
+  provider loads a GGUF, and every shipped example deliberately points at a non-existent
+  `unused-with-mock-provider.gguf` while running the mock, so an ungated check would red the
+  examples, their binding tests, the CLI end-to-end test and the fat-jar release smoke. Verified that
+  it does not: `ExamplesConfigBindingTest` and `CliEndToEndTest` stay green.
+
 ### Changed
 - `AiGenerationConfig.getStopStrings()` no longer declares a `@Nullable` return. The field is
   initialised to an empty list and the setter normalises `null`, so the documented "or `null` if not
@@ -88,6 +98,21 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
   six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
   missing-subtree and unknown-`factsKey` paths.
+- **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and
+  the condition layer was tested directly, but no test ever made the indexer's `anyRuleUsesLines`
+  return true, so `countLines` never ran during planning. A silent failure there would send every
+  file to the fallback rule with nothing failing. Verified by inverting the `usesLines` check: the
+  new test goes red. Writing it also surfaced a semantic worth knowing — a condition node evaluates
+  exactly one leaf and returns on the first present, with `extensions` before `lines`, so combining
+  the two needs an `<and>` group; the first version of the fixture set both on one node and matched
+  on extension alone.
+- **`AiSourceChunker`'s observable boundaries are pinned** (28/34 mutants, up from 25): `maxChars == 1`,
+  the guard that stops the last chunk being trimmed and re-split, and the guard that stops a chunk
+  beginning on a newline collapsing to a single character — the last two are silent-content-change
+  shapes. The six remaining mutants are equivalent (capacity hint, empty-list return, two arithmetic
+  terms an enclosing `Math.max` absorbs, a loop head an earlier `break` already guarantees, and a
+  subset branch that at equality reproduces its input); they are enumerated in `TODO.md` so nobody
+  re-hunts them.
 
 ## [1.2.0] - 2026-08-29
 

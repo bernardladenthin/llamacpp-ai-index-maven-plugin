@@ -84,6 +84,10 @@ public final class CalibrateEngine {
             throw new SrcMorphException("No routable (model + prompt) rule found to calibrate.");
         }
 
+        // Same fail-fast check as the generate goal: calibrate loads every routed model in turn.
+        EngineSupport.validateRoutedModelPaths(
+                config.getGenerationProvider(), modelDefinitionSupport, fieldGenerations);
+
         LOGGER.info(
                 "AI index calibration: {} model(s). Provider: {}",
                 modelToPrompt.size(),

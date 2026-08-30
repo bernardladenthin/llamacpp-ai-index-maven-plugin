@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package net.ladenthin.srcmorph.engine;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ import net.ladenthin.srcmorph.config.AiModelDefinitionSupport;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
 import net.ladenthin.srcmorph.prompt.AiPromptDefinition;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
+import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory;
 import org.jspecify.annotations.Nullable;
@@ -145,5 +147,53 @@ final class EngineSupport {
             final AiModelDefinitionSupport modelDefinitionSupport, final String aiDefinitionKey) {
         final AiGenerationConfig modelConfig = modelDefinitionSupport.getConfig(aiDefinitionKey);
         return LlamaCppJniConfigFactory.fromGenerationConfig(modelConfig);
+    }
+
+    /**
+     * Fails the run when a routed {@code <aiDefinition>}'s model file does not exist.
+     *
+     * <p>Without this, a typo in a {@code <modelPath>} survives the entire plan phase — the walk, the
+     * classification, the rendered plan — and only dies inside the native loader. With several model
+     * groups that happens <em>after</em> the earlier groups have already generated, so the failure can
+     * arrive an hour into a run for a mistake that was visible before it started. This joins the other
+     * fail-fast checks the engines already run (missing {@code <fieldGenerations>}, rule-set
+     * validation, unmatched files, over-window files).
+     *
+     * <p><strong>Gated on the provider on purpose.</strong> Only {@code llamacpp-jni} loads a GGUF;
+     * the {@code mock} provider ignores {@code modelPath} entirely, and every shipped example config
+     * sets a deliberately non-existent {@code "unused-with-mock-provider.gguf"}. An ungated check
+     * would red those examples, their binding tests, the CLI end-to-end test and the fat-jar release
+     * smoke.
+     *
+     * @param generationProvider     the configured provider key
+     * @param modelDefinitionSupport model lookup built from the configured {@code <aiDefinitions>}
+     * @param fieldGenerations       the routing rules, already validated
+     * @throws SrcMorphException if a routed model's file is missing or its path is unset
+     */
+    static void validateRoutedModelPaths(
+            final String generationProvider,
+            final AiModelDefinitionSupport modelDefinitionSupport,
+            final List<AiFieldGenerationConfig> fieldGenerations)
+            throws SrcMorphException {
+        if (!AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI.equals(generationProvider)) {
+            return;
+        }
+        for (final AiFieldGenerationConfig rule : fieldGenerations) {
+            if (rule == null || rule.isSkip()) {
+                continue;
+            }
+            final String aiDefinitionKey = rule.getAiDefinitionKey();
+            if (aiDefinitionKey == null) {
+                continue;
+            }
+            final String modelPath =
+                    modelDefinitionSupport.getConfig(aiDefinitionKey).getModelPath();
+            if (modelPath == null || !new File(modelPath).isFile()) {
+                throw new SrcMorphException("Model file for aiDefinition '" + aiDefinitionKey
+                        + "' does not exist: " + modelPath
+                        + " (checked before any model is loaded; fix the modelPath, or set"
+                        + " generationProvider to mock for a model-free run)");
+            }
+        }
     }
 }

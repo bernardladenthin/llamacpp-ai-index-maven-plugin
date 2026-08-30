@@ -23,7 +23,8 @@ recorded in git history and `crossrepostatus.md`, not here.
   `<mutationThreshold>100</mutationThreshold>` over an explicit `<targetClasses>` list (config /
   document / engine / prompt / provider / support value+logic classes, plus `indexer.AiInputWindowCalculator`
   and `support.AiProgressBar`), all killed at 100%. Still out (optional, need careful fixtures):
-  `indexer.AiIndexPlan` (32/37) — a handful of named survivors rather than a coverage hole.
+  nothing, as it turns out: the remaining candidates were worked through and each is either now on
+  the gate or documented below as unreachable.
   `document.AiMdDocumentCodec` reached 100% (13/13) and is now on the gate. **`document.AiMdHeaderCodec`
   is permanently out, and this is worth not re-litigating:** its last two survivors are *equivalent
   mutants* in the colon-position guard at `read`'s `colonIndex < 0 || colonIndex < HEADER_FIELD_PREFIX.length() + 1`.
@@ -34,7 +35,16 @@ recorded in git history and `crossrepostatus.md`, not here.
   are unkillable through the public API; reaching 100% would mean either exposing the parsed map or
   simplifying the (deliberately defensive, and strictly redundant) first disjunct away. The class's
   real coverage gaps *were* closed — the `read(Path)` overload and the malformed-input branches now
-  have tests. `config.AiConditionGroup`
+  have tests. **`support.AiSourceChunker` is out for the same reason** (28/34): its
+  three genuinely observable boundaries are now pinned — `maxChars == 1`, the `end < length` guard
+  that stops the *last* chunk being trimmed and re-split, and the `lastNewline > pos` guard that
+  stops a chunk beginning on a newline collapsing to `"\n"` — but six mutants cannot be observed
+  through the API at all: the `length / maxChars` ArrayList capacity hint (line 47), the empty-source
+  `return chunks` versus `emptyList()` (49), the `maxChars - 1` overlap clamp and the `pos + 1`
+  progress floor (51, 66) which the surrounding `Math.max` absorbs, the `pos < length` loop head (54)
+  which the `end >= length` break already guarantees, and `select`'s `total <= maxChunks` (81), where
+  the subset branch at equality computes `round(i * (total - 1) / (total - 1)) = i` and returns the
+  same list. `config.AiConditionGroup`
   and `provider.LlamaCppJniConfig` were listed here too, but both measured 100% (2/2 and 36/36) without
   a single new test — the existing `AiConditionGroupTest` and
   `LlamaCppJniConfigFactoryTest#fromGenerationConfig_threadsEveryFieldThrough` already killed
