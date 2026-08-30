@@ -64,6 +64,29 @@ recorded in git history and `crossrepostatus.md`, not here.
   Switching the hot path to `generateWithTimings(...)` and logging the reuse at `DEBUG` would close it;
   weigh that against touching the per-file path and its tests for a diagnostic.
 
+- **A PIT mutation minion runs out of memory on every `mutationCoverage` run, and nothing reports it.**
+  The gate is unaffected (762/762, `MEMORY_ERROR 0`, exit 0) because pitest restarts the dead minion,
+  so the only evidence was a 1.2 GB `.hprof` appearing in `srcmorph/` each run. Twelve of them once
+  filled the disk mid-run. `srcmorph/pom.xml` now sets `parseSurefireConfig=false` + explicit
+  `<jvmArgs>` so the minions stop inheriting surefire's `-XX:+HeapDumpOnOutOfMemoryError` (an OOM is a
+  bug in a test JVM, but a normal operating condition in a mutation minion) — **that stops the file,
+  not the OOM.**
+
+  What was measured, so the next person does not repeat it:
+  - `<jvmArgs>` alone is inert. Pitest places them *before* the inherited `argLine`, so surefire's
+    `-Xmx2g` wins. The dump size did not move until `parseSurefireConfig=false` was added.
+  - `-Xmx4g` makes it worse, not better: two minions died at 2.2 GB each instead of one at 1.2 GB.
+  - It is not ArchUnit. Excluding `CoreArchitectureTest` (the obvious memory suspect, and the top hit
+    when the dump's class-name strings are counted) changed nothing.
+  - It is not the JaCoCo agent that `@{argLine}` drags in; the current config runs without it and a
+    control run with the dump flags re-enabled still produced the same 1.2 GB dump.
+  - A class histogram of the dump is ~1.21 GB of `byte[]` and nothing else above a megabyte, so it is
+    one huge allocation rather than a leak of many objects. Which allocation is the open question;
+    `AiChecksumSupport`'s `Files.readAllBytes` is the only `byte[]` producer in main code, and its size
+    comes from a file, not from anything a mutation can inflate.
+
+  To reproduce: add `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=.` back to the `<jvmArgs>` block.
+
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
 - **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.
