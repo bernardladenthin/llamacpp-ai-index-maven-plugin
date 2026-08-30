@@ -11,6 +11,18 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Fixed
+- **`llamaLibraryPath` did nothing, and had done nothing since the project's first commit.** The
+  parameter was declared on every mojo and threaded through `SrcMorphConfiguration`, `EngineSupport`,
+  both `LlamaCppJniConfigFactory` methods and `LlamaCppJniConfig` — and no code ever read it, so
+  setting it was a silent no-op. Git history confirms this is not a refactoring regression: in
+  `a1df3e0 "Initial version."` it was already the first field of the `LlamaCppJniConfig` record,
+  sitting next to `modelPath`, while the provider built its `ModelParameters` from `modelPath` /
+  `contextSize` / `threads` alone. It is now implemented — the provider sets
+  `net.ladenthin.llama.lib.path` from it before constructing the model, which is the binding loader's
+  highest-precedence source. Documented with the caveat that only the first model load in a JVM is
+  affected, since the binding resolves the library from `LlamaModel`'s static initializer.
+
 ### Added
 - **`seed` model-definition knob** (`InferenceParameters.withSeed`, default `-1`). Upstream draws a
   random seed per request, so with a non-zero temperature every generation samples differently: a

@@ -578,6 +578,25 @@ bundled native:
 mvn srcmorph:generate -Dnet.ladenthin.llama.lib.path=C:\path\to\gpu-native -Dsrcmorph.generationProvider=llamacpp-jni
 ```
 
+The same override is available as a plugin parameter, so it can live in the POM instead of on the
+command line:
+
+| Parameter | Property | Default | Meaning |
+|---|---|---|---|
+| `llamaLibraryPath` | `srcmorph.llama.libraryPath` | *(empty)* | Directory holding the native `jllama` library. Sets `net.ladenthin.llama.lib.path` before the model is loaded, so it takes precedence over `java.library.path` and the native bundled in the jar. A blank value changes nothing. |
+
+```xml
+<configuration>
+  <llamaLibraryPath>/opt/jllama/gpu-native</llamaLibraryPath>
+</configuration>
+```
+
+> [!NOTE]
+> **Only the first model load in a JVM is affected.** The binding resolves the native library once,
+> from `LlamaModel`'s static initializer, so a run that loads several model groups — or a Maven JVM
+> reused across modules — uses whichever path the *first* load saw. Treat this as a
+> local-development aid for pointing at a self-built `jllama`, not a per-model setting.
+
 In both cases:
 
 - **CUDA** needs a matching CUDA 13 toolkit + driver, and the toolkit's `bin\x64` (with `cudart64_13.dll`,

@@ -6,18 +6,21 @@ package net.ladenthin.srcmorph.provider;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import net.ladenthin.llama.args.TensorReadLazyMode;
+import net.ladenthin.llama.loader.LlamaSystemProperties;
 import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -159,4 +162,77 @@ public class LlamaCppJniAiGenerationProviderTest {
         assertThat(thrown.getMessage(), containsString("lazy"));
         assertThat(thrown.getMessage(), containsString("off, auto, on"));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="native library path">
+
+    /** The property under test, spelled the same way the provider builds it. */
+    private static final String LIB_PATH_PROPERTY = LlamaSystemProperties.PREFIX + ".lib.path";
+
+    /**
+     * Restores the JVM-global property these tests touch, so ordering cannot leak between them or into
+     * any other test in the module.
+     */
+    @AfterEach
+    public void clearLibraryPathProperty() {
+        System.clearProperty(LIB_PATH_PROPERTY);
+    }
+
+    /**
+     * A configured library path reaches the binding's loader.
+     *
+     * <p>The parameter existed from the project's first commit, was threaded through five layers, and
+     * was never read -- setting it was a silent no-op. This is the test that makes it real.
+     */
+    @Test
+    public void applyLibraryPath_configuredDirectory_setsTheLoaderProperty() {
+        // arrange
+        System.clearProperty(LIB_PATH_PROPERTY);
+
+        // act
+        LlamaCppJniAiGenerationProvider.applyLibraryPath("/opt/jllama/native");
+
+        // assert
+        assertThat(System.getProperty(LIB_PATH_PROPERTY), is("/opt/jllama/native"));
+    }
+
+    /** An absent value must leave the loader's own resolution order untouched. */
+    @Test
+    public void applyLibraryPath_null_leavesThePropertyUnset() {
+        // arrange
+        System.clearProperty(LIB_PATH_PROPERTY);
+
+        // act
+        LlamaCppJniAiGenerationProvider.applyLibraryPath(null);
+
+        // assert
+        assertThat(System.getProperty(LIB_PATH_PROPERTY), is(nullValue()));
+    }
+
+    /** A blank value is treated as absent, not as an empty directory. */
+    @Test
+    public void applyLibraryPath_blank_leavesThePropertyUnset() {
+        // arrange
+        System.clearProperty(LIB_PATH_PROPERTY);
+
+        // act
+        LlamaCppJniAiGenerationProvider.applyLibraryPath("   ");
+
+        // assert
+        assertThat(System.getProperty(LIB_PATH_PROPERTY), is(nullValue()));
+    }
+
+    /** A blank value must not wipe a path someone else already set. */
+    @Test
+    public void applyLibraryPath_blank_doesNotClearAnExistingValue() {
+        // arrange
+        System.setProperty(LIB_PATH_PROPERTY, "/already/set");
+
+        // act
+        LlamaCppJniAiGenerationProvider.applyLibraryPath("");
+
+        // assert
+        assertThat(System.getProperty(LIB_PATH_PROPERTY), is("/already/set"));
+    }
+
+    // </editor-fold>
 }
