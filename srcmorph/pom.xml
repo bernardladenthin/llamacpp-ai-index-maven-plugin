@@ -240,6 +240,22 @@ SPDX-License-Identifier: Apache-2.0
                             matches how this module is actually consumed in practice.
                         -->
                         <useModulePath>false</useModulePath>
+                        <!--
+                            Surefire's default includes are Test*/*Test/*Tests/*TestCase only, so the
+                            jqwik property class AiMdHeaderCodecProperties matched none of them and had
+                            never executed in any build or CI run - it produced no surefire report at
+                            all, which is why nothing noticed. Declaring includes REPLACES the defaults
+                            outright, so the four default patterns are restated here verbatim; dropping
+                            any one of them would silently stop running most of the suite while the
+                            build stayed green. Guard: the module runs 601 tests, not 600.
+                        -->
+                        <includes>
+                            <include>**/Test*.java</include>
+                            <include>**/*Test.java</include>
+                            <include>**/*Tests.java</include>
+                            <include>**/*TestCase.java</include>
+                            <include>**/*Properties.java</include>
+                        </includes>
                     </configuration>
                 </plugin>
                 <plugin>

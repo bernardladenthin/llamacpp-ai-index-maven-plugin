@@ -131,7 +131,7 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 ~63 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
 (`AtomicCounterLincheckTest`), and the model-backed real tests gated on
 `src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
-100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 53 classes across
+100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 52 classes across
 config/document/engine/indexer/prompt/provider/support, all killed at 100%. **All three modules are
 PIT-gated now**: `srcmorph-cli` (16/16) and `srcmorph-maven-plugin` (62/62) carry their own
 `pitest-maven` executions at the same threshold, and CI runs the goal reactor-wide. The `gpu-cuda`/`gpu-vulkan` profiles (swap the
