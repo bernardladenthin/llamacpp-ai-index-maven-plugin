@@ -7,18 +7,6 @@ recorded in git history and `crossrepostatus.md`, not here.
 
 ## Open
 
-- **PIT mutation-testing gate for `srcmorph-cli` and the plugin module.** Only `srcmorph`
-  (`srcmorph/pom.xml`) is PIT-gated today — `<mutationThreshold>100</mutationThreshold>` over an
-  explicit `<targetClasses>` list of 47 classes across config/document/engine/indexer/prompt/
-  provider/support, all killed at 100%. Neither `srcmorph-cli` nor
-  `srcmorph-maven-plugin` has a `pitest-maven` execution of its own yet (both poms document
-  this explicitly with a comment at the spot a PIT plugin block would go). For the CLI: the pure
-  helpers worth mutation-gating are the config copy/round-trip (`Main#copyWithPlanOnlyForced`) and
-  command dispatch; `Main`'s I/O-heavy entry points (`main`, `loadConfiguration`) are better served by
-  integration tests than unit-mutation gating. For the plugin: the 4 goal mojos (+ the abstract AbstractAiIndexMojo base) are Maven-lifecycle
-  orchestration (typically integration-tested via Maven invoker/executor, not unit-mutation-tested) —
-  confirm that reasoning still holds before assuming it's a permanent exemption rather than a gap.
-
 - **Expand `srcmorph`'s own PIT mutation scope (optional).** `srcmorph/pom.xml` wires
   `<mutationThreshold>100</mutationThreshold>` over an explicit `<targetClasses>` list (config /
   document / engine / prompt / provider / support value+logic classes, plus `indexer.AiInputWindowCalculator`
@@ -52,47 +40,6 @@ recorded in git history and `crossrepostatus.md`, not here.
   has been on the gate for a while. The orchestration layers (`indexer.*` walk,
   the plugin's `mojo.*`) and the JNI provider stay out of PIT — they need a Maven/native context
   rather than pure-unit mutation (see crossrepostatus "Deliberate non-parity").
-
-- **Prompt-cache reuse is observable during `calibrate`, not during a real `generate` run.** The
-  provider now surfaces llama.cpp's `cache_n` as `AiGenerationTimings#cachedPromptTokens()`, and
-  `srcmorph:calibrate` reports it per model (`AiCalibrationMeasurement#cachedPromptTokens()`), so the
-  prefix-reuse settings — `cachePrompt`, `cacheReuse`, `swaFull` — can finally be measured instead of
-  assumed. The indexing path does not see it: `AiFieldGenerationSupport` calls
-  `AiGenerationProvider#generate(...)`, which returns only the text, so a full run still cannot say how
-  much of each prompt was reused. Calibrate is a fair proxy (its runs share one system prompt, exactly
-  like an indexing run does), which is why this is a follow-up and not a gap in the measurement itself.
-  Switching the hot path to `generateWithTimings(...)` and logging the reuse at `DEBUG` would close it;
-  weigh that against touching the per-file path and its tests for a diagnostic.
-
-- **A PIT mutation minion runs out of memory on every `mutationCoverage` run — diagnosed, closed, not a
-  defect.** The cause is an infinite-loop mutant, proven from the heap dump's own thread stack rather
-  than inferred: PIT mutates the `i += 1` that advances the scan loop in
-  `AiSourceExcludeFilter.globToRegex` (a gated class), the loop then appends `"[^/]"` forever, and
-  `StringBuilder` grows until the heap ends. The surviving 1.2 GB array reads literally
-  `^A[^/]A[^/]A[^/]…`, and the OOM frame sits under
-  `AiSourceExcludeFilterTest.questionMark_matchesExactlyOneNonSeparatorChar`. `timeoutConstant` exists
-  for runaway mutants, but this one allocates its way out of a 2 GB heap long before 30 s elapse; PIT
-  restarts the minion and the mutation is killed on the retry, which is why every run still reports
-  762/762, `MEMORY_ERROR 0`, exit 0.
-
-  Nothing in production code needs changing — bounding `globToRegex` would be complexity added purely to
-  appease a mutant, and no real `<excludes>` glob can produce a gigabyte-scale regex. What *was* wrong is
-  where the crash diagnostics were applied: `srcmorph/pom.xml` now sets `parseSurefireConfig=false` plus
-  explicit `<jvmArgs>` so minions stop inheriting surefire's `-XX:+HeapDumpOnOutOfMemoryError`. An OOM is
-  a bug in a test JVM and a normal operating condition in a mutation minion; only the former deserves a
-  1.2 GB `.hprof`. Twelve of them filled the disk mid-run once, and CI wrote one per run too.
-
-  Dead ends, recorded so nobody repeats them:
-  - `<jvmArgs>` alone is inert. Pitest places them *before* the inherited `argLine`, so surefire's
-    `-Xmx2g` wins; the dump size did not move until `parseSurefireConfig=false` was added, then jumped
-    1.2 GB → 2.2 GB.
-  - `-Xmx4g` makes it worse, not better: two minions died at 2.2 GB each instead of one at 1.2 GB.
-  - Not ArchUnit. Excluding `CoreArchitectureTest` — the top hit when the dump's class-name *strings* are
-    counted — changed nothing. That count was a wrong inference; the class histogram (1.21 GB of `byte[]`,
-    nothing else above a megabyte) and then the stack trace were what actually settled it.
-  - Not the JaCoCo agent either; a control run without it still produced the same dump.
-
-  To reproduce: add `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=.` back to the `<jvmArgs>` block.
 
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 

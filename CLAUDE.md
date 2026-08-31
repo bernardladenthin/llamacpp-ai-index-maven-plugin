@@ -20,8 +20,11 @@ coordinates, package, goal prefix, and every `@Parameter` property changed in th
 write `aiIndex.*` properties, the `ai-index` goal prefix, or the
 `net.ladenthin.maven.llamacpp.aiindex` package in new documentation or code; use `srcmorph.*`,
 `srcmorph`, and `net.ladenthin.maven.srcmorph.mojo` instead (see the plugin module's own section
-below). The `1.1.1` reactor release was published to Maven Central; development on `main` now
-continues at the next SNAPSHOT version.
+below). The `1.1.1` reactor release was published to Maven Central. **`main` currently sits at the plain
+release version `1.2.0`, not a `-SNAPSHOT`** — step 1 of `docs/RELEASE.md` (bump to the release
+version) is already done and the `v1.2.0` tag has not been cut yet. Step 6 moves `main` on to the
+next `-SNAPSHOT` *after* the release, so a `-SNAPSHOT` on `main` is the normal state only between
+releases, not right now.
 
 **A fourth module existed temporarily**: a tiny relocation-stub POM
 (`net.ladenthin:llamacpp-ai-index-maven-plugin`, pinned at `1.0.4`, only a
@@ -129,8 +132,9 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 (`AtomicCounterLincheckTest`), and the model-backed real tests gated on
 `src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 47 classes across
-config/document/engine/indexer/prompt/provider/support, all killed at 100%. `srcmorph-cli` and the plugin
-module do not have a PIT gate yet (see `TODO.md`). The `gpu-cuda`/`gpu-vulkan` profiles (swap the
+config/document/engine/indexer/prompt/provider/support, all killed at 100%. **All three modules are
+PIT-gated now**: `srcmorph-cli` (16/16) and `srcmorph-maven-plugin` (62/62) carry their own
+`pitest-maven` executions at the same threshold, and CI runs the goal reactor-wide. The `gpu-cuda`/`gpu-vulkan` profiles (swap the
 `net.ladenthin:llama` classifier via the `llama.classifier` property) live here; the `jcstress` and
 `vmlens` profiles/tests currently still live in the **plugin** module (they were not moved in the
 extraction — see that module's section below), not here.
@@ -272,7 +276,7 @@ mvn -pl srcmorph-maven-plugin srcmorph:generate -P srcmorph-selftest
 
 ```bash
 mvn -pl srcmorph-cli package
-java -jar srcmorph-cli/target/srcmorph-cli-1.2.0-SNAPSHOT-jar-with-dependencies.jar examples/config_All.json
+java -jar srcmorph-cli/target/srcmorph-cli-1.2.0-jar-with-dependencies.jar examples/config_All.json
 ```
 
 See `examples/` (repo root) for ready-to-run `config_*.json`/`.yaml` + paired `run_*.sh`/`.bat`
@@ -455,9 +459,13 @@ See [`../workspace/policies/ci-test-diagnostics.md`](../workspace/policies/ci-te
 ## PIT Mutation Testing
 
 See [`../workspace/policies/pit-mutation-testing.md`](../workspace/policies/pit-mutation-testing.md).
-Run PIT with the lifecycle prefix, scoped to the gated module —
-`mvn test-compile org.pitest:pitest-maven:mutationCoverage -f srcmorph/pom.xml` (only `srcmorph` is
-PIT-gated today; see `TODO.md`).
+Run PIT with the lifecycle prefix. Reactor-wide (what CI does):
+`mvn test-compile org.pitest:pitest-maven:mutationCoverage`; or scoped to one module with
+`-f srcmorph/pom.xml`. All three modules gate at `mutationThreshold` 100 — `srcmorph` (762 mutations),
+`srcmorph-maven-plugin` (62, the five mojo classes) and `srcmorph-cli` (16). The CLI's
+`Main.main(String[])` is the one documented exclusion: it is the process entry point, and the
+`smoke-fatjar` release-gating job already runs the real `java -jar` artifact and asserts
+`Main#run end.` in its output, which is an end-to-end check a unit mutant cannot reach.
 
 ## JPMS Module Descriptor
 

@@ -5,6 +5,7 @@ package net.ladenthin.srcmorph.engine;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
@@ -15,6 +16,8 @@ import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
 import net.ladenthin.srcmorph.prompt.AiPromptDefinition;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
+import net.ladenthin.srcmorph.provider.GgufModelInfo;
+import net.ladenthin.srcmorph.provider.GgufModelInspector;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory;
 import org.jspecify.annotations.Nullable;
@@ -186,14 +189,61 @@ final class EngineSupport {
             if (aiDefinitionKey == null) {
                 continue;
             }
-            final String modelPath =
-                    modelDefinitionSupport.getConfig(aiDefinitionKey).getModelPath();
+            final AiGenerationConfig modelConfig = modelDefinitionSupport.getConfig(aiDefinitionKey);
+            final String modelPath = modelConfig.getModelPath();
             if (modelPath == null || !new File(modelPath).isFile()) {
                 throw new SrcMorphException("Model file for aiDefinition '" + aiDefinitionKey
                         + "' does not exist: " + modelPath
                         + " (checked before any model is loaded; fix the modelPath, or set"
                         + " generationProvider to mock for a model-free run)");
             }
+            validateAgainstTheModelItself(aiDefinitionKey, modelConfig, Paths.get(modelPath));
+        }
+    }
+
+    /**
+     * Checks the configuration against what the GGUF file itself declares, still without loading it.
+     *
+     * <p>Existing on disk is a weak check. The two things it misses are both silent:</p>
+     *
+     * <ul>
+     *   <li><b>The file is not a GGUF.</b> A truncated download, a Git LFS pointer, or the wrong file
+     *       entirely passes {@code isFile()} and dies much later inside the native loader — after the
+     *       earlier model groups of a multi-model run have already generated. Fails here instead.</li>
+     *   <li><b>{@code contextSize} exceeds what the model declares.</b> This one is worse than it looks,
+     *       because <em>every</em> number the plan phase produces is derived from {@code contextSize}:
+     *       {@code maxInputChars}, the oversize/chunking decision, and the time estimate. Point the
+     *       default 32768 at a 4096-context model and the plan is wrong by 8&times; before a single
+     *       token is generated. Only a warning, though — llama.cpp will run past a model's trained
+     *       context (with RoPE scaling, deliberately so), so this is a mismatch worth surfacing, not an
+     *       error worth refusing.</li>
+     * </ul>
+     *
+     * @param aiDefinitionKey the model key, for the message
+     * @param modelConfig     the resolved model configuration
+     * @param modelFile       the model file, already known to exist
+     * @throws SrcMorphException if the file is not a readable GGUF
+     */
+    private static void validateAgainstTheModelItself(
+            final String aiDefinitionKey, final AiGenerationConfig modelConfig, final Path modelFile)
+            throws SrcMorphException {
+        final GgufModelInfo info = new GgufModelInspector().inspect(modelFile);
+        if (!info.readable()) {
+            throw new SrcMorphException("Model file for aiDefinition '" + aiDefinitionKey + "' is not a readable"
+                    + " GGUF: " + modelFile + " (" + info.failure() + "). A truncated download or a Git LFS"
+                    + " pointer looks like a perfectly good file to an existence check.");
+        }
+        final long declared = info.contextLength();
+        if (declared != GgufModelInfo.UNKNOWN_CONTEXT_LENGTH && modelConfig.getContextSize() > declared) {
+            LOGGER.warn(
+                    "aiDefinition '{}' sets contextSize {} but {} declares only {}. The plan's"
+                            + " maxInputChars, oversize handling and time estimate are all derived from"
+                            + " contextSize, so they are computed for a window this model does not claim to"
+                            + " have. Lower contextSize, or ignore this if the model is run with RoPE scaling.",
+                    aiDefinitionKey,
+                    modelConfig.getContextSize(),
+                    info.modelName().isEmpty() ? modelFile.toString() : info.modelName(),
+                    declared);
         }
     }
 }

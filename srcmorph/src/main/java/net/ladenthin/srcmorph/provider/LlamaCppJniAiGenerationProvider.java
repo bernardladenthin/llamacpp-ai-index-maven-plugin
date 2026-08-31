@@ -20,10 +20,13 @@ import net.ladenthin.llama.parameters.ModelParameters;
 import net.ladenthin.llama.value.ChatResponse;
 import net.ladenthin.llama.value.Pair;
 import net.ladenthin.llama.value.Timings;
+import net.ladenthin.llama.value.Usage;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.support.Java8CompatibilityHelper;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link AiGenerationProvider} implementation backed by the {@code net.ladenthin:llama}
@@ -37,6 +40,11 @@ import org.jspecify.annotations.Nullable;
  */
 @ToString
 public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvider, AutoCloseable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LlamaCppJniAiGenerationProvider.class);
+
+    /** OpenAI finish reason meaning "the token budget ran out", as opposed to {@code "stop"}. */
+    private static final String FINISH_REASON_LENGTH = "length";
 
     private final LlamaCppJniConfig config;
 
@@ -259,7 +267,84 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
 
     @Override
     public String generate(final AiGenerationRequest request) throws IOException {
-        return completionParser.parseCompletion(model().chatCompleteText(buildInferenceParameters(request)));
+        final ChatResponse response = chatResponse(request);
+        warnOnTruncatedAnswer(request, response);
+        logPromptCacheReuse(request, response);
+        return completionParser.parseCompletion(response.getFirstContent());
+    }
+
+    /**
+     * Runs one chat completion and parses the whole response.
+     *
+     * <p>This is the same native call {@code chatCompleteText(...)} makes underneath &mdash; that method is
+     * literally {@code extractChoiceContent(chatComplete(...))} &mdash; so parsing the full response here
+     * costs no extra inference. What it buys is everything the text-only accessor throws away: the finish
+     * reason (is the answer complete?), the token usage, and the KV-cache counters.</p>
+     *
+     * @param request the generation request
+     * @return the parsed response
+     */
+    private ChatResponse chatResponse(final AiGenerationRequest request) {
+        return chatResponseParser.parseResponse(model().chatComplete(buildInferenceParameters(request)));
+    }
+
+    /**
+     * Warns when the model stopped because it ran out of output budget rather than because it was done.
+     *
+     * <p>{@code maxOutputTokens} defaults to 128. A summary that hits that ceiling is cut off mid-sentence
+     * and written to the {@code .ai.md} exactly like a complete one &mdash; the run stays green and the
+     * index silently degrades. The signal was already in the response this provider parses; it was simply
+     * discarded along with the rest of it.</p>
+     *
+     * <p><b>Compared against the literal {@code "length"}, deliberately not against
+     * {@code net.ladenthin.llama.value.StopReason}.</b> Those are two different vocabularies:
+     * {@code getFinishReason()} is OpenAI's ({@code stop} / {@code length} / {@code tool_calls}), while
+     * {@code StopReason} maps llama.cpp's own {@code stop_type} ({@code eos} / {@code word} /
+     * {@code limit}). {@code StopReason.fromStopType("length")} returns {@code NONE} &mdash; a silent
+     * wrong answer, not a compile error.</p>
+     *
+     * @param request  the request, for the file name in the message
+     * @param response the parsed response
+     */
+    private void warnOnTruncatedAnswer(final AiGenerationRequest request, final ChatResponse response) {
+        if (response.getChoices().isEmpty()) {
+            return;
+        }
+        if (!FINISH_REASON_LENGTH.equals(response.getChoices().get(0).getFinishReason())) {
+            return;
+        }
+        LOGGER.warn(
+                "Generated text for {} was cut off at the {}-token output budget, not finished by the model."
+                        + " The .ai.md will end mid-thought; raise maxOutputTokens for this model, or shorten"
+                        + " the prompt.",
+                request.sourceFile(),
+                config.maxOutputTokens());
+    }
+
+    /**
+     * Logs, per generation, how much of the prompt the KV cache served.
+     *
+     * <p>{@code srcmorph:calibrate} reports this for its own probe runs, but an indexing run &mdash; the
+     * one that actually pays {@code swaFull}'s KV-memory surcharge, file after file &mdash; had no
+     * visibility at all. At {@code DEBUG} because it is one line per file.</p>
+     *
+     * @param request  the request, for the file name
+     * @param response the parsed response
+     */
+    private void logPromptCacheReuse(final AiGenerationRequest request, final ChatResponse response) {
+        if (!LOGGER.isDebugEnabled()) {
+            return;
+        }
+        // No null guard: ChatResponse.getUsage() is declared non-null, and SpotBugs flags a check on it
+        // as dead code (RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE). Unlike getTimings(), which the
+        // timings path does have to guard.
+        final Usage usage = response.getUsage();
+        LOGGER.debug(
+                "{}: {} of {} prompt token(s) served from the KV cache, {} generated",
+                request.sourceFile(),
+                usage.getCachedTokens(),
+                usage.getPromptTokens(),
+                usage.getCompletionTokens());
     }
 
     // Narrows away the interface's checked IOException: the chat path (chatComplete + parse) throws only
@@ -270,11 +355,8 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         // "timings" object (prompt_n / predicted_n / prompt_per_second / predicted_per_second) for every
         // real generation. chatCompleteText(...) discards it; here we parse it into a ChatResponse and
         // surface the model's OWN measured throughput (no chars/token estimate).
-        final ChatResponse response =
-                chatResponseParser.parseResponse(model().chatComplete(buildInferenceParameters(request)));
-        final String text = response.getChoices().isEmpty()
-                ? ""
-                : response.getChoices().get(0).getMessage().getContent();
+        final ChatResponse response = chatResponse(request);
+        final String text = response.getFirstContent();
         final Timings timings = response.getTimings();
         if (timings == null) {
             // A build/response without timings degrades to zero rates so the caller's fallback can act.

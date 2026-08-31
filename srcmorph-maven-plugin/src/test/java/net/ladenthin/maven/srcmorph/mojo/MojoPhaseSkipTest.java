@@ -9,10 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -130,26 +128,6 @@ public class MojoPhaseSkipTest {
 
     @TempDir
     Path tempDir;
-
-    /**
-     * Captures {@code info} lines so a test can assert what a mojo logged.
-     *
-     * <p>Extends {@link SystemStreamLog} rather than implementing the ~20-method {@code Log}
-     * interface by hand; this module has no mocking framework on the test classpath.
-     */
-    private static final class CapturingLog extends SystemStreamLog {
-
-        private final List<String> infoMessages = new ArrayList<>();
-
-        @Override
-        public void info(final CharSequence content) {
-            infoMessages.add(String.valueOf(content));
-        }
-
-        List<String> infoMessages() {
-            return infoMessages;
-        }
-    }
 
     /**
      * Runs a mojo with the global skip flag set and returns what it logged.

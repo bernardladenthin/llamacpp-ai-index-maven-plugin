@@ -697,15 +697,36 @@ SPDX-License-Identifier: Apache-2.0
                     <classpathScope>test</classpathScope>
                 </configuration>
             </plugin>
-            <!--
-              No pitest-maven execution here: every class that was gated at 100% PIT mutation
-              parity in this pom (config/document/indexer/prompt/provider/support) moved to the
-              srcmorph module — see srcmorph/pom.xml for the full targetClasses list. Nothing in
-              the remaining mojo package has PIT coverage yet. Add a mojo-focused pitest-maven
-              execution here once mojo classes are covered (Mojos are typically integration-tested
-              via Maven invoker/executor rather than unit-mutation-tested, so this may stay empty
-              by design — revisit before assuming that's the reason).
-            -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <targetClasses>
+                        <param>net.ladenthin.maven.srcmorph.mojo.AbstractAiIndexMojo</param>
+                        <param>net.ladenthin.maven.srcmorph.mojo.GenerateMojo</param>
+                        <param>net.ladenthin.maven.srcmorph.mojo.AggregatePackagesMojo</param>
+                        <param>net.ladenthin.maven.srcmorph.mojo.AggregateProjectMojo</param>
+                        <param>net.ladenthin.maven.srcmorph.mojo.CalibrateMojo</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>net.ladenthin.maven.srcmorph.*</param>
+                    </targetTests>
+                    <mutationThreshold>100</mutationThreshold>
+                    <timeoutConstant>30000</timeoutConstant>
+                    <parseSurefireConfig>false</parseSurefireConfig>
+                    <jvmArgs>
+                        <value>-Xmx2g</value>
+                        <value>-XX:+EnableDynamicAgentLoading</value>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
