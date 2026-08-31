@@ -117,9 +117,8 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   `promptTokens()`, plus their sum as `totalPromptTokens()`; `AiCalibrationMeasurement` carries the
   near-window run's count, and `srcmorph:calibrate` logs it per model — an `INFO` line naming the reused
   token count, or a `WARN` when nothing was reused, which is the case where those settings cost memory
-  and buy nothing. The opt-in real-model provider test (`-DrunNativeLlamaTests=true`) asserts that a
-  second request against the same system prompt finds it cached, so the reuse is proven end to end and
-  not just plumbed.
+  and buy nothing. The real-model provider test asserts that a second request against the same system
+  prompt finds it cached, so the reuse is proven end to end and not just plumbed.
 
 - **Seven further model-definition knobs**, wired through to `net.ladenthin:llama` 5.1.0 exactly like the
   existing `gpuLayers` / `cpuMoeLayers` set — an `<aiDefinition>` element in the Maven plugin, or a key
@@ -257,6 +256,39 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   re-hunts them.
 
 ### Fixed
+- **The `llamacpp-jni` provider produced nothing at all, and had done so since 1.1.0.** Every real
+  generation threw `IllegalArgumentException: Invalid dry_penalty_last_n value: -1` before a single
+  token, because `buildInferenceParameters` forwarded the DRY penalty window unconditionally while
+  the window's default is the `-1` sentinel and the binding rejects any negative value — llama.cpp
+  b10273 dropped the old "`-1` = context size" meaning, and `net.ladenthin:llama` has enforced that
+  since 5.0.5. The neighbouring `repeatLastN` was already guarded with `>= 0`, and its comment even
+  spells out the rule; DRY's window was written earlier and never caught up. Both are guarded now,
+  so `-1` means "send nothing, llama.cpp keeps its own window", which is what the javadoc always
+  claimed. That javadoc was wrong too, on five sites, and is corrected.
+
+  What let it survive two releases is worth recording. The belief behind the unguarded call is in
+  the code: *"multiplier 0.0 (default) = off, so the base/allowed-length/penalty-last-n knobs have
+  no effect unless opted in."* True of the window's **effect** — and irrelevant, because the wither
+  **validates** whatever it is handed, DRY enabled or not. Everything that runs in CI uses the
+  `mock` provider (the test suite, `Plan`, the fat-jar smoke), so no gate ever touched the failing
+  path, and every one of them stayed green throughout.
+
+- **The three real-model tests now run** instead of being disabled by a flag nobody set.
+  `-DrunNativeLlamaTests=true` dates from the initial commit, when the repository carried no model
+  and a developer had to supply one — a correct opt-in at the time. The model was committed six
+  minutes later, and the flag was never revisited: it appears in **no** workflow and **no** POM in
+  the repository's entire history, so those tests had never executed anywhere while the ~90 MB GGUF
+  they need was checked out on every job. Turning them on found the defect above in ten seconds.
+  The gate is now a capability check (`NativeLlamaAvailability`): the tests run by default and skip
+  only where the model or a loadable native library is genuinely absent, each skip naming its cause.
+
+- **`warnOnTruncatedAnswer` and `logPromptCacheReuse`, both added in this release, had no executed
+  coverage at all** — they sit on the same provider path. Five model-free tests now drive them from
+  a hand-built `ChatResponse`, pinning the `"length"`-versus-`"stop"` decision (the vocabulary trap
+  the code documents), the empty-`choices` guard, and the `DEBUG` line's three counts. Four further
+  tests pin the penalty-window guards without a model, so the regression is caught on every platform
+  rather than only where a GGUF is present; removing either guard reds them.
+
 - **`publish.yml` concurrency group: every non-PR run now gets its own group.** The block previously
   claimed a push to `main` or a `v*` tag *"always runs to completion"* because `cancel-in-progress`
   is scoped to `pull_request`. GitHub cancels a **pending** run whenever a newer run joins the same

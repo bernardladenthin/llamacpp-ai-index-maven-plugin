@@ -522,7 +522,8 @@ public class AiModelDefinition {
      * Sets the repeat-penalty window ({@code --repeat-last-n}) for this model. This is the range
      * {@code repeatPenalty} acts on.
      *
-     * @param repeatLastN the window ({@code -1} = leave llama.cpp's own, {@code 0} = disable the penalty)
+     * @param repeatLastN the window ({@code -1} = not sent, llama.cpp's own; {@code 0} = disable the
+     *                    penalty)
      */
     public void setRepeatLastN(final int repeatLastN) {
         this.repeatLastN = repeatLastN;
@@ -779,7 +780,8 @@ public class AiModelDefinition {
     /**
      * Sets the DRY penalty look-back window for this model.
      *
-     * @param dryPenaltyLastN DRY penalty last-n ({@code -1} = whole context, {@code 0} = disabled)
+     * @param dryPenaltyLastN DRY penalty last-n ({@code -1} = not sent, llama.cpp's own window;
+     *                         {@code 0} = disabled)
      */
     public void setDryPenaltyLastN(final int dryPenaltyLastN) {
         this.dryPenaltyLastN = dryPenaltyLastN;

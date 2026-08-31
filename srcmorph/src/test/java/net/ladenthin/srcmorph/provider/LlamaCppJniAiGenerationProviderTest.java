@@ -5,27 +5,44 @@ package net.ladenthin.srcmorph.provider;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.nio.file.Files;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.nio.file.Paths;
+import java.util.Collections;
 import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.TensorReadLazyMode;
+import net.ladenthin.llama.value.ChatChoice;
+import net.ladenthin.llama.value.ChatMessage;
+import net.ladenthin.llama.value.ChatResponse;
+import net.ladenthin.llama.value.Usage;
 import net.ladenthin.srcmorph.CommonTestFixtures;
+import net.ladenthin.srcmorph.NativeLlamaAvailability;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 public class LlamaCppJniAiGenerationProviderTest {
 
-    private static final String MODEL_PATH = Paths.get("src", "test", "resources", "SmolLM2-135M-Instruct-Q3_K_M.gguf")
-            .toAbsolutePath()
-            .toString();
+    private static final String MODEL_PATH = NativeLlamaAvailability.modelPath();
+
+    /**
+     * JSON key of the DRY penalty window as the binding renders it. Quoted so the assertions cannot
+     * accidentally match a different key that merely contains this one as a substring.
+     */
+    private static final String PARAM_DRY_PENALTY_LAST_N = "\"dry_penalty_last_n\"";
+
+    /** JSON key of the repeat-penalty window, quoted for the same reason. */
+    private static final String PARAM_REPEAT_LAST_N = "\"repeat_last_n\"";
 
     private static final AiMdHeader HEADER = new AiMdHeader(
             "Test.java",
@@ -36,13 +53,6 @@ public class LlamaCppJniAiGenerationProviderTest {
             "0.1.0-SNAPSHOT",
             "0.0.0",
             AiMdHeaderCodec.NODE_TYPE_FILE);
-
-    private static void assumeNativeAvailable() {
-        Assumptions.assumeTrue(
-                Boolean.getBoolean("runNativeLlamaTests"),
-                "Native llama test disabled. Enable with -DrunNativeLlamaTests=true");
-        Assumptions.assumeTrue(Files.exists(Paths.get(MODEL_PATH)), "Model file missing: " + MODEL_PATH);
-    }
 
     private static LlamaCppJniConfig config(final int contextSize, final int maxOutputTokens) {
         return LlamaCppJniConfig.builder(MODEL_PATH)
@@ -60,7 +70,7 @@ public class LlamaCppJniAiGenerationProviderTest {
     // <editor-fold defaultstate="collapsed" desc="generate">
     @Test
     public void generate_realProvider_returnsNonEmptyResponse() throws Exception {
-        assumeNativeAvailable();
+        NativeLlamaAvailability.assumeAvailable();
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final String source = "package com.example;\n" + "\n"
                 + "public class Test {\n"
@@ -82,7 +92,7 @@ public class LlamaCppJniAiGenerationProviderTest {
     // <editor-fold defaultstate="collapsed" desc="generateWithTimings">
     @Test
     public void generateWithTimings_realProvider_reportsEngineTimingsThatScaleWithPromptSize() throws Exception {
-        assumeNativeAvailable();
+        NativeLlamaAvailability.assumeAvailable();
         final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
         final StringBuilder large = new StringBuilder("package com.example;\npublic class Big {\n");
         for (int i = 0; i < 120; i++) {
@@ -163,4 +173,228 @@ public class LlamaCppJniAiGenerationProviderTest {
         assertThat(thrown.getMessage(), containsString("q3_k"));
         assertThat(thrown.getMessage(), containsString("f32, f16, bf16, q8_0"));
     }
+
+    // <editor-fold defaultstate="collapsed" desc="buildInferenceParameters: negative-sentinel guards">
+
+    /**
+     * Builds a provider over a path that does not exist. The model is loaded lazily on the first
+     * generate, and {@code buildInferenceParameters} never touches it, so these tests need no GGUF and
+     * no native library -- which is the point: the regression they guard shipped twice while every
+     * model-free gate stayed green.
+     */
+    private static LlamaCppJniAiGenerationProvider providerWith(final LlamaCppJniConfig config) {
+        return new LlamaCppJniAiGenerationProvider(
+                config, new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions()));
+    }
+
+    /**
+     * The regression itself. Both penalty windows default to {@code -1}, and the binding rejects any
+     * negative window outright ({@code IllegalArgumentException}) because llama.cpp b10273 dropped
+     * "{@code -1} = context size". Forwarding one unguarded therefore throws before a single token is
+     * produced -- which is exactly what {@code dry_penalty_last_n} did in 1.1.0 and 1.1.1.
+     */
+    @Test
+    public void buildInferenceParameters_defaultConfig_doesNotThrowOnTheNegativeSentinels() {
+        // arrange
+        final LlamaCppJniConfig defaults =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").build();
+
+        // act / assert
+        Assertions.assertDoesNotThrow(() -> providerWith(defaults).buildInferenceParameters(request("class A {}")));
+    }
+
+    /** A sentinel means "say nothing", so llama.cpp keeps its own window -- it must not be sent as -1. */
+    @Test
+    public void buildInferenceParameters_defaultConfig_sendsNeitherPenaltyWindow() {
+        // arrange
+        final LlamaCppJniConfig defaults =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").build();
+
+        // act
+        final String json = providerWith(defaults)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, not(containsString(PARAM_DRY_PENALTY_LAST_N)));
+        assertThat(json, not(containsString(PARAM_REPEAT_LAST_N)));
+    }
+
+    /**
+     * {@code 0} is a real value, not a second sentinel: it disables the penalty. A guard written as
+     * {@code > 0} would swallow it, so this pins the boundary from the other side.
+     */
+    @Test
+    public void buildInferenceParameters_zeroWindows_sendsBothAsZero() {
+        // arrange
+        final LlamaCppJniConfig zeroed = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .dryPenaltyLastN(0)
+                .repeatLastN(0)
+                .build();
+
+        // act
+        final String json = providerWith(zeroed)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, containsString(PARAM_DRY_PENALTY_LAST_N));
+        assertThat(json, containsString(PARAM_REPEAT_LAST_N));
+    }
+
+    /** A configured positive window reaches the request unchanged. */
+    @Test
+    public void buildInferenceParameters_configuredWindows_arePassedThrough() {
+        // arrange
+        final LlamaCppJniConfig configured = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .dryPenaltyLastN(64)
+                .repeatLastN(128)
+                .build();
+
+        // act
+        final String json = providerWith(configured)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert -- distinct values, so a transposition of the two guards fails rather than cancelling out
+        assertThat(json, containsString(PARAM_DRY_PENALTY_LAST_N + ": 64"));
+        assertThat(json, containsString(PARAM_REPEAT_LAST_N + ": 128"));
+    }
+
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="warnOnTruncatedAnswer / logPromptCacheReuse">
+
+    /** Builds a response carrying just the one field each of these two helpers reads. */
+    private static ChatResponse responseWith(final String finishReason, final Usage usage) {
+        final ChatChoice choice = new ChatChoice(0, new ChatMessage("assistant", "body"), finishReason);
+        return new ChatResponse("id", Collections.singletonList(choice), usage, null, "{}");
+    }
+
+    private static ListAppender<ILoggingEvent> attachAppender(final Level level) {
+        final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        final Logger logger = (Logger) LoggerFactory.getLogger(LlamaCppJniAiGenerationProvider.class);
+        logger.setLevel(level);
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private static void detachAppender(final ListAppender<ILoggingEvent> appender) {
+        ((Logger) LoggerFactory.getLogger(LlamaCppJniAiGenerationProvider.class)).detachAppender(appender);
+        appender.stop();
+    }
+
+    /**
+     * The whole point of the feature: {@code length} means the model hit the output budget and stopped
+     * mid-sentence, so the {@code .ai.md} it produced is incomplete and the user has to be told.
+     */
+    @Test
+    public void warnOnTruncatedAnswer_finishReasonLength_warnsAndNamesTheFileAndTheBudget() {
+        // arrange
+        final ListAppender<ILoggingEvent> appender = attachAppender(Level.WARN);
+        try {
+            final LlamaCppJniAiGenerationProvider provider =
+                    providerWith(LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                            .maxOutputTokens(128)
+                            .build());
+
+            // act
+            provider.warnOnTruncatedAnswer(request("class A {}"), responseWith("length", new Usage(1, 1)));
+
+            // assert
+            assertThat(appender.list.size(), is(1));
+            final String message = appender.list.get(0).getFormattedMessage();
+            assertThat(message, containsString("Test.java"));
+            assertThat(message, containsString("128"));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    /**
+     * A normal completion must stay silent. This is the assertion that pins the {@code "length"}
+     * literal: {@code StopReason.fromStopType("length")} is {@code NONE}, so comparing against the
+     * wrong vocabulary would make the warning fire never or always -- silently, either way.
+     */
+    @Test
+    public void warnOnTruncatedAnswer_finishReasonStop_saysNothing() {
+        // arrange
+        final ListAppender<ILoggingEvent> appender = attachAppender(Level.WARN);
+        try {
+            final LlamaCppJniAiGenerationProvider provider = providerWith(
+                    LlamaCppJniConfig.builder("/does/not/exist.gguf").build());
+
+            // act
+            provider.warnOnTruncatedAnswer(request("class A {}"), responseWith("stop", new Usage(1, 1)));
+
+            // assert
+            assertThat(appender.list.isEmpty(), is(true));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    /** No choices means nothing to judge; reading {@code get(0)} anyway would throw. */
+    @Test
+    public void warnOnTruncatedAnswer_noChoices_saysNothing() {
+        // arrange
+        final ListAppender<ILoggingEvent> appender = attachAppender(Level.WARN);
+        try {
+            final LlamaCppJniAiGenerationProvider provider = providerWith(
+                    LlamaCppJniConfig.builder("/does/not/exist.gguf").build());
+            final ChatResponse empty = new ChatResponse("id", Collections.emptyList(), new Usage(1, 1), null, "{}");
+
+            // act
+            provider.warnOnTruncatedAnswer(request("class A {}"), empty);
+
+            // assert
+            assertThat(appender.list.isEmpty(), is(true));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    /** The cache line reports all three counts, so a transposition of two of them is visible. */
+    @Test
+    public void logPromptCacheReuse_debugEnabled_reportsCachedTotalAndGenerated() {
+        // arrange
+        final ListAppender<ILoggingEvent> appender = attachAppender(Level.DEBUG);
+        try {
+            final LlamaCppJniAiGenerationProvider provider = providerWith(
+                    LlamaCppJniConfig.builder("/does/not/exist.gguf").build());
+
+            // act -- distinct values so each lands in its own placeholder
+            provider.logPromptCacheReuse(request("class A {}"), responseWith("stop", new Usage(70, 11, 33)));
+
+            // assert
+            assertThat(appender.list.size(), is(1));
+            final String message = appender.list.get(0).getFormattedMessage();
+            assertThat(message, containsString("33 of 70 prompt token(s)"));
+            assertThat(message, containsString("11 generated"));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    /** At INFO the line must not be built at all -- it is one log line per indexed file. */
+    @Test
+    public void logPromptCacheReuse_debugDisabled_saysNothing() {
+        // arrange
+        final ListAppender<ILoggingEvent> appender = attachAppender(Level.INFO);
+        try {
+            final LlamaCppJniAiGenerationProvider provider = providerWith(
+                    LlamaCppJniConfig.builder("/does/not/exist.gguf").build());
+
+            // act
+            provider.logPromptCacheReuse(request("class A {}"), responseWith("stop", new Usage(70, 11, 33)));
+
+            // assert
+            assertThat(appender.list.isEmpty(), is(true));
+        } finally {
+            detachAppender(appender);
+        }
+    }
+
+    // </editor-fold>
 }

@@ -10,9 +10,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import net.ladenthin.srcmorph.CommonTestFixtures;
+import net.ladenthin.srcmorph.NativeLlamaAvailability;
 import net.ladenthin.srcmorph.config.AiFactCounter;
 import net.ladenthin.srcmorph.config.AiFactExtractor;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
@@ -24,21 +24,19 @@ import net.ladenthin.srcmorph.prompt.AiPromptPreparationSupport;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 /**
  * End-to-end smoke test of the {@code onOversize=mapReduce} pipeline (chunk &rarr; hierarchical reduce)
  * plus the exact {@code <facts>} block, driven by the <em>real</em> llama.cpp JNI provider and the small
- * bundled test model. Skipped unless the native lib is available and {@code -DrunNativeLlamaTests=true}.
+ * bundled test model. Runs by default; skipped only when the native library or the model is missing
+ * (see {@link net.ladenthin.srcmorph.NativeLlamaAvailability}).
  * Unit tests cover the orchestration with the mock provider; this proves the same path works against a
  * real model (real generation, real prompt-cache reuse, real trimming).
  */
 public class AiFieldGenerationSupportRealModelTest {
 
-    private static final String MODEL_PATH = Paths.get("src", "test", "resources", "SmolLM2-135M-Instruct-Q3_K_M.gguf")
-            .toAbsolutePath()
-            .toString();
+    private static final String MODEL_PATH = NativeLlamaAvailability.modelPath();
 
     /** Small context so a modest synthetic source is over-window and triggers map-reduce with the tiny model. */
     private static final int SMALL_CONTEXT = 512;
@@ -60,10 +58,7 @@ public class AiFieldGenerationSupportRealModelTest {
 
     @Test
     public void mapReduceWithFacts_realModel_producesFactsPlusSummary() throws Exception {
-        Assumptions.assumeTrue(
-                Boolean.getBoolean("runNativeLlamaTests"),
-                "Native llama test disabled. Enable with -DrunNativeLlamaTests=true");
-        Assumptions.assumeTrue(Files.exists(Paths.get(MODEL_PATH)), "Model file missing: " + MODEL_PATH);
+        NativeLlamaAvailability.assumeAvailable();
 
         final AiModelDefinition def = new AiModelDefinition();
         def.setKey(MODEL_KEY);

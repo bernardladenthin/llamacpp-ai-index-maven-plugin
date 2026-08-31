@@ -344,8 +344,13 @@ public class AiGenerationConfig {
 
     /**
      * Default DRY penalty look-back window in tokens ({@code --dry-penalty-last-n}).
-     * {@code -1} = whole context (llama.cpp default), {@code 0} = disabled. Only takes effect when DRY
-     * is enabled.
+     * {@code -1} = not sent, so llama.cpp picks its own window; {@code 0} = disabled. Only takes effect
+     * when DRY is enabled.
+     *
+     * <p>{@code -1} is a srcmorph sentinel, <b>not</b> a value the binding accepts: llama.cpp b10273
+     * dropped the old "{@code -1} = context size" meaning, and the binding now rejects any negative
+     * window outright. So a negative must never reach {@code withDryPenaltyLastN} &mdash; see the guard
+     * in {@code LlamaCppJniAiGenerationProvider.buildInferenceParameters}.</p>
      */
     public static final int DEFAULT_DRY_PENALTY_LAST_N = -1;
 
@@ -804,7 +809,7 @@ public class AiGenerationConfig {
      * Returns the repeat-penalty window ({@code --repeat-last-n}).
      *
      * @return the number of last tokens the repeat penalty considers, {@code 0} to disable it, or
-     *         {@code -1} to leave llama.cpp's own window
+     *         {@code -1} to send nothing and leave llama.cpp its own window
      */
     public int getRepeatLastN() {
         return repeatLastN;
@@ -1069,7 +1074,7 @@ public class AiGenerationConfig {
     /**
      * Returns the DRY penalty look-back window in tokens.
      *
-     * @return DRY penalty last-n ({@code -1} = whole context, {@code 0} = disabled)
+     * @return DRY penalty last-n ({@code -1} = not sent, llama.cpp's own window; {@code 0} = disabled)
      */
     public int getDryPenaltyLastN() {
         return dryPenaltyLastN;
@@ -1078,7 +1083,8 @@ public class AiGenerationConfig {
     /**
      * Sets the DRY penalty look-back window in tokens.
      *
-     * @param dryPenaltyLastN DRY penalty last-n ({@code -1} = whole context, {@code 0} = disabled)
+     * @param dryPenaltyLastN DRY penalty last-n ({@code -1} = not sent, llama.cpp's own window;
+     *                         {@code 0} = disabled)
      */
     public void setDryPenaltyLastN(final int dryPenaltyLastN) {
         this.dryPenaltyLastN = dryPenaltyLastN;
