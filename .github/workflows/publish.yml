@@ -599,7 +599,7 @@ jobs:
       # GPU jar runs only on its own OS/arch/backend, while the default (no classifier) bundles the
       # multi-platform CPU natives and runs anywhere. Signing uses the key setup-java already
       # imported (armored detached .asc, same shape Central produces).
-      - name: Build & sign classifier fat jars (GitHub-only assets, never Central)
+      - name: Build, sign & verify classifier fat jars (GitHub-only assets, never Central)
         if: ${{ !cancelled() }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -629,6 +629,15 @@ jobs:
           # (.github/sign-fatjars.sh, byte-identical with java-llama.cpp) — a .asc per fat jar.
           cp srcmorph-cli/target/srcmorph-cli-*-jar-with-dependencies*.jar signed-snapshot-assets/
           bash .github/sign-fatjars.sh signed-snapshot-assets
+          # Structural check of what the loop just produced. The smoke-fatjar job LAUNCHES the
+          # default jar; the sixteen GPU jars cannot be covered that way (a GitHub runner has no
+          # such device, and the only command that would load the native library is a real
+          # generation), so this asserts instead that each jar is the artifact its name claims --
+          # one jar per classifier, a native for the OS/arch the name promises, and a native set
+          # that DIFFERS from the default jar's. That last one is the point: if -Dllama.classifier=
+          # ever stops being wired through, the loop silently ships sixteen copies of the CPU build
+          # under GPU names and nothing else in this pipeline notices.
+          bash .github/verify-classifier-fatjars.sh signed-snapshot-assets "${CLASSIFIERS[@]}"
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -755,7 +764,7 @@ jobs:
       # GPU jar runs only on its own OS/arch/backend, while the default (no classifier) bundles the
       # multi-platform CPU natives and runs anywhere. Signing uses the key setup-java already
       # imported (armored detached .asc, same shape Central produces).
-      - name: Build & sign classifier fat jars (GitHub-only assets, never Central)
+      - name: Build, sign & verify classifier fat jars (GitHub-only assets, never Central)
         if: ${{ !cancelled() }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -785,6 +794,15 @@ jobs:
           # (.github/sign-fatjars.sh, byte-identical with java-llama.cpp) — a .asc per fat jar.
           cp srcmorph-cli/target/srcmorph-cli-*-jar-with-dependencies*.jar signed-release-assets/
           bash .github/sign-fatjars.sh signed-release-assets
+          # Structural check of what the loop just produced. The smoke-fatjar job LAUNCHES the
+          # default jar; the sixteen GPU jars cannot be covered that way (a GitHub runner has no
+          # such device, and the only command that would load the native library is a real
+          # generation), so this asserts instead that each jar is the artifact its name claims --
+          # one jar per classifier, a native for the OS/arch the name promises, and a native set
+          # that DIFFERS from the default jar's. That last one is the point: if -Dllama.classifier=
+          # ever stops being wired through, the loop silently ships sixteen copies of the CPU build
+          # under GPU names and nothing else in this pipeline notices.
+          bash .github/verify-classifier-fatjars.sh signed-release-assets "${CLASSIFIERS[@]}"
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
