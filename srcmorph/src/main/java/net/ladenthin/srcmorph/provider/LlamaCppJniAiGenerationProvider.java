@@ -168,6 +168,12 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
                 modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
             }
+            // TODO: after net.ladenthin:llama 5.2.0 ships the value-taking Flash Attention setter,
+            // replace this refusal with the real wiring -- modelParameters.setFlashAttn(<on>) -- and
+            // delete FLASH_ATTN_UNSUPPORTED_MESSAGE, EngineSupport.validateFlashAttnIsNotRequested,
+            // and the three tests that pin the refusal (two in EngineSupportTest, one here). Bumping
+            // llama.version alone will NOT surface this: the guard keeps throwing and the knob keeps
+            // looking broken, so the bump checklist has to name it. See TODO.md.
             if (config.flashAttn()) {
                 throw new IllegalArgumentException(FLASH_ATTN_UNSUPPORTED_MESSAGE);
             }

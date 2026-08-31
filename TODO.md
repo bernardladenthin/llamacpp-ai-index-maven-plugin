@@ -55,6 +55,28 @@ recorded in git history and `crossrepostatus.md`, not here.
   not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
   correctness one.
 
+- **Wire `flashAttn` up for real after `net.ladenthin:llama` 5.2.0 ships.** 1.2.0 *refuses* the knob
+  rather than forwarding it, in two places (`LlamaCppJniAiGenerationProvider.model()` for the direct
+  API path, `EngineSupport.validateFlashAttnIsNotRequested` for the plan phase), because the binding
+  cannot currently spell it: `-fa` takes a mandatory `[on|off|auto]`, `enableFlashAttn()` routes
+  through `setFlag` which stores `null`, and the argv renderer then emits the key with no token after
+  it — so llama.cpp swallows the *next* argv token and the load dies naming a flag the user never set
+  (`error: unknown value for --flash-attn: '--reasoning-format'`, reproduced against the shipped fat
+  jar). No workaround exists downstream: `putScalar` is `protected`.
+
+  When 5.2.0 lands with a value-taking setter: bump `llama.version`, replace both guards with the real
+  call, delete `FLASH_ATTN_UNSUPPORTED_MESSAGE` and the three tests that pin the refusal, and restore
+  the `flashAttn`/`cacheTypeV` guidance in `srcmorph-maven-plugin/README.md`. Then actually set the
+  knob against a real model once — the refusal is the only thing that has ever been exercised.
+
+  **The trap to avoid: bumping `llama.version` alone changes nothing visible.** The guards keep
+  throwing, the knob keeps looking broken, and every gate stays green — so this has to be an explicit
+  line on the bump checklist rather than something a version bump surfaces on its own. The upstream
+  fix is tracked in java-llama.cpp (`ModelParameters` needs `setFlashAttn(on|off|auto)` mirroring the
+  `CacheType` enum pattern, `enableFlashAttn()` deprecated, and
+  `ModelParametersExtendedTest.testToArrayComplexCombination` corrected — it currently pins the broken
+  9-token argv shape as correct).
+
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
 - **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.

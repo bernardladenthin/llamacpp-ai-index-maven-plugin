@@ -218,6 +218,8 @@ final class EngineSupport {
      */
     private static void validateFlashAttnIsNotRequested(
             final String aiDefinitionKey, final AiGenerationConfig modelConfig) throws SrcMorphException {
+        // TODO: remove together with the provider-side guard once net.ladenthin:llama 5.2.0 exposes a
+        // value-taking Flash Attention setter -- see the TODO in LlamaCppJniAiGenerationProvider.model().
         if (modelConfig.isFlashAttn()) {
             throw new SrcMorphException("aiDefinition '" + aiDefinitionKey + "': "
                     + LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE);
