@@ -235,7 +235,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
   six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
   missing-subtree and unknown-`factsKey` paths. The count reached 775 by release: later work in this
-  cycle added `provider.GgufModelInfo` to the list and grew the gated classes to 53. Measured on
+  cycle added `provider.GgufModelInfo` to the list and grew the gated classes to 52. Measured on
   `main` at release time: **775 / 16 / 62**, one hundred percent in each of the three modules.
 
 - **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and

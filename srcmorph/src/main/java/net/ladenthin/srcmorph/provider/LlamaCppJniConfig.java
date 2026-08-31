@@ -442,7 +442,7 @@ public final class LlamaCppJniConfig {
     /**
      * Returns the DRY penalty look-back window in tokens.
      *
-     * @return DRY penalty last-n ({@code -1} = whole context, {@code 0} = disabled)
+     * @return DRY penalty last-n ({@code -1} = not sent, llama.cpp's own window; {@code 0} = disabled)
      */
     public int dryPenaltyLastN() {
         return dryPenaltyLastN;
@@ -886,9 +886,10 @@ public final class LlamaCppJniConfig {
         }
 
         /**
-         * Sets dRY penalty look-back tokens ({@code -1} = whole context, {@code 0} = off).
+         * Sets the DRY penalty look-back window in tokens ({@code -1} = not sent, {@code 0} = off).
          *
-         * @param dryPenaltyLastN DRY penalty look-back tokens ({@code -1} = whole context, {@code 0} = off)
+         * @param dryPenaltyLastN DRY penalty look-back tokens ({@code -1} = not sent, so llama.cpp keeps
+         *                        its own window; {@code 0} = off)
          * @return this builder
          */
         public Builder dryPenaltyLastN(final int dryPenaltyLastN) {
