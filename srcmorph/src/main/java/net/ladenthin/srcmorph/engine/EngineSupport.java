@@ -18,6 +18,7 @@ import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
 import net.ladenthin.srcmorph.provider.GgufModelInfo;
 import net.ladenthin.srcmorph.provider.GgufModelInspector;
+import net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory;
 import org.jspecify.annotations.Nullable;
@@ -197,7 +198,29 @@ final class EngineSupport {
                         + " (checked before any model is loaded; fix the modelPath, or set"
                         + " generationProvider to mock for a model-free run)");
             }
+            validateFlashAttnIsNotRequested(aiDefinitionKey, modelConfig);
             validateAgainstTheModelItself(aiDefinitionKey, modelConfig, Paths.get(modelPath));
+        }
+    }
+
+    /**
+     * Refuses {@code flashAttn} at plan time, before any model is loaded or any file written.
+     *
+     * <p>The knob is documented and settable but cannot work with the pinned binding: {@code -fa} takes a
+     * mandatory {@code [on|off|auto]} value and {@code ModelParameters.enableFlashAttn()} emits the flag
+     * without one, so llama.cpp swallows the following argv token and the load dies naming a flag the
+     * user never set. Refusing here rather than in the provider means a multi-model run fails before its
+     * first group generates, instead of after.</p>
+     *
+     * @param aiDefinitionKey the model definition being validated, for the message
+     * @param modelConfig     its resolved configuration
+     * @throws SrcMorphException when {@code flashAttn} is enabled
+     */
+    private static void validateFlashAttnIsNotRequested(
+            final String aiDefinitionKey, final AiGenerationConfig modelConfig) throws SrcMorphException {
+        if (modelConfig.isFlashAttn()) {
+            throw new SrcMorphException("aiDefinition '" + aiDefinitionKey + "': "
+                    + LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE);
         }
     }
 
@@ -214,9 +237,12 @@ final class EngineSupport {
      *       because <em>every</em> number the plan phase produces is derived from {@code contextSize}:
      *       {@code maxInputChars}, the oversize/chunking decision, and the time estimate. Point the
      *       default 32768 at a 4096-context model and the plan is wrong by 8&times; before a single
-     *       token is generated. Only a warning, though — llama.cpp will run past a model's trained
-     *       context (with RoPE scaling, deliberately so), so this is a mismatch worth surfacing, not an
-     *       error worth refusing.</li>
+     *       token is generated. A warning rather than an error because the run still proceeds &mdash;
+     *       but note what actually happens: llama.cpp <em>caps the slot</em> to the model's trained
+     *       context, so a file the plan calls "fits" can still die mid-run once earlier files have
+     *       generated. (An earlier version of this text offered RoPE scaling as the escape hatch. It is
+     *       not one: srcmorph exposes no knob for it, so the only fix is to lower {@code contextSize}.)
+     *       </li>
      * </ul>
      *
      * @param aiDefinitionKey the model key, for the message
@@ -236,14 +262,17 @@ final class EngineSupport {
         final long declared = info.contextLength();
         if (declared != GgufModelInfo.UNKNOWN_CONTEXT_LENGTH && modelConfig.getContextSize() > declared) {
             LOGGER.warn(
-                    "aiDefinition '{}' sets contextSize {} but {} declares only {}. The plan's"
-                            + " maxInputChars, oversize handling and time estimate are all derived from"
-                            + " contextSize, so they are computed for a window this model does not claim to"
-                            + " have. Lower contextSize, or ignore this if the model is run with RoPE scaling.",
+                    "aiDefinition '{}' sets contextSize {} but {} declares only {}. llama.cpp caps the"
+                            + " slot to the model's trained context, so the runtime window really is {} --"
+                            + " while the plan's maxInputChars, oversize handling and time estimate are all"
+                            + " derived from the configured {}. A file the plan calls 'fits' can therefore"
+                            + " still die mid-run. Lower contextSize to match.",
                     aiDefinitionKey,
                     modelConfig.getContextSize(),
                     info.modelName().isEmpty() ? modelFile.toString() : info.modelName(),
-                    declared);
+                    declared,
+                    declared,
+                    modelConfig.getContextSize());
         }
     }
 }
