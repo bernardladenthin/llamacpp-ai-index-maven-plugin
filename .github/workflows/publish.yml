@@ -380,17 +380,15 @@ jobs:
             ${{ github.workspace }}/**/target/surefire-reports/TEST-*.xml
           if-no-files-found: ignore
       - name: Run PIT mutation tests
-        # Scoped to srcmorph: it is the only reactor module with a pitest-maven execution
-        # (srcmorph-cli and srcmorph-maven-plugin each document, in their own pom, why
-        # they have no PIT gate yet — see TODO.md). `-am` builds srcmorph's own reactor
-        # dependencies (none today) before running; without `-pl` this goal would otherwise be
-        # invoked (harmlessly, but pointlessly) against every reactor module.
-        run: mvn --batch-mode --no-transfer-progress -pl srcmorph -am test-compile org.pitest:pitest-maven:mutationCoverage
+        # All three modules now carry a pitest-maven execution at mutationThreshold 100, so the
+        # goal runs reactor-wide rather than scoped to srcmorph. `-am` is gone with the `-pl`:
+        # a plain reactor invocation already builds each module's dependencies in order.
+        run: mvn --batch-mode --no-transfer-progress test-compile org.pitest:pitest-maven:mutationCoverage
       - name: Extract PIT survivors
         if: always()
         run: |
           echo "=== PIT Survived Mutations ==="
-          for html_file in $(find srcmorph/target/pit-reports -name "*.html" -type f 2>/dev/null | sort); do
+          for html_file in $(find */target/pit-reports -name "*.html" -type f 2>/dev/null | sort); do
             if grep -q "SURVIVED" "$html_file"; then
               echo "Found survivors in $html_file:"
               grep -B 2 -A 3 "SURVIVED" "$html_file"
@@ -399,7 +397,7 @@ jobs:
           done
       - uses: actions/upload-artifact@v7
         if: always()
-        with: { name: pit-reports, path: srcmorph/target/pit-reports/ }
+        with: { name: pit-reports, path: "*/target/pit-reports/" }
 
   vmlens:
     name: Test (vmlens interleavings)

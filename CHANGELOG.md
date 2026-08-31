@@ -11,6 +11,37 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Added
+- **`srcmorph-cli` and `srcmorph-maven-plugin` are PIT-gated**, at the same `mutationThreshold` 100
+  as the core. They were the last two modules without one, and the gap was not theoretical: PIT
+  measured the plugin at **53%** (33/62) and the CLI at **84%** (16/19) before any test was written.
+
+  The plugin's hole was the interesting one. `AbstractAiIndexMojoTest` covers the *shared*
+  `buildConfiguration()`, but each goal adds its own mapping step on top — and every one of
+  `buildGenerateConfiguration` / `buildAggregatePackagesConfiguration` /
+  `buildAggregateProjectConfiguration`, plus all eight `getLlamaContextSize`/`getLlamaThreads`
+  accessors, had **no coverage at all**. Drop `setExcludes(...)` from `GenerateMojo` and the plugin
+  quietly indexes files the user excluded, with nothing failing. `MojoConfigurationMappingTest` now
+  pins each goal's own parameters with values distinct within their type, so a transposition fails
+  rather than cancelling out — verified by swapping `minFileSizeBytes`/`maxFileSizeBytes`, which
+  reds the test. The three mapping methods went from `private` to package-private for it.
+
+  Two survivors that the new gate exposed were weaknesses in *existing* tests, not missing ones:
+  `AbstractAiIndexMojoTest` asserted `generationProvider` was `"mock"`, which is
+  `SrcMorphConfiguration`'s own default — so dropping the setter call was invisible; it now uses a
+  non-default provider name. And `CalibrateMojo.execute()`'s deliberate blank separator line could
+  not be seen by a `contains` check, so it is asserted by position.
+
+  The CLI gate excludes exactly one method, `Main.main(String[])`, with the reason recorded in the
+  pom: the `smoke-fatjar` job — a release gate for both publish jobs — already runs the real
+  `java -jar` artifact and asserts `Main#run end.`, which only `run()` emits and only `main()`
+  calls. Its one true survivor, the `System.out.println` that makes the `<calibration>` block
+  paste-ready rather than a log line, is now pinned by a stdout-capturing test.
+
+  CI runs the goal reactor-wide instead of `-pl srcmorph -am`, and the survivor extraction and
+  report upload cover every module's `target/pit-reports`.
+
+
 ## [1.2.0] - 2026-08-30
 
 ### Added

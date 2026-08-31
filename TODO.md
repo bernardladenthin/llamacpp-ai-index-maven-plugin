@@ -7,18 +7,6 @@ recorded in git history and `crossrepostatus.md`, not here.
 
 ## Open
 
-- **PIT mutation-testing gate for `srcmorph-cli` and the plugin module.** Only `srcmorph`
-  (`srcmorph/pom.xml`) is PIT-gated today — `<mutationThreshold>100</mutationThreshold>` over an
-  explicit `<targetClasses>` list of 47 classes across config/document/engine/indexer/prompt/
-  provider/support, all killed at 100%. Neither `srcmorph-cli` nor
-  `srcmorph-maven-plugin` has a `pitest-maven` execution of its own yet (both poms document
-  this explicitly with a comment at the spot a PIT plugin block would go). For the CLI: the pure
-  helpers worth mutation-gating are the config copy/round-trip (`Main#copyWithPlanOnlyForced`) and
-  command dispatch; `Main`'s I/O-heavy entry points (`main`, `loadConfiguration`) are better served by
-  integration tests than unit-mutation gating. For the plugin: the 4 goal mojos (+ the abstract AbstractAiIndexMojo base) are Maven-lifecycle
-  orchestration (typically integration-tested via Maven invoker/executor, not unit-mutation-tested) —
-  confirm that reasoning still holds before assuming it's a permanent exemption rather than a gap.
-
 - **Expand `srcmorph`'s own PIT mutation scope (optional).** `srcmorph/pom.xml` wires
   `<mutationThreshold>100</mutationThreshold>` over an explicit `<targetClasses>` list (config /
   document / engine / prompt / provider / support value+logic classes, plus `indexer.AiInputWindowCalculator`

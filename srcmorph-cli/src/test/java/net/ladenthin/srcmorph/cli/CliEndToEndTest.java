@@ -6,7 +6,9 @@ package net.ladenthin.srcmorph.cli;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -205,6 +207,41 @@ public class CliEndToEndTest {
         // act / assert -- calibrate measures and reports; it writes no .ai.md tree
         new Main(configuration).run();
         assertThat(Files.exists(tempDir.resolve("out").resolve(AiMdHeaderCodec.PROJECT_AI_MD_FILENAME)), is(false));
+    }
+
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="Calibrate writes to stdout, not the log">
+
+    /**
+     * The {@code Calibrate} arm deliberately uses {@code System.out} rather than the logger: the
+     * rendered block is a paste-ready {@code <calibration>} snippet the user copies into their POM,
+     * so it must not carry a logger's timestamp/level prefix. That distinction is the whole point of
+     * the line, and nothing asserted it — removing the {@code println} left every test green.
+     *
+     * @throws Exception if the run fails
+     */
+    @Test
+    public void run_calibrateCommand_printsThePasteReadyBlockToStdoutRatherThanTheLog() throws Exception {
+        // arrange
+        final CConfiguration configuration = buildAllCommandConfiguration();
+        configuration.command = CCommand.Calibrate;
+        final PrintStream originalOut = System.out;
+        final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+
+        // act
+        try {
+            System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8.name()));
+            new Main(configuration).run();
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // assert -- the block reached stdout, and it is the real report, not an empty render
+        final String stdout = captured.toString(StandardCharsets.UTF_8.name());
+        assertThat(stdout.contains("<calibration>"), is(true));
+        assertThat(stdout.contains("</calibration>"), is(true));
+        assertThat(stdout.contains("mock-model"), is(true));
     }
 
     // </editor-fold>

@@ -88,7 +88,10 @@ public class AbstractAiIndexMojoTest {
         mojo.outputDirectory = out;
         mojo.force = true;
         mojo.subtrees = subtrees;
-        mojo.generationProvider = "mock";
+        // Deliberately NOT "mock": that is SrcMorphConfiguration's own default, so asserting it
+        // cannot tell "the mapping ran" from "the mapping was dropped" (PIT proved it -- removing
+        // setGenerationProvider(...) survived). Any other provider name distinguishes the two.
+        mojo.generationProvider = "llamacpp-jni";
         mojo.promptDefinitions = prompts;
         mojo.aiDefinitions = models;
         mojo.fieldGenerations = rules;
@@ -104,7 +107,7 @@ public class AbstractAiIndexMojoTest {
         assertThat(config.getOutputDirectory(), is(equalTo(out)));
         assertThat(config.isForce(), is(true));
         assertThat(config.getSubtrees(), is(equalTo(subtrees)));
-        assertThat(config.getGenerationProvider(), is(equalTo("mock")));
+        assertThat(config.getGenerationProvider(), is(equalTo("llamacpp-jni")));
         assertThat(config.getPromptDefinitions(), is(sameInstance(prompts)));
         assertThat(config.getAiDefinitions(), is(sameInstance(models)));
         assertThat(config.getFieldGenerations(), is(sameInstance(rules)));

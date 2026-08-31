@@ -126,9 +126,13 @@ public class GenerateMojo extends AbstractAiIndexMojo {
      * Maps this goal's own {@code @Parameter} fields onto the shared configuration built by
      * {@link AbstractAiIndexMojo#buildConfiguration()}.
      *
-     * @return the fully populated configuration for {@link GenerateEngine}
+     * <p>Package-private rather than private so a same-package test can assert the mapping without
+     * reflection. Its failure mode is silent: a field forgotten here, or two transposed, ignores
+     * what the user configured and breaks nothing visible.</p>
+     *
+     * @return the configuration for this goal
      */
-    private SrcMorphConfiguration buildGenerateConfiguration() {
+    SrcMorphConfiguration buildGenerateConfiguration() {
         final SrcMorphConfiguration config = buildConfiguration();
         config.setPluginVersion(pluginVersion);
         config.setAiVersion(aiVersion);

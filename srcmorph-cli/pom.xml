@@ -240,15 +240,11 @@ SPDX-License-Identifier: Apache-2.0
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.15</version>
                 </plugin>
-                <!--
-                    No pitest-maven pluginManagement entry: unlike srcmorph (which gates 47
-                    framework-free classes at 100% mutation coverage), this module is not yet PIT-gated.
-                    TODO (tracked for a later step): add a pitest-maven execution here once the CLI's
-                    pure helpers (config copy/round-trip, command dispatch) have dedicated unit tests
-                    worth mutation-gating; Main's I/O-heavy entry points are integration-tested instead,
-                    the same "mojos aren't unit-mutation-tested" rationale the sibling plugin module's
-                    own pom.xml comment documents.
-                -->
+                <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>1.30.0</version>
+                </plugin>
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
@@ -603,6 +599,48 @@ SPDX-License-Identifier: Apache-2.0
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.3</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <targetClasses>
+                        <param>net.ladenthin.srcmorph.cli.Main</param>
+                        <param>net.ladenthin.srcmorph.cli.configuration.CConfiguration</param>
+                        <param>net.ladenthin.srcmorph.cli.configuration.CCommand</param>
+                    </targetClasses>
+                    <targetTests>
+                        <param>net.ladenthin.srcmorph.cli.*</param>
+                    </targetTests>
+                    <!--
+                      main(String[]) is out of scope for mutation gating, and this is the reason
+                      rather than a shrug: it is the process entry point, and the `smoke-fatjar` CI
+                      job (a release gate for both publish jobs) already runs the REAL artifact -
+                      `java -jar srcmorph-cli-...-jar-with-dependencies.jar config_Plan.json` - and
+                      asserts exit 0 plus "Main#run end." in the output. That line is logged by
+                      run(), which only main() calls, so both of the mutants excluded here
+                      (dropping the logConfigurationTransformation() call, dropping the run() call)
+                      are covered end to end by an artifact-level test that a unit mutant cannot
+                      reach. Everything main() delegates to IS gated below.
+                    -->
+                    <excludedMethods>
+                        <param>main</param>
+                    </excludedMethods>
+                    <mutationThreshold>100</mutationThreshold>
+                    <timeoutConstant>30000</timeoutConstant>
+                    <parseSurefireConfig>false</parseSurefireConfig>
+                    <jvmArgs>
+                        <value>-Xmx2g</value>
+                        <value>-XX:+EnableDynamicAgentLoading</value>
+                    </jvmArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>
