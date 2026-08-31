@@ -657,6 +657,7 @@ jobs:
         # all. Refusing to attach on a signing failure would defeat exactly that. So annotate here,
         # upload regardless, and fail the job afterwards. Assets always land; an unsigned release is
         # still loudly red rather than quietly wrong.
+        # See workspace/policies/fat-jar-release-assets.md, "Attach first, then go red".
         id: signatures
         run: |
           set -uo pipefail
@@ -808,10 +809,11 @@ jobs:
       - name: Report unsigned assets (does not block the upload)
         # Deliberately NON-blocking, and deliberately BEFORE the upload. Both attach jobs run even
         # when their publish job failed, because a Central publish-poll timeout must not cost the
-        # GitHub assets -- if Central is unreachable these are the ONLY way to get the artifacts at
-        # all. Refusing to attach on a signing failure would defeat exactly that. So: annotate here,
+        # GitHub assets: if Central is unreachable these are the ONLY way to get the artifacts at
+        # all. Refusing to attach on a signing failure would defeat exactly that. So annotate here,
         # upload regardless, and fail the job afterwards. Assets always land; an unsigned release is
         # still loudly red rather than quietly wrong.
+        # See workspace/policies/fat-jar-release-assets.md, "Attach first, then go red".
         id: signatures
         run: |
           set -uo pipefail
