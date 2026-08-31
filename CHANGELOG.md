@@ -12,6 +12,41 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 ## [Unreleased]
 
 ### Added
+- **The plan phase now checks the configuration against the model itself, still without loading it.**
+  `net.ladenthin:llama` ships `GgufInspector`, which parses only a GGUF's header key/value table — no
+  native library, no tensor data — so it is usable from a phase whose whole promise is that it loads no
+  model. srcmorph was not using it; its check was `new File(modelPath).isFile()`, which misses two
+  things, both silently:
+  - **The file is not a GGUF at all.** A Git LFS pointer, a truncated download, or simply the wrong
+    file passes an existence check and dies much later inside the native loader — in a multi-model run,
+    after the earlier model groups have already generated. Now a plan-time failure naming the file.
+  - **`contextSize` exceeds what the model declares.** This is the one that costs the most and shows
+    the least: *every* number the plan produces is derived from `contextSize` — `maxInputChars`, the
+    oversize/chunking decision, the time estimate. Point the default 32768 at a 4096-context model and
+    the plan is wrong by 8&times; before a token is generated. A warning rather than an error, because
+    llama.cpp will deliberately run past a model's trained context with RoPE scaling.
+
+  New `provider.GgufModelInspector` (the `jniConfinedToProvider` rule keeps binding types out of
+  `engine`) and the framework-free `provider.GgufModelInfo` it returns, the latter on the PIT gate.
+
+- **A truncated summary is now reported instead of being written as if it were complete.**
+  `maxOutputTokens` defaults to 128; a model that hits that ceiling stops mid-sentence, and llama.cpp
+  says so — the OpenAI finish reason is `length` rather than `stop`. The provider was calling
+  `chatCompleteText(...)`, which returns only the text, so the signal was not merely ignored but
+  unavailable. The generate path now parses the whole response, which costs **no extra inference**:
+  `chatCompleteText` is literally `extractChoiceContent(chatComplete(...))`, the same native call.
+
+  Worth recording for whoever touches this next: the check compares against the literal `"length"`,
+  deliberately **not** against `StopReason`. Those are two different vocabularies — `getFinishReason()`
+  is OpenAI's (`stop`/`length`/`tool_calls`), while `StopReason` maps llama.cpp's own `stop_type`
+  (`eos`/`word`/`limit`). `StopReason.fromStopType("length")` returns `NONE`: a silent wrong answer,
+  not a compile error.
+
+- **Prompt-cache reuse is now visible during an indexing run**, not only during `calibrate`, closing
+  the follow-up that release left open. Parsing the full response also makes `Usage` available, so the
+  `DEBUG` line reports cached / total prompt tokens and tokens generated, per file — the run that
+  actually pays `swaFull`'s KV-memory surcharge had no visibility into whether it was paying off.
+
 - **`srcmorph-cli` and `srcmorph-maven-plugin` are PIT-gated**, at the same `mutationThreshold` 100
   as the core. They were the last two modules without one, and the gap was not theoretical: PIT
   measured the plugin at **53%** (33/62) and the CLI at **84%** (16/19) before any test was written.
