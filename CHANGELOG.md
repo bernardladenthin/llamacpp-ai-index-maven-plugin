@@ -9,7 +9,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ---
 
-## [1.2.0] - 2026-08-31
+## [1.2.0] - 2026-09-01
 
 ### Added
 - **The plan phase now checks the configuration against the model itself, still without loading it.**
