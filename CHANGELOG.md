@@ -228,14 +228,16 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   null-guards this made dead in `LlamaCppJniConfigFactory` were dropped with it — the real guard lives
   in `LlamaCppJniConfig`'s constructor, and is now pinned directly by a new `LlamaCppJniConfigTest`.
 
-- **PIT gate widened from 632 to 717 mutations, all killed at `mutationThreshold` 100.** Newly gated:
+- **PIT gate widened from 632 to 775 mutations in the core module, all killed at `mutationThreshold` 100.** Newly gated:
   `provider.LlamaCppJniConfig`, `config.AiConditionGroup` (both already at 100% with no new test —
   `TODO.md` had listed them as needing "careful fixtures", which was stale), `document.AiMdDocumentCodec`
   and `indexer.AiIndexPlan` (survivors killed here). `document.AiMdHeaderCodec` is documented as
   permanently out: its last two survivors are equivalent mutants in the colon-position guard, unkillable
   through the public API. Coverage was also added for the CLI's `.js`/`.yml` extension aliases and all
   six `CCommand` dispatch arms, the plugin's `buildConfiguration()`/`messageOf()`, and `GenerateEngine`'s
-  missing-subtree and unknown-`factsKey` paths.
+  missing-subtree and unknown-`factsKey` paths. The count reached 775 by release: later work in this
+  cycle added `provider.GgufModelInfo` to the list and grew the gated classes to 53. Measured on
+  `main` at release time: **775 / 16 / 62**, one hundred percent in each of the three modules.
 
 - **Line-based routing is now covered end to end.** `<lines>` is documented in the plugin README and
   the condition layer was tested directly, but no test ever made the indexer's `anyRuleUsesLines`
