@@ -193,6 +193,29 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   until somebody decides how it is covered. Verified by falsification: a deliberately invalid value
   reds exactly the case carrying it and names the knob.
 
+- **The Maven plugin is now run as a plugin in CI** (`plugin-it` job, `.github/plugin-it.sh`,
+  fixture in `.github/plugin-it/`). Until now every check on `srcmorph-maven-plugin` called Java
+  methods directly -- `PluginArchitectureTest`, `MojoPhaseSkipTest`, `MojoConfigurationMappingTest`,
+  PIT at 62/62 -- so nothing covered the parts only Maven performs: plexus binding of the
+  `<configuration>` XML onto the `@Parameter` fields (the CLI's Jackson binding is a different code
+  path), goal-prefix resolution, the `srcmorph.*` property strings, lifecycle-phase binding, and the
+  descriptor `maven-plugin-plugin` generates. **A renamed `@Parameter` property would have shipped
+  green.**
+
+  Five checks: the full lifecycle with all three goals configured entirely from the fixture's pom
+  XML (including the nested `<condition><extensions>` routing tree and per-execution overrides); the
+  generated descriptor read out of the packaged jar (goal prefix, the four goal names, the property
+  expressions the other checks drive); `mvn srcmorph:generate -Dsrcmorph.planOnly=true` via the goal
+  prefix, asserting the plan is printed, the `.java` rule matched by id, and nothing was written;
+  `-Dsrcmorph.aiVersion=9.9.9` reaching the written document header; and `-Dsrcmorph.skip=true`
+  writing nothing. The fixture uses the default `mock` provider, so no GGUF, no GPU and no network
+  -- the whole job is about a minute, most of it the install.
+
+  The fixture's `<configuration>` deliberately mirrors the worked example in
+  `srcmorph-maven-plugin/README.md`, so it also fails when the documented XML stops being the XML
+  that works. Verified by falsification: renaming `srcmorph.planOnly` reds the test with a message
+  naming exactly that.
+
 - **The classifier fat jars are verified before they are attached** (`.github/verify-classifier-fatjars.sh`).
   The publish jobs build seventeen fat jars — one per `net.ladenthin:llama` native classifier plus the
   default — and exactly one of them was ever checked: `smoke-fatjar` launches the default. The sixteen

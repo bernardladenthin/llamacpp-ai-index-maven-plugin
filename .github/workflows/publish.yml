@@ -451,6 +451,58 @@ jobs:
   # window, which would make the smoke non-deterministic rather than more thorough.
   # ---------------------------------------------------------------------------
 
+  # ---------------------------------------------------------------------------
+  # Plugin integration test -- the only job that runs srcmorph-maven-plugin AS A PLUGIN.
+  #
+  # Every other check on that module calls Java methods directly (PluginArchitectureTest,
+  # MojoPhaseSkipTest, MojoConfigurationMappingTest, PIT at 62/62), so nothing covers what only
+  # Maven does: plexus binding of the <configuration> XML onto the @Parameter fields, goal-prefix
+  # resolution, the srcmorph.* property strings, lifecycle-phase binding, and the descriptor
+  # maven-plugin-plugin generates. A renamed @Parameter property shipped green before this job.
+  #
+  # needs: startgate, not build -- it compiles what it needs itself and consumes no uploaded
+  # artifact, so hanging it off build would only serialize it behind a compile it repeats anyway.
+  # ---------------------------------------------------------------------------
+  plugin-it:
+    name: Plugin integration test
+    needs: startgate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+      # -pl srcmorph-maven-plugin -am resolves to exactly parent + srcmorph + the plugin;
+      # srcmorph-cli is a leaf (CliArchitectureTest#cliIsLeaf), so its unconditionally
+      # package-bound ~80 MB assembly never runs here. install (not package) because the fixture
+      # resolves the plugin from the local repository. The skips drop work code-style and test
+      # already do -- keeping them would roughly double the job for no extra signal.
+      - name: Install the plugin into the local repository
+        run: >
+          mvn -B --no-transfer-progress
+          -pl srcmorph-maven-plugin -am
+          -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true
+          -Dspotbugs.skip=true -Dspotless.check.skip=true -Denforcer.skip=true -Djacoco.skip=true
+          install
+      - name: Resolve the reactor version
+        id: version
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's|^\s*<version>\(.*\)</version>.*|\1|p' pom.xml | head -1)
+          [ -n "$v" ] || { echo "::error::could not read the reactor version from pom.xml"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Run the plugin integration test
+        run: .github/plugin-it.sh '${{ steps.version.outputs.version }}'
+      - name: Upload integration-test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-it-logs
+          path: .github/plugin-it/target/logs/*.log
+          if-no-files-found: warn
+
   smoke-fatjar:
     name: Smoke test fat jar
     needs: [build]
@@ -537,7 +589,7 @@ jobs:
 
   publish-snapshot:
     name: Publish Snapshot to Central
-    needs: [check-snapshot, code-style, smoke-fatjar]
+    needs: [check-snapshot, code-style, smoke-fatjar, plugin-it]
     if: needs.check-snapshot.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central
@@ -709,7 +761,7 @@ jobs:
 
   publish-release:
     name: Publish Release to Central
-    needs: [check-tag, code-style, smoke-fatjar]
+    needs: [check-tag, code-style, smoke-fatjar, plugin-it]
     if: needs.check-tag.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central

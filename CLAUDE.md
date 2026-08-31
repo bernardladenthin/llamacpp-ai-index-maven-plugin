@@ -221,6 +221,17 @@ themselves.
 - **jcstress** (`jcstress/AiOversizeStrategyRace.java`) and **vmlens**
   (`vmlens/VmlensInterleavingSmokeTest.java`) tests/profiles currently live in this module, not in
   `srcmorph` — they were not relocated during the core extraction.
+- **The plugin is exercised AS A PLUGIN only by the `plugin-it` CI job** (`.github/plugin-it.sh` +
+  the fixture in `.github/plugin-it/`), never by this module's unit tests. That distinction matters
+  when adding a `@Parameter`: `MojoConfigurationMappingTest` and friends set the *field*, so they
+  cannot see the `property` string, the plexus XML binding, the goal prefix or the generated
+  descriptor — a renamed property used to ship green. The IT installs the reactor
+  (`-pl srcmorph-maven-plugin -am`, which provably excludes `srcmorph-cli` and its ~80 MB assembly),
+  then runs the fixture through a real Maven lifecycle with the `mock` provider: no GGUF, no GPU, no
+  network. Its fixture pom mirrors the worked example in this module's `README.md`, so a README that
+  drifts from the working XML fails it. It gates `publish-snapshot` and `publish-release`.
+  Note when extending it: an explicit value in the fixture's `<configuration>` **beats** a `-D`
+  property, so a property-binding check has to drive a parameter the fixture pom leaves unset.
 - Full goal/parameter reference: `srcmorph-maven-plugin/README.md`.
 
 ### `llamacpp-ai-index-maven-plugin` — the retired relocation stub (no longer in this repo)

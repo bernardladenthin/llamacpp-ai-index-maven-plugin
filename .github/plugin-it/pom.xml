@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 Bernard Ladenthin <bernard.ladenthin@gmail.com>
+
+    SPDX-License-Identifier: Apache-2.0
+
+    Fixture project for the plugin integration test (.github/plugin-it.sh).
+
+    This is NOT a reactor module. It is a standalone project that consumes
+    net.ladenthin:srcmorph-maven-plugin from the local repository, which is the only way to
+    exercise the parts of the plugin that only Maven itself exercises: plexus binding of this
+    <configuration> XML onto the mojos' @Parameter fields, goal-prefix resolution, the
+    srcmorph.* command-line properties, lifecycle-phase binding, and the descriptor that
+    maven-plugin-plugin generates. Every unit test in the plugin module calls Java methods
+    directly and can see none of that.
+
+    The configuration below deliberately mirrors the worked example in
+    srcmorph-maven-plugin/README.md, with generationProvider left at its "mock" default so the
+    run needs no GGUF, no GPU and no network. So this fixture doubles as a check that the
+    documented XML is the XML that actually works.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>net.ladenthin.it</groupId>
+    <artifactId>srcmorph-plugin-it</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>srcmorph plugin integration-test fixture</name>
+    <description>Consumes srcmorph-maven-plugin from the local repository through a real Maven lifecycle.</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Supplied by .github/plugin-it.sh as -Dsrcmorph.it.version=<reactor version>; the
+             default keeps a hand-run from silently resolving some other version. -->
+        <srcmorph.it.version>UNSET</srcmorph.it.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>net.ladenthin</groupId>
+                <artifactId>srcmorph-maven-plugin</artifactId>
+                <version>${srcmorph.it.version}</version>
+
+                <configuration>
+                    <outputDirectory>${project.basedir}/target/ai</outputDirectory>
+                    <subtrees>
+                        <subtree>src/main/java</subtree>
+                    </subtrees>
+                    <excludes>
+                        <exclude>**/package-info.java</exclude>
+                    </excludes>
+
+                    <aiDefinitions>
+                        <aiDefinition>
+                            <key>fixture-model</key>
+                            <modelPath>unused-with-the-mock-provider.gguf</modelPath>
+                            <contextSize>2048</contextSize>
+                            <maxOutputTokens>64</maxOutputTokens>
+                            <temperature>0.15</temperature>
+                            <threads>2</threads>
+                        </aiDefinition>
+                    </aiDefinitions>
+
+                    <promptDefinitions>
+                        <promptDefinition>
+                            <key>file-body-java</key>
+                            <template><![CDATA[Summarize ONE Java source file as structured markdown.
+
+File: %s
+
+Source:
+%s]]></template>
+                        </promptDefinition>
+                        <promptDefinition>
+                            <key>file-body-fallback</key>
+                            <template><![CDATA[Summarize ONE source file as structured markdown.
+
+File: %s
+
+Source:
+%s]]></template>
+                        </promptDefinition>
+                        <promptDefinition>
+                            <key>package-body</key>
+                            <template><![CDATA[Summarize ONE package from its already-generated file summaries.
+
+Package: %s
+
+File summaries:
+%s]]></template>
+                        </promptDefinition>
+                        <promptDefinition>
+                            <key>project-body</key>
+                            <template><![CDATA[Write a short overview of the whole project from its per-package leads.
+
+Index file: %s
+
+%s]]></template>
+                        </promptDefinition>
+                    </promptDefinitions>
+
+                    <!-- Declared at plugin level, not only inside the generate execution, so the
+                         goal is also invocable standalone as `mvn srcmorph:generate` (which sees
+                         only this block). The two aggregate executions override it with their own
+                         single rule below. -->
+                    <fieldGenerations>
+                        <fieldGeneration>
+                            <id>java</id>
+                            <promptKey>file-body-java</promptKey>
+                            <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                            <condition>
+                                <extensions><extension>.java</extension></extensions>
+                            </condition>
+                        </fieldGeneration>
+                        <fieldGeneration>
+                            <id>fallback</id>
+                            <fallback>true</fallback>
+                            <promptKey>file-body-fallback</promptKey>
+                            <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                        </fieldGeneration>
+                    </fieldGenerations>
+                </configuration>
+
+                <executions>
+                    <!-- All three phases, each bound to a real lifecycle phase, so the run also
+                         proves the goals compose in the order the README documents. -->
+                    <execution>
+                        <id>it-generate</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <fieldGenerations>
+                                <fieldGeneration>
+                                    <id>java</id>
+                                    <promptKey>file-body-java</promptKey>
+                                    <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                                    <condition>
+                                        <extensions><extension>.java</extension></extensions>
+                                    </condition>
+                                </fieldGeneration>
+                                <fieldGeneration>
+                                    <id>fallback</id>
+                                    <fallback>true</fallback>
+                                    <promptKey>file-body-fallback</promptKey>
+                                    <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                                </fieldGeneration>
+                            </fieldGenerations>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>it-aggregate-packages</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>aggregate-packages</goal></goals>
+                        <configuration>
+                            <fieldGenerations>
+                                <fieldGeneration>
+                                    <promptKey>package-body</promptKey>
+                                    <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                                </fieldGeneration>
+                            </fieldGenerations>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>it-aggregate-project</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>aggregate-project</goal></goals>
+                        <configuration>
+                            <fieldGenerations>
+                                <fieldGeneration>
+                                    <promptKey>project-body</promptKey>
+                                    <aiDefinitionKey>fixture-model</aiDefinitionKey>
+                                </fieldGeneration>
+                            </fieldGenerations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
