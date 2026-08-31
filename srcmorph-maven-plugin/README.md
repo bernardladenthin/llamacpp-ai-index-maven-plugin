@@ -381,10 +381,6 @@ Run AI index generation:
 ```
 mvn clean install -Psrcmorph-selftest
 ```
-With native llama tests:
-```
-mvn clean install -Psrcmorph-selftest -DrunNativeLlamaTests=true
-```
 ## Plugin Configuration
 Run-level parameters (set in `<configuration>`):
 - `outputDirectory` — target directory for `.ai.md` files (default: `${project.basedir}/src/site/ai`)

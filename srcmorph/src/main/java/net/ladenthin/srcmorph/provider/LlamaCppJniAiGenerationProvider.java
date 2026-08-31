@@ -303,10 +303,14 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * {@code limit}). {@code StopReason.fromStopType("length")} returns {@code NONE} &mdash; a silent
      * wrong answer, not a compile error.</p>
      *
+     * <p>Package-private so the {@code "length"}-versus-{@code "stop"} decision can be driven from a
+     * hand-built {@link ChatResponse}, with no model: the trap this method documents is a silent one,
+     * so it needs a test that runs on every platform rather than only where a GGUF is present.</p>
+     *
      * @param request  the request, for the file name in the message
      * @param response the parsed response
      */
-    private void warnOnTruncatedAnswer(final AiGenerationRequest request, final ChatResponse response) {
+    void warnOnTruncatedAnswer(final AiGenerationRequest request, final ChatResponse response) {
         if (response.getChoices().isEmpty()) {
             return;
         }
@@ -328,10 +332,13 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * one that actually pays {@code swaFull}'s KV-memory surcharge, file after file &mdash; had no
      * visibility at all. At {@code DEBUG} because it is one line per file.</p>
      *
+     * <p>Package-private for the same reason as {@link #warnOnTruncatedAnswer}: a hand-built
+     * {@link ChatResponse} is enough to drive it.</p>
+     *
      * @param request  the request, for the file name
      * @param response the parsed response
      */
-    private void logPromptCacheReuse(final AiGenerationRequest request, final ChatResponse response) {
+    void logPromptCacheReuse(final AiGenerationRequest request, final ChatResponse response) {
         if (!LOGGER.isDebugEnabled()) {
             return;
         }
@@ -377,10 +384,16 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
     /**
      * Builds the immutable {@link InferenceParameters} for the given request from the resolved config.
      *
+     * <p>Package-private rather than private so the sentinel guards below can be tested without a
+     * model: the method touches no llama state (the model is loaded lazily, on the first generate),
+     * so a test can build a provider over a nonexistent path and inspect what would be sent. Given
+     * that an unguarded negative window silently killed the provider for two releases, that guard
+     * needs a test which does not depend on a GGUF being present.</p>
+     *
      * @param request the generation request
      * @return the inference parameters
      */
-    private InferenceParameters buildInferenceParameters(final AiGenerationRequest request) {
+    InferenceParameters buildInferenceParameters(final AiGenerationRequest request) {
         // Static instructions go in the SYSTEM message (byte-identical across files, so its KV
         // prefix is reused by cache_prompt); the variable file name + source go in the USER message.
         final String systemPrompt = promptSupport.systemPrompt(request.promptKey());
@@ -404,11 +417,11 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
                 // starve the final answer; -1 (default) = unrestricted, so behaviour is unchanged.
                 .withReasoningBudgetTokens(config.reasoningBudgetTokens())
                 // DRY (Don't Repeat Yourself) repetition suppression; multiplier 0.0 (default) = off,
-                // so the base/allowed-length/penalty-last-n knobs have no effect unless opted in.
+                // so the base/allowed-length knobs have no effect unless opted in. The DRY penalty
+                // WINDOW is deliberately not in this chain -- see penaltyScopedParameters below.
                 .withDryMultiplier(config.dryMultiplier())
                 .withDryBase(config.dryBase())
                 .withDryAllowedLength(config.dryAllowedLength())
-                .withDryPenaltyLastN(config.dryPenaltyLastN())
                 .withStopStrings(config.stopStrings().toArray(new String[0]))
                 // Keep the shared prompt-template prefix warm in the KV cache and reuse it across
                 // files (pinned to one slot); only the differing source is re-prefilled.
@@ -423,11 +436,24 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         final InferenceParameters seededParameters =
                 config.seed() >= 0 ? baseParameters.withSeed(config.seed()) : baseParameters;
 
-        // The window the repeat penalty above acts on. Forwarded only when configured (>= 0), so an
-        // unconfigured run keeps llama.cpp's own window; 0 is meaningful (disables the penalty), and the
-        // binding rejects negatives, which is why the guard is >= 0 rather than > 0.
-        final InferenceParameters penaltyScopedParameters =
+        // The two penalty windows -- the one the repeat penalty acts on, and DRY's own -- are forwarded
+        // only when configured (>= 0), so an unconfigured run keeps llama.cpp's own window; 0 is
+        // meaningful (disables the penalty), which is why the guard is >= 0 rather than > 0.
+        //
+        // The guard is not an optimisation, it is the only thing keeping the provider alive. The binding
+        // REJECTS a negative window outright (IllegalArgumentException, because llama.cpp b10273 dropped
+        // "-1 = context size"), and both defaults are -1. An unguarded forward therefore kills EVERY
+        // generation before a token is produced, whatever the rest of the configuration says. That is
+        // not hypothetical: dryPenaltyLastN was forwarded unguarded and did exactly that in 1.1.0 and
+        // 1.1.1. It survived because "DRY is off by default, so the window cannot matter" is true of the
+        // window's *effect* and false of the setter's *validation* -- the wither rejects the value
+        // whether or not DRY is active. Keep both guards, and add one for any future knob whose sentinel
+        // is negative.
+        final InferenceParameters repeatScopedParameters =
                 config.repeatLastN() >= 0 ? seededParameters.withRepeatLastN(config.repeatLastN()) : seededParameters;
+        final InferenceParameters penaltyScopedParameters = config.dryPenaltyLastN() >= 0
+                ? repeatScopedParameters.withDryPenaltyLastN(config.dryPenaltyLastN())
+                : repeatScopedParameters;
 
         // Only override the DRY sequence breakers when explicitly configured; an empty list keeps
         // the binding/model default set instead of clearing it.
