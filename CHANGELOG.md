@@ -175,6 +175,44 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   now pinned — a plan-only run with the real provider and a missing model still plans; the same
   configuration without `planOnly` still fails fast.
 
+- **Every model knob is now exercised against the real model, one knob per test case.**
+  `LlamaCppJniKnobSweepTest` sets each of the 34 sweepable `LlamaCppJniConfig` knobs to a non-default
+  value in turn and runs a real generation with the committed 135M model. The failure class it exists
+  for is precisely the one that produced this release's two provider fixes: a knob is not exercised by
+  being *set*, it is exercised by the binding *accepting* the value derived from it, and those two came
+  apart twice — `dryPenaltyLastN` at its own `-1` default (rejected outright, so every generation threw
+  before a token) and `flashAttn` (mapped onto a setter that cannot express what llama.cpp now
+  demands). Neither is visible to a mapping unit test, and neither is visible to the rest of the suite,
+  which runs on the `mock` provider and never loads the native library.
+
+  Per-knob rather than all-at-once on purpose: an all-knobs config catches the same breakage but names
+  no culprit, and one rejected value masks every knob behind it. 36 cases in ~35&nbsp;s. Three knobs
+  are excluded with stated reasons (`modelPath`, `devices`, `flashAttn`), and a reflective completeness
+  check fails the class when a knob is neither swept nor excluded — in **both** directions, plus a
+  count assertion so an empty sweep list cannot satisfy it. A knob added later therefore reds this test
+  until somebody decides how it is covered. Verified by falsification: a deliberately invalid value
+  reds exactly the case carrying it and names the knob.
+
+- **The classifier fat jars are verified before they are attached** (`.github/verify-classifier-fatjars.sh`).
+  The publish jobs build seventeen fat jars — one per `net.ladenthin:llama` native classifier plus the
+  default — and exactly one of them was ever checked: `smoke-fatjar` launches the default. The sixteen
+  GPU jars still cannot be *launched* meaningfully (a GitHub-hosted runner has no such device, and the
+  only command that loads the native library is a real generation), so the script asserts instead that
+  each is the artifact its name claims: one jar per requested classifier and no unexpected one, a
+  native library present, the native for the OS/arch the name promises, a default jar spanning more
+  than one OS, and — the load-bearing check — a native set that **differs** from the default jar's. If
+  `-Dllama.classifier=` ever stops being wired through, Maven resolves the default artifact and the
+  loop ships sixteen copies of the CPU build under GPU names; nothing else in the pipeline would
+  notice. A classifier shape nobody has mapped fails the script rather than passing unchecked.
+
+- **A release can no longer attach an unsigned asset quietly.** The attach jobs collect
+  `target/*.jar.asc` with `|| true`, so a signing step that produced nothing yielded an attach that
+  looked complete and was not. The check deliberately does **not** gate the upload: both attach jobs
+  run even when the publish job failed, because when Central is unreachable the GitHub assets are the
+  only way to get the build output at all. So it reports before the upload, uploads unconditionally,
+  and fails the job afterwards — the assets always land, an unsigned release is loudly red instead of
+  quietly wrong. The same two steps are now byte-identical in all four sibling repositories.
+
 ### Changed
 - **Two further public constructors gained a parameter, and a mojo parameter was removed.** Neither was
   listed as breaking when the changes landed; both are, so they are recorded here rather than left for a
@@ -223,7 +261,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
   — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
   `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
-  `clean test`: 601 / 39 / 32 tests, 0 failures, 0 skipped, all four modules SUCCESS.
+  `clean test`: 639 / 39 / 32 tests, 0 failures, 0 skipped, all four modules SUCCESS.
 
 - CI actions bumped to latest: `actions/setup-java` v5 → v6.
 

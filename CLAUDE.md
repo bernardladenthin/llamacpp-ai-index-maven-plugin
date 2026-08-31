@@ -128,9 +128,15 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 `jniConfinedToProvider` (only the `provider` package may touch the llama.cpp JNI binding).
 
 **Test suite** (`srcmorph/src/test/java/net/ladenthin/srcmorph/`, package-renamed 1:1 with production):
-~63 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
+~64 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
 (`AtomicCounterLincheckTest`), and the model-backed real tests gated on
-`src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
+`src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **`LlamaCppJniKnobSweepTest` drives every
+model knob at a non-default value through a real generation** (one case per knob, ~35 s for all of
+them): a knob is exercised only when the native binding *accepts* the value derived from it, which is
+what the mapping unit tests and the `mock`-provider suite structurally cannot see -- both provider
+defects fixed in 1.2.0 were of exactly that shape. Its reflective completeness check fails when a knob
+is neither swept nor listed in `NOT_SWEPT` with a reason, so a knob added later reds the class until
+somebody decides how it is covered. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 52 classes across
 config/document/engine/indexer/prompt/provider/support, all killed at 100%. **All three modules are
 PIT-gated now**: `srcmorph-cli` (16/16) and `srcmorph-maven-plugin` (62/62) carry their own

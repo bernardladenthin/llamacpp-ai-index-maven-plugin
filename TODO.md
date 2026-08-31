@@ -65,9 +65,14 @@ recorded in git history and `crossrepostatus.md`, not here.
   jar). No workaround exists downstream: `putScalar` is `protected`.
 
   When 5.2.0 lands with a value-taking setter: bump `llama.version`, replace both guards with the real
-  call, delete `FLASH_ATTN_UNSUPPORTED_MESSAGE` and the three tests that pin the refusal, and restore
-  the `flashAttn`/`cacheTypeV` guidance in `srcmorph-maven-plugin/README.md`. Then actually set the
-  knob against a real model once — the refusal is the only thing that has ever been exercised.
+  call, delete `FLASH_ATTN_UNSUPPORTED_MESSAGE` and the four tests that pin the refusal (two in
+  `EngineSupportTest`, one in `LlamaCppJniAiGenerationProviderTest`, and
+  `LlamaCppJniKnobSweepTest#flashAttn_isRefusedRatherThanSilentlyDropped`), and restore the
+  `flashAttn`/`cacheTypeV` guidance in `srcmorph-maven-plugin/README.md`. Then move `flashAttn` out of
+  `LlamaCppJniKnobSweepTest.NOT_SWEPT` into a real sweep case — that is the step that finally sets the
+  knob against a real model, which the refusal has never done. The sweep's completeness check keeps
+  the bookkeeping honest: it fails if the knob is neither swept nor excluded, so it cannot be left
+  half-migrated.
 
   **The trap to avoid: bumping `llama.version` alone changes nothing visible.** The guards keep
   throwing, the knob keeps looking broken, and every gate stays green — so this has to be an explicit
@@ -76,6 +81,28 @@ recorded in git history and `crossrepostatus.md`, not here.
   `CacheType` enum pattern, `enableFlashAttn()` deprecated, and
   `ModelParametersExtendedTest.testToArrayComplexCombination` corrected — it currently pins the broken
   9-token argv shape as correct).
+
+- **No CI run ever executes the Maven plugin.** `srcmorph-maven-plugin`'s mojos are covered by unit
+  tests (`PluginArchitectureTest`, `MojoPhaseSkipTest`, PIT at 62/62) and by the `srcmorph-selftest`
+  profile a human can run by hand — but no job in `publish.yml` performs a real
+  `mvn srcmorph:generate` against a real Maven lifecycle. Everything CI proves about the plugin is
+  proven by calling Java methods, so the parts only Maven exercises are untested: plexus binding of
+  the `<configuration>` XML onto the `@Parameter` fields (the CLI's Jackson binding is a *different*
+  code path, covered by `ExamplesConfigBindingTest`), goal-prefix resolution, the
+  `${srcmorph.*}` property names, and the descriptor `maven-plugin-plugin` generates. A renamed
+  property or a mistyped `@Parameter` would ship green. The fix is a `maven-invoker-plugin` IT: a
+  tiny fixture project that runs one goal with the `mock` provider (no GGUF, no GPU, no network) and
+  asserts the `.ai.md` it produced. Deliberately out of 1.2.0 — it is a new build plugin plus a
+  fixture tree, not a one-line gate.
+
+- **The sixteen GPU classifier fat jars are verified structurally, never launched.** Since 1.2.0
+  `.github/verify-classifier-fatjars.sh` asserts each is the artifact its name claims (one jar per
+  classifier, a native for the promised OS/arch, a native set that differs from the default jar's, so
+  a broken `-Dllama.classifier=` cannot silently ship seventeen CPU builds). What it cannot assert is
+  that the jar *works*: a GitHub-hosted runner has no CUDA/ROCm/SYCL/OpenVINO device, and the only
+  command that would load the native library is a real generation. Closing this needs hardware —
+  a self-hosted runner, or a manual pre-release pass on one GPU box per backend. Worth knowing which
+  half is covered before reading the green check as "the CUDA jar runs".
 
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
