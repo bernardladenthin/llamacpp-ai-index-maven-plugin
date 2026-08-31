@@ -76,9 +76,12 @@ public class AiGenerationConfig {
 
     /**
      * Default nucleus-sampling probability threshold.
-     * Matches the {@code net.ladenthin:llama} {@code InferenceParameters} library default so
-     * that models which do not declare an explicit value retain the same output distribution
-     * as before this field was introduced.
+     *
+     * <p>Note what this value is <em>not</em>: it does not match llama.cpp, whose own default is
+     * {@code 0.95} ({@code common.h}), and it is forwarded on every request rather than only when
+     * configured — so srcmorph actively narrows the nucleus relative to a plain llama.cpp run. That is
+     * a deliberate srcmorph default for summarisation, not a pass-through. (An earlier version of this
+     * javadoc claimed it matched the library default and preserved prior behaviour; both were wrong.)</p>
      */
     public static final float DEFAULT_TOP_P = 0.9f;
 
@@ -91,8 +94,14 @@ public class AiGenerationConfig {
     public static final int DEFAULT_TOP_K = 40;
 
     /**
-     * Default min-p sampling threshold. A value of {@code 0.0} disables min-p truncation and
-     * preserves existing behaviour for models that do not specify it. min-p keeps only tokens whose
+     * Default min-p sampling threshold. A value of {@code 0.0} disables min-p truncation.
+     *
+     * <p>It is forwarded unconditionally, so this <em>overrides</em> llama.cpp's own default of
+     * {@code 0.05} ({@code common.h}) rather than preserving it — the opposite of what an earlier
+     * version of this javadoc claimed. Disabling min-p by default is intentional here (top-p and top-k
+     * do the truncation), but it is a choice, not a no-op.</p>
+     *
+     * <p>min-p keeps only tokens whose
      * probability is at least this fraction of the top token's probability; it is the recommended
      * primary truncation for gpt-oss at a non-greedy temperature (scales the cut-off to the model's
      * confidence — see {@code docs/ai-index-benchmark/gpt-oss-tuning.md} D1).
@@ -269,17 +278,27 @@ public class AiGenerationConfig {
     public static final String DEFAULT_CACHE_TYPE_V = "";
 
     /**
-     * Default Flash Attention setting ({@code --flash-attn}). {@code false} (default) leaves it off, as
-     * llama.cpp does. Enabling it lowers KV-cache memory and speeds up attention on backends that
-     * support it, and it is the precondition for quantizing the V cache
-     * ({@link #DEFAULT_CACHE_TYPE_V}).
+     * Default Flash Attention setting ({@code --flash-attn}).
+     *
+     * <p><b>Enabling this is currently refused</b> &mdash; see
+     * {@code LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE}. The binding emits
+     * {@code --flash-attn} without the {@code [on|off|auto]} value llama.cpp requires, so the parser
+     * swallows the following argv token and the model load dies naming an unrelated flag. srcmorph fails
+     * at plan time instead, until a binding release exposes a value-taking setter.</p>
+     *
+     * <p>{@code false} therefore emits nothing at all, which leaves llama.cpp's own default in force —
+     * and that default is {@code auto}, not off ({@code common.h}: {@code flash_attn_type =
+     * LLAMA_FLASH_ATTN_TYPE_AUTO}). An earlier version of this javadoc said {@code false} "leaves it off,
+     * as llama.cpp does"; both halves were wrong. Once the knob works, enabling it lowers KV-cache memory
+     * and is the precondition for quantizing the V cache ({@link #DEFAULT_CACHE_TYPE_V}).</p>
      */
     public static final boolean DEFAULT_FLASH_ATTN = false;
 
     /**
-     * Default logical batch size ({@code --batch-size}). {@code -1} (default) means "do not set it" —
-     * the binding's own default is {@code 0}, which llama.cpp reads as "decide for me", so {@code 0} is
-     * not a meaningful user value and the forwarding guard is {@code > 0}.
+     * Default logical batch size ({@code --batch-size}). {@code -1} (default) means "do not set it", so
+     * llama.cpp keeps its own default of {@code 2048} ({@code common.h}). The forwarding guard is
+     * {@code > 0} because a batch size of zero is not a meaningful request — not, as an earlier version
+     * of this javadoc claimed, because {@code 0} means "decide for me" upstream; it does not.
      *
      * <p>This is a prefill-throughput knob, and prefill is what dominates an indexing run: every file is
      * one large prompt with a short answer. {@code srcmorph:calibrate} measures the effect directly.</p>

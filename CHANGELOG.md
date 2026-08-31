@@ -150,9 +150,10 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   `srcmorph:calibrate` is what makes these measurable rather than guesswork: it reports prefill and
   decode throughput, and — since this release — the prompt-cache reuse the extra KV room buys.
 
-  Note the cost this exposes: `LlamaCppJniConfig`'s positional constructor is now 37 arguments. It is
+  Note the cost this exposed: `LlamaCppJniConfig`'s positional constructor reached 37 arguments. It was
   covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
-  mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
+  mis-ordered pair fails — but the shape was past its limit, and this same release replaces it with a
+  builder (see *Changed* below). The constructor is private now; nothing outside the class can call it.
 
 - **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
   phase — walk, classify, rendered plan — and only died inside the native loader, which with several
@@ -175,6 +176,20 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   configuration without `planOnly` still fails fast.
 
 ### Changed
+- **Two further public constructors gained a parameter, and a mojo parameter was removed.** Neither was
+  listed as breaking when the changes landed; both are, so they are recorded here rather than left for a
+  consumer to discover at compile time.
+
+  `AiGenerationTimings` and `AiCalibrationMeasurement` each went from five parameters to six, both
+  gaining `cachedPromptTokens` — the `cache_n` value this release surfaces. Anyone constructing either
+  directly must add the argument; both are value types a downstream extension could plausibly build.
+
+  `srcmorph.llama.libraryPath` is gone from the plugin (see *Removed*), and Maven does not ignore an
+  unknown `<configuration>` element: a consumer POM still declaring it fails the goal outright rather
+  than warning. That is the intended outcome — a parameter that never worked should not keep looking
+  like it does — but it is a hard break on first invocation, not a silent one. CLI users hit the same
+  wall at parse time, because both JSON and YAML are read with `FAIL_ON_UNKNOWN_PROPERTIES` enabled.
+
 - **`LlamaCppJniConfig` is built through a builder; its positional constructor is private.** Breaking for
   anyone who constructed one directly — deliberately taken in this release rather than later, because the
   class is already breaking here and a second break for the same type is worse than one.
@@ -208,7 +223,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
   — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
   `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
-  `clean test`: 30 + 17 tests, 0 failures, all four modules SUCCESS.
+  `clean test`: 601 / 39 / 32 tests, 0 failures, 0 skipped, all four modules SUCCESS.
 
 - CI actions bumped to latest: `actions/setup-java` v5 → v6.
 
@@ -297,7 +312,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   appends the unique `github.run_id` for non-PR runs; PR runs still share a group per ref and
   supersede each other as intended.
 
-- Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
+- Bumped `jackson.version` 2.22.0 → 2.22.2 (`jackson-databind` / `jackson-dataformat-yaml`,
   pinned in the parent `pom.xml`) to close
   [GHSA-5jmj-h7xm-6q6v](https://github.com/advisories/GHSA-5jmj-h7xm-6q6v) (CVSS 5.3, Medium),
   flagged by OSV-Scanner against `srcmorph/pom.xml` and `srcmorph-cli/pom.xml` after the `main`
