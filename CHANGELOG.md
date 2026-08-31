@@ -202,19 +202,33 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   descriptor `maven-plugin-plugin` generates. **A renamed `@Parameter` property would have shipped
   green.**
 
-  Five checks: the full lifecycle with all three goals configured entirely from the fixture's pom
-  XML (including the nested `<condition><extensions>` routing tree and per-execution overrides); the
-  generated descriptor read out of the packaged jar (goal prefix, the four goal names, the property
-  expressions the other checks drive); `mvn srcmorph:generate -Dsrcmorph.planOnly=true` via the goal
-  prefix, asserting the plan is printed, the `.java` rule matched by id, and nothing was written;
-  `-Dsrcmorph.aiVersion=9.9.9` reaching the written document header; and `-Dsrcmorph.skip=true`
-  writing nothing. The fixture uses the default `mock` provider, so no GGUF, no GPU and no network
-  -- the whole job is about a minute, most of it the install.
+  Six checks: the full lifecycle with all three goals configured entirely from the fixture's pom XML
+  (the nested `<condition><extensions>` routing tree, both `<subtrees>` entries, `<excludes>`, the
+  per-execution `<configuration>` override, and both readonly `${project.*}` injections); the
+  generated descriptor read out of the packaged jar (goal prefix, the four goal names, and a
+  **two-way diff of all 19 `srcmorph.*` property strings**, so a rename fails and a new property
+  fails until it is listed deliberately); `mvn srcmorph:generate -Dsrcmorph.planOnly=true` via the
+  goal prefix; `-Dsrcmorph.aiVersion=9.9.9` reaching the written document header; all four skip
+  properties including one **off-diagonal** case (`srcmorph.file.skip` must not skip the packages
+  goal -- the diagonal alone cannot catch a copy-pasted property); and the `calibrate` goal, the one
+  goal the lifecycle run does not reach. The fixture uses the default `mock` provider, so no GGUF,
+  no GPU and no network.
 
   The fixture's `<configuration>` deliberately mirrors the worked example in
   `srcmorph-maven-plugin/README.md`, so it also fails when the documented XML stops being the XML
-  that works. Verified by falsification: renaming `srcmorph.planOnly` reds the test with a message
-  naming exactly that.
+  that works.
+
+  Every assertion was falsified rather than assumed, and that pass rewrote three of them. A first
+  version passed a `settings.xml` whose `<pluginGroups>` entry was believed necessary for
+  `mvn srcmorph:generate` to resolve; it is not (Maven matches the prefix against the descriptor of
+  the plugin the fixture declares), and adding it opened a second resolution path through repository
+  metadata that **masked a changed goal prefix entirely** -- on a pristine runner too, since Central
+  serves that metadata. Removing the file turned that check into a real second guard. Separately,
+  `<subtrees>`, `<excludes>` and all three execution-level `<configuration>` blocks could each be
+  deleted with the test staying green -- the first because the fixture's only value equalled the
+  engine's own fallback, the second because the pattern matched no file that existed, the third
+  because the overrides changed nothing observable. All three are now pinned by a fixture that makes
+  them observable.
 
 - **The classifier fat jars are verified before they are attached** (`.github/verify-classifier-fatjars.sh`).
   The publish jobs build seventeen fat jars — one per `net.ladenthin:llama` native classifier plus the

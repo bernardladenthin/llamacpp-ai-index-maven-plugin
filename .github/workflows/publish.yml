@@ -451,6 +451,34 @@ jobs:
   # window, which would make the smoke non-deterministic rather than more thorough.
   # ---------------------------------------------------------------------------
 
+  smoke-fatjar:
+    name: Smoke test fat jar
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: plugin-jars
+          path: fatjar/
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: temurin
+      - name: Run fat-jar smoke test
+        run: |
+          .github/smoke-fatjar-cli.sh fatjar 'srcmorph-cli-*-jar-with-dependencies.jar' \
+            examples 'Main#run end\.' config_Plan.json
+      - name: Upload smoke logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-fatjar-logs
+          path: |
+            smoke-out.log
+            smoke-err.log
+          if-no-files-found: warn
+
   # ---------------------------------------------------------------------------
   # Plugin integration test -- the only job that runs srcmorph-maven-plugin AS A PLUGIN.
   #
@@ -479,6 +507,10 @@ jobs:
       # package-bound ~80 MB assembly never runs here. install (not package) because the fixture
       # resolves the plugin from the local repository. The skips drop work code-style and test
       # already do -- keeping them would roughly double the job for no extra signal.
+      # Every assertion in this job is about Maven semantics (plexus binding, prefix resolution,
+      # -D vs <configuration> precedence), so the log has to record which Maven produced the result.
+      - name: Record the Maven version
+        run: mvn -v
       - name: Install the plugin into the local repository
         run: >
           mvn -B --no-transfer-progress
@@ -486,12 +518,14 @@ jobs:
           -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true
           -Dspotbugs.skip=true -Dspotless.check.skip=true -Denforcer.skip=true -Djacoco.skip=true
           install
+      # Same form the publish jobs in this workflow already use; a hand-rolled sed over pom.xml
+      # would be a second, weaker way of answering a question Maven answers exactly.
       - name: Resolve the reactor version
         id: version
         run: |
           set -euo pipefail
-          v=$(sed -n 's|^\s*<version>\(.*\)</version>.*|\1|p' pom.xml | head -1)
-          [ -n "$v" ] || { echo "::error::could not read the reactor version from pom.xml"; exit 1; }
+          v=$(mvn -B -q -N -DforceStdout help:evaluate -Dexpression=project.version | tail -n1)
+          [ -n "$v" ] || { echo "::error::could not resolve the reactor version"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Run the plugin integration test
         run: .github/plugin-it.sh '${{ steps.version.outputs.version }}'
@@ -500,35 +534,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: plugin-it-logs
-          path: .github/plugin-it/target/logs/*.log
-          if-no-files-found: warn
-
-  smoke-fatjar:
-    name: Smoke test fat jar
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          name: plugin-jars
-          path: fatjar/
-      - uses: actions/setup-java@v6
-        with:
-          java-version: '21'
-          distribution: temurin
-      - name: Run fat-jar smoke test
-        run: |
-          .github/smoke-fatjar-cli.sh fatjar 'srcmorph-cli-*-jar-with-dependencies.jar' \
-            examples 'Main#run end\.' config_Plan.json
-      - name: Upload smoke logs
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: smoke-fatjar-logs
           path: |
-            smoke-out.log
-            smoke-err.log
+            .github/plugin-it/target/logs/
+            .github/plugin-it/target/ai/
           if-no-files-found: warn
 
   report:

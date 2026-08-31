@@ -54,3 +54,8 @@ srcmorph-maven-plugin/src/siteQwenBRUTAL/
 # between being a footgun. Only worktrees/ is ignored -- anything else under .claude/
 # (skills, settings) stays visible on purpose.
 .claude/worktrees/
+
+# The plugin integration test's fixture writes here only when <outputDirectory> stops binding --
+# it is the mojos' own default. The test asserts the tree stays empty and clears it between runs;
+# the ignore is so a failed run cannot leave untracked debris behind.
+.github/plugin-it/src/site/

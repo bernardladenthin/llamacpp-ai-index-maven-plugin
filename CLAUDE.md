@@ -230,8 +230,17 @@ themselves.
   then runs the fixture through a real Maven lifecycle with the `mock` provider: no GGUF, no GPU, no
   network. Its fixture pom mirrors the worked example in this module's `README.md`, so a README that
   drifts from the working XML fails it. It gates `publish-snapshot` and `publish-release`.
-  Note when extending it: an explicit value in the fixture's `<configuration>` **beats** a `-D`
-  property, so a property-binding check has to drive a parameter the fixture pom leaves unset.
+  Two traps when extending it, both found by falsifying assertions rather than by reading:
+  an explicit value in the fixture's `<configuration>` **beats** a `-D` property, so a
+  property-binding check has to drive a parameter the fixture pom leaves unset; and the fixture must
+  **not** get a `settings.xml` with a `<pluginGroups>` entry — `mvn srcmorph:generate` resolves
+  without one (Maven matches the prefix against the descriptor of the plugin the fixture declares),
+  while adding one opens a second path through repository metadata that maps the prefix by
+  artifactId and thereby **masks a changed `<goalPrefix>` completely**, on a pristine runner as
+  well. The general lesson for a fixture-based test: an element the fixture sets to a value that
+  equals the production default, or a pattern that matches no file that exists, is not covered by
+  the run — it is invisible to it. `<subtrees>`, `<excludes>` and the per-execution overrides all
+  started out that way here.
 - Full goal/parameter reference: `srcmorph-maven-plugin/README.md`.
 
 ### `llamacpp-ai-index-maven-plugin` — the retired relocation stub (no longer in this repo)

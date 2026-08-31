@@ -48,9 +48,15 @@
 
                 <configuration>
                     <outputDirectory>${project.basedir}/target/ai</outputDirectory>
+                    <!-- The second entry is what makes this element observable at all: the engine's
+                         own fallback is src/main/java, so a fixture listing only that cannot tell a
+                         bound <subtrees> from an unbound one. -->
                     <subtrees>
                         <subtree>src/main/java</subtree>
+                        <subtree>src/extra/java</subtree>
                     </subtrees>
+                    <!-- Matches src/main/java/com/example/app/package-info.java, which exists for
+                         exactly this reason: a pattern that can never fire makes <excludes> invisible. -->
                     <excludes>
                         <exclude>**/package-info.java</exclude>
                     </excludes>
@@ -170,6 +176,11 @@ Index file: %s
                         <phase>prepare-package</phase>
                         <goals><goal>aggregate-project</goal></goals>
                         <configuration>
+                            <!-- Set HERE and nowhere else, so an execution-level <configuration>
+                                 that stops overriding the plugin-level block is observable: the file
+                                 summaries must keep the 0.0.0 default while the project index gets
+                                 7.7.7. Stripping the execution blocks used to leave the test green. -->
+                            <aiVersion>7.7.7</aiVersion>
                             <fieldGenerations>
                                 <fieldGeneration>
                                     <promptKey>project-body</promptKey>
