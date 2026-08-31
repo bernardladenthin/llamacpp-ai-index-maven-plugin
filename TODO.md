@@ -41,6 +41,20 @@ recorded in git history and `crossrepostatus.md`, not here.
   the plugin's `mojo.*`) and the JNI provider stay out of PIT — they need a Maven/native context
   rather than pure-unit mutation (see crossrepostatus "Deliberate non-parity").
 
+- **Put `provider.LlamaCppJniAiGenerationProvider` on the PIT gate.** It is the one production class
+  where a defect has actually reached users, and it is *not* on the `targetClasses` list — which is
+  why the gate stayed at 775/775 through the 1.1.0-era `dry_penalty_last_n` regression and through
+  its fix: the class generates no mutants, so neither the bug nor the tests that now cover it move
+  the number. Do not read that stability as reassurance; PIT structurally could not have caught this.
+  It is now worth adding, because the class finally has model-free coverage of the parts that matter
+  (`buildInferenceParameters`, `warnOnTruncatedAnswer`, `logPromptCacheReuse`, `tensorReadLazyMode`,
+  `cacheType`). **Measure before committing to it**: the real-model tests take ~4-16 s each, and PIT
+  re-runs every test covering a mutated line, so mutants in `model()` — the long `ModelParameters`
+  chain — could make the run far slower than the current few minutes. If it does, the answer is
+  probably `excludedTestClasses` for the real-model tests plus mutants restricted to the pure paths,
+  not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
+  correctness one.
+
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
 - **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.
