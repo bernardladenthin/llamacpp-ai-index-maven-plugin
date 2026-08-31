@@ -314,7 +314,14 @@ jobs:
         # Reactor-wide (no -pl): runs every module's tests. The `jcstress` profile is only
         # declared in srcmorph-maven-plugin/pom.xml, so it activates there and is a
         # silent no-op for srcmorph/srcmorph-cli (neither declares a profile with that id).
-        run: mvn -e --batch-mode --no-transfer-progress -P jcstress verify
+        #
+        # requireNativeLlama turns the model-backed tests' capability check from a skip into a
+        # failure. Skipping is right on a developer machine with an unsupported OS/arch; here it
+        # would mean a vanished native library or an unchecked-out model quietly restores a green
+        # build with zero real inference — the exact shape that let a dead provider ship twice.
+        run: >-
+          mvn -e --batch-mode --no-transfer-progress -P jcstress
+          -Dnet.ladenthin.srcmorph.requireNativeLlama=true verify
       - uses: actions/upload-artifact@v7
         with:
           name: jacoco-report

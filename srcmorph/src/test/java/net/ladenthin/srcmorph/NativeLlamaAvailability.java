@@ -67,15 +67,40 @@ public final class NativeLlamaAvailability {
     }
 
     /**
-     * Skips the calling test unless both the model file and the native library are available.
+     * System property that turns the skips below into failures. Set it wherever these tests are
+     * <em>expected</em> to run.
+     */
+    public static final String REQUIRE_PROPERTY = "net.ladenthin.srcmorph.requireNativeLlama";
+
+    /**
+     * Skips the calling test unless both the model file and the native library are available &mdash;
+     * unless {@link #REQUIRE_PROPERTY} says they must be, in which case it fails instead.
      *
      * <p>Call this first in every test that loads a real model.</p>
+     *
+     * <p><b>Why the property exists.</b> A capability check that skips is right on a developer machine
+     * with an unsupported OS/arch, and wrong in CI: a native library that stops loading, or a model
+     * file that stops being checked out, would silently return the build to a green run with zero real
+     * inference — which is exactly how this repository shipped a dead provider through two releases.
+     * CI sets the property, so there the same conditions fail loudly and name what is missing.</p>
      */
     public static void assumeAvailable() {
-        Assumptions.assumeTrue(
-                NATIVE_FAILURE == null,
-                () -> "net.ladenthin:llama ships no loadable native library for this platform — " + NATIVE_FAILURE);
-        Assumptions.assumeTrue(Files.exists(MODEL), () -> "Model file missing: " + MODEL);
+        final boolean required = Boolean.getBoolean(REQUIRE_PROPERTY);
+        if (NATIVE_FAILURE != null) {
+            final String message =
+                    "net.ladenthin:llama ships no loadable native library for this platform — " + NATIVE_FAILURE;
+            if (required) {
+                throw new AssertionError(message + " (-D" + REQUIRE_PROPERTY + " is set, so this is a failure)");
+            }
+            Assumptions.assumeTrue(false, message);
+        }
+        if (!Files.exists(MODEL)) {
+            final String message = "Model file missing: " + MODEL;
+            if (required) {
+                throw new AssertionError(message + " (-D" + REQUIRE_PROPERTY + " is set, so this is a failure)");
+            }
+            Assumptions.assumeTrue(false, message);
+        }
     }
 
     /**

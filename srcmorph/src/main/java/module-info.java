@@ -28,11 +28,23 @@
  * <p>{@code requires static org.jspecify} is needed only at compile time of this
  * descriptor; JSpecify annotations carry {@code RetentionPolicy.CLASS} so module-path
  * consumers never need jspecify on their runtime path. Checker Framework qualifiers are
- * likewise compile-time only. The classes imported from {@code net.ladenthin:llama} (used by
- * the {@code provider} package) are referenced from ordinary source files only; javac in the
- * separate {@code module-info-compile} execution compiles {@code module-info.java} in
- * isolation and therefore does not need their module name. Maven, in turn, loads any consumer
- * of this jar classpath-only and ignores the descriptor at runtime.</p>
+ * likewise compile-time only.</p>
+ *
+ * <p>{@code requires net.ladenthin.llama} is a real (non-static) requires: the {@code provider}
+ * package calls into the binding at runtime, so a module-path consumer must be able to read it.
+ * An earlier version of this descriptor omitted it, reasoning that the isolated
+ * {@code module-info-compile} execution never needs the module name — true of <em>compiling this
+ * file</em>, and irrelevant to <em>running the result</em>. On the module path every llama.cpp-backed
+ * path, including the plan-time {@code GgufModelInspector}, failed for want of a readable module.
+ * It is deliberately <b>not</b> {@code transitive}: the binding's types appear only in
+ * package-private members ({@code tensorReadLazyMode}, {@code cacheType},
+ * {@code buildInferenceParameters}), never in an exported signature — {@code LlamaCppJniConfigFactory}
+ * returns srcmorph's own {@code LlamaCppJniConfig} — so no consumer needs the module transitively.
+ * Should a llama type ever surface in an exported signature, this must become
+ * {@code requires transitive}.</p>
+ *
+ * <p>Maven, in turn, loads any consumer of this jar classpath-only and ignores the descriptor at
+ * runtime, which is why the gap survived unnoticed.</p>
  *
  * <p>This descriptor compiles at {@code --release 9}; the rest of the source compiles
  * at {@code --release 8}. Java 8 runtimes silently ignore {@code module-info.class} at
@@ -51,6 +63,10 @@ module net.ladenthin.srcmorph {
     // annotation-only requires above), so this must be a real (non-static) requires: a
     // module-path consumer needs org.slf4j resolvable at runtime too, not just here.
     requires org.slf4j;
+
+    // The provider package calls the llama.cpp JNI binding at runtime, so this is a real requires,
+    // not `requires static`. Not transitive -- see the class javadoc above for why.
+    requires net.ladenthin.llama;
 
     exports net.ladenthin.srcmorph.config;
     exports net.ladenthin.srcmorph.document;
