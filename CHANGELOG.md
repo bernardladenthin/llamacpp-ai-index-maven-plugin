@@ -9,7 +9,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ---
 
-## [Unreleased]
+## [1.2.0] - 2026-08-31
 
 ### Added
 - **The plan phase now checks the configuration against the model itself, still without loading it.**
@@ -76,10 +76,6 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   CI runs the goal reactor-wide instead of `-pl srcmorph -am`, and the survivor extraction and
   report upload cover every module's `target/pit-reports`.
 
-
-## [1.2.0] - 2026-08-30
-
-### Added
 - **Four new model-definition knobs, wired through to `net.ladenthin:llama` 5.1.0's new
   `ModelParameters` setters.** They are configured exactly like the existing `gpuLayers` /
   `mainGpu` / `devices` knobs — as elements of an `<aiDefinition>` in the Maven plugin, or as
