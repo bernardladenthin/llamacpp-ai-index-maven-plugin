@@ -8,12 +8,16 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import net.ladenthin.srcmorph.CommonTestFixtures;
 import net.ladenthin.srcmorph.config.AiFieldGenerationConfig;
 import net.ladenthin.srcmorph.config.AiModelDefinition;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class CalibrateEngineTest {
 
@@ -31,8 +35,17 @@ public class CalibrateEngineTest {
         return definition;
     }
 
+    /**
+     * Per-test output directory. {@code execute()} writes the machine-readable report into
+     * {@code outputDirectory}, whose default is the source-tree path {@code src/site/ai} -- without
+     * this every calibration test would leave two files behind in the checkout.
+     */
+    @TempDir
+    Path outputDirectory;
+
     private SrcMorphConfiguration baseConfig() {
         final SrcMorphConfiguration config = new SrcMorphConfiguration();
+        config.setOutputDirectory(outputDirectory.toFile());
         config.setGenerationProvider("mock");
         config.setPromptDefinitions(CommonTestFixtures.createFilePromptDefinitions());
         config.setAiDefinitions(Collections.singletonList(mockModelDefinition()));
@@ -93,5 +106,44 @@ public class CalibrateEngineTest {
         final CalibrationReport report = new CalibrateEngine(config).execute();
 
         assertThat(report.measurements().size(), is(1));
+    }
+
+    /**
+     * The point of the feature: a calibration run's numbers must survive as something diffable and
+     * committable, not only as log lines a human has to re-read. Asserted end to end through the real
+     * engine -- rendering is covered separately in {@link CalibrationReportTest}, but only this proves
+     * the files are actually written, to the documented names, with the documented content.
+     */
+    @Test
+    public void execute_writesTheReportAsJsonAndYamlIntoTheOutputDirectory() throws Exception {
+        final SrcMorphConfiguration config = baseConfig();
+        config.setFieldGenerations(CommonTestFixtures.createFileFieldGenerations());
+
+        final CalibrationReport report = new CalibrateEngine(config).execute();
+
+        final Path json = outputDirectory.resolve(CalibrationReport.JSON_FILE_NAME);
+        final Path yaml = outputDirectory.resolve(CalibrationReport.YAML_FILE_NAME);
+        assertThat(Files.exists(json), is(true));
+        assertThat(Files.exists(yaml), is(true));
+
+        // Byte-for-byte what the report renders -- so the file cannot drift from the API.
+        assertThat(new String(Files.readAllBytes(json), StandardCharsets.UTF_8), is(report.renderJson()));
+        assertThat(new String(Files.readAllBytes(yaml), StandardCharsets.UTF_8), is(report.renderYaml()));
+        assertThat(
+                new String(Files.readAllBytes(json), StandardCharsets.UTF_8),
+                containsString("\"prefillTokensPerSecond\": 1000.0"));
+    }
+
+    /** A missing output directory is created rather than being a reason to fail the run. */
+    @Test
+    public void execute_createsTheOutputDirectoryWhenItDoesNotExist() throws Exception {
+        final SrcMorphConfiguration config = baseConfig();
+        final Path nested = outputDirectory.resolve("does/not/exist/yet");
+        config.setOutputDirectory(nested.toFile());
+        config.setFieldGenerations(CommonTestFixtures.createFileFieldGenerations());
+
+        new CalibrateEngine(config).execute();
+
+        assertThat(Files.exists(nested.resolve(CalibrationReport.JSON_FILE_NAME)), is(true));
     }
 }

@@ -1,0 +1,8 @@
+models:
+  - modelKey: "mock-model"
+    loadSeconds: 0.002
+    prefillTokensPerSecond: 1000.0
+    decodeTokensPerSecond: 100.0
+    charsPerToken: 4.00
+    midPrefillTokensPerSecond: 1000.0
+    cachedPromptTokens: 32

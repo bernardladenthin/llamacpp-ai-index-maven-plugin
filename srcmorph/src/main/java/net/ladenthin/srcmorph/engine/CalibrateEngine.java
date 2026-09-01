@@ -4,6 +4,11 @@
 package net.ladenthin.srcmorph.engine;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,7 +108,50 @@ public final class CalibrateEngine {
                     providerFactory));
         }
 
-        return new CalibrationReport(measurements);
+        final CalibrationReport report = new CalibrationReport(measurements);
+        writeMachineReadableReport(report);
+        return report;
+    }
+
+    /**
+     * Writes the report next to the log, as JSON and YAML, into the configured output directory.
+     *
+     * <p>Without this the numbers a calibration run produces exist only as log lines: they cannot be
+     * diffed across runs, committed as a baseline, or fed back into {@code aiDefinitions} by anything
+     * other than a human re-reading the console &#x2014; which is most of the point of measuring
+     * them.</p>
+     *
+     * @param report the report to write
+     * @throws SrcMorphException if the directory cannot be created or a file cannot be written
+     */
+    private void writeMachineReadableReport(final CalibrationReport report) throws SrcMorphException {
+        final Path directory = config.getOutputDirectory().toPath();
+        final Path json = directory.resolve(CalibrationReport.JSON_FILE_NAME);
+        final Path yaml = directory.resolve(CalibrationReport.YAML_FILE_NAME);
+        try {
+            Files.createDirectories(directory);
+            writeUtf8(json, report.renderJson());
+            writeUtf8(yaml, report.renderYaml());
+        } catch (final IOException e) {
+            throw new SrcMorphException("Failed to write the calibration report to " + directory + ": " + e, e);
+        }
+        LOGGER.info("");
+        LOGGER.info("Machine-readable calibration report written to:");
+        LOGGER.info("  {}", json);
+        LOGGER.info("  {}", yaml);
+    }
+
+    /**
+     * Writes UTF-8 text to a file, replacing any previous content.
+     *
+     * @param target the file
+     * @param text   the content
+     * @throws IOException if the write fails
+     */
+    private static void writeUtf8(final Path target, final String text) throws IOException {
+        try (Writer writer = new OutputStreamWriter(Files.newOutputStream(target), StandardCharsets.UTF_8)) {
+            writer.write(text);
+        }
     }
 
     /**

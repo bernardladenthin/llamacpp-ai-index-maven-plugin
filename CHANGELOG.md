@@ -12,6 +12,24 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 ## [Unreleased]
 
 ### Added
+- **`srcmorph:calibrate` now writes a machine-readable report.** The goal built a `CalibrationReport`
+  and printed it as `INFO` lines, and that was the only output — so the numbers a calibration run
+  produces (prefill / decode throughput, chars per token per model) could not be diffed across runs,
+  committed as a baseline, or fed back into `aiDefinitions` by anything other than a human re-reading
+  the console, which is most of the point of measuring them.
+
+  `execute()` now also writes `srcmorph-calibration.json` and `srcmorph-calibration.yaml` into the
+  configured `outputDirectory`, creating it if needed. Both carry the same keys in the same order and
+  add `loadSeconds`, `midPrefillTokensPerSecond` and `cachedPromptTokens`, which the pasteable
+  `<calibration>` block does not. The three figures the XML *does* carry are formatted identically, so
+  the JSON and the paste block can never disagree about what was measured.
+
+  The renderers are hand-rolled in `CalibrationReport` rather than delegated to Jackson: the core
+  module is framework-free and carries no JSON dependency (only `srcmorph-cli` does), and
+  `renderXml()` already set that precedent. Model keys come from user configuration, so they are
+  escaped for both formats — an unescaped quote would produce a file neither parser accepts.
+
+### Added
 - **`flashAttn` works.** The knob was documented and settable since it was introduced, but could not
   be forwarded: `--flash-attn` takes a mandatory `on|off|auto` and `net.ladenthin:llama` offered only
   a bare-flag setter, which emitted the key alone and made llama.cpp's parser consume the following
