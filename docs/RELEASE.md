@@ -15,6 +15,18 @@ procedure:
    (No `-Dexcludes` needed — the reactor's former 4th module, a relocation-stub POM for the
    retired `net.ladenthin:llamacpp-ai-index-maven-plugin` coordinates, was removed after its one
    `1.0.4` release; see `CLAUDE.md`.)
+
+   **`versions:set` rewrites only the poms.** These version literals are hand-maintained and must be
+   bumped in the same commit, or the published docs point consumers at the previous release:
+   - `README.md` — the `<dependency>`/`<plugin>` snippets **and** the "Current reactor version /
+     Last released version" line;
+   - `srcmorph-maven-plugin/README.md` — its own `<plugin>` snippet;
+   - `CLAUDE.md` — the reactor version and "Last released version" in the overview and layout blocks;
+   - `SECURITY.md` — the supported-release-line table;
+   - `CHANGELOG.md` — the `## [X.Y.Z] - <date>` heading and the two link refs at the bottom.
+
+   `grep -rn "<previous version>" --include="*.md" .` finds what was missed; run it before tagging,
+   not after.
 2. **Commit, push, merge to `main`.**
 3. **Tag the merge commit and push the tag:**
    ```bash

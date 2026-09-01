@@ -2,13 +2,16 @@
 
 ## Supported versions
 
-The project has not yet cut a versioned release. Security fixes are applied directly on `main` against the current development snapshot.
+Security fixes land on `main` and ship in the next release from the current minor line. Older lines
+are not patched retroactively: the three artifacts (`srcmorph`, `srcmorph-cli`,
+`srcmorph-maven-plugin`) are released together from one parent pom at a single version, so upgrading
+within a line is a version bump and nothing else.
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.0-SNAPSHOT (development, unreleased) | Security fixes applied on `main` |
-
-> Note: once the first SemVer release is cut, this table will be updated to list the supported release line(s).
+| 1.2.x (current release line) | ✅ Security fixes released from `main` |
+| 1.1.x and older | ❌ Upgrade to the current line |
+| `main` (development) | ✅ Fixes land here first |
 
 ---
 
