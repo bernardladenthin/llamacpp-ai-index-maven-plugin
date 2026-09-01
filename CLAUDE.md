@@ -493,6 +493,21 @@ Run PIT with the lifecycle prefix. Reactor-wide (what CI does):
 `smoke-fatjar` release-gating job already runs the real `java -jar` artifact and asserts
 `Main#run end.` in its output, which is an end-to-end check a unit mutant cannot reach.
 
+**Two classes are permanently off the gate, and this is worth not re-litigating.** Both have
+survivors that are *equivalent mutants*, unkillable through the public API rather than merely
+untested. `document.AiMdHeaderCodec`: the colon guard in `read` is reached only after
+`startsWith(HEADER_FIELD_PREFIX)`, so `colonIndex` is either `-1` or `>= 2` — the `< 0` boundary
+mutant differs only at the unreachable `0`, and the `+1 -> -1` mutant only at an empty field key,
+which `values.put("", value)` swallows because no header field is keyed `""`. `support.AiSourceChunker`
+(28/34): its three observable boundaries *are* pinned (`maxChars == 1`, the `end < length` guard,
+the `lastNewline > pos` guard), but six mutants have no observable effect at all — the ArrayList
+capacity hint, `return chunks` vs `emptyList()` on empty input, two clamps the surrounding
+`Math.max` absorbs, the loop head the `end >= length` break already guarantees, and `select`'s
+`total <= maxChunks`, where the equality branch computes the identity mapping. Reaching 100% on
+either would mean exposing internals or deleting a deliberately defensive guard. The orchestration
+layers (`indexer.*`, the plugin's `mojo.*` walk) and the JNI provider stay out for a different
+reason: they need a Maven/native context rather than pure-unit mutation.
+
 ## JPMS Module Descriptor
 
 Each module ships a `module-info.java` compiled in a separate `release 9` execution, and each module's

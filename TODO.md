@@ -2,44 +2,13 @@
 
 Open work items for this repo. Cross-cutting tracking lives in
 [`../workspace/crossrepostatus.md`](../workspace/crossrepostatus.md); items here are
-repo-specific or this repo's slice of a cross-cutting initiative. Completed work is
-recorded in git history and `crossrepostatus.md`, not here.
+repo-specific or this repo's slice of a cross-cutting initiative.
+
+**Completed work is not recorded here.** It lives in git history and in
+`crossrepostatus.md`; a finished item is deleted from this file rather than annotated, so
+everything below is genuinely still open.
 
 ## Open
-
-- **Expand `srcmorph`'s own PIT mutation scope (optional).** `srcmorph/pom.xml` wires
-  `<mutationThreshold>100</mutationThreshold>` over an explicit `<targetClasses>` list (config /
-  document / engine / prompt / provider / support value+logic classes, plus `indexer.AiInputWindowCalculator`
-  and `support.AiProgressBar`), all killed at 100%. Still out (optional, need careful fixtures):
-  nothing, as it turns out: the remaining candidates were worked through and each is either now on
-  the gate or documented below as unreachable.
-  `document.AiMdDocumentCodec` reached 100% (13/13) and is now on the gate. **`document.AiMdHeaderCodec`
-  is permanently out, and this is worth not re-litigating:** its last two survivors are *equivalent
-  mutants* in the colon-position guard at `read`'s `colonIndex < 0 || colonIndex < HEADER_FIELD_PREFIX.length() + 1`.
-  The preceding `startsWith(HEADER_FIELD_PREFIX)` guard means `colonIndex` is either `-1` or `>= 2`,
-  so (a) the `< 0` boundary mutant `<= 0` differs only at the unreachable `colonIndex == 0`, and
-  (b) the `+1 -> -1` arithmetic mutant differs only at `colonIndex == 2`, i.e. an empty field key,
-  which `values.put("", value)` swallows invisibly because no `AiMdHeader` field is keyed `""`. Both
-  are unkillable through the public API; reaching 100% would mean either exposing the parsed map or
-  simplifying the (deliberately defensive, and strictly redundant) first disjunct away. The class's
-  real coverage gaps *were* closed — the `read(Path)` overload and the malformed-input branches now
-  have tests. **`support.AiSourceChunker` is out for the same reason** (28/34): its
-  three genuinely observable boundaries are now pinned — `maxChars == 1`, the `end < length` guard
-  that stops the *last* chunk being trimmed and re-split, and the `lastNewline > pos` guard that
-  stops a chunk beginning on a newline collapsing to `"\n"` — but six mutants cannot be observed
-  through the API at all: the `length / maxChars` ArrayList capacity hint (line 47), the empty-source
-  `return chunks` versus `emptyList()` (49), the `maxChars - 1` overlap clamp and the `pos + 1`
-  progress floor (51, 66) which the surrounding `Math.max` absorbs, the `pos < length` loop head (54)
-  which the `end >= length` break already guarantees, and `select`'s `total <= maxChunks` (81), where
-  the subset branch at equality computes `round(i * (total - 1) / (total - 1)) = i` and returns the
-  same list. `config.AiConditionGroup`
-  and `provider.LlamaCppJniConfig` were listed here too, but both measured 100% (2/2 and 36/36) without
-  a single new test — the existing `AiConditionGroupTest` and
-  `LlamaCppJniConfigFactoryTest#fromGenerationConfig_threadsEveryFieldThrough` already killed
-  everything — so they are now on the gate. `prompt.AiPromptPreparationSupport` was likewise stale: it
-  has been on the gate for a while. The orchestration layers (`indexer.*` walk,
-  the plugin's `mojo.*`) and the JNI provider stay out of PIT — they need a Maven/native context
-  rather than pure-unit mutation (see crossrepostatus "Deliberate non-parity").
 
 - **Put `provider.LlamaCppJniAiGenerationProvider` on the PIT gate.** It is the one production class
   where a defect has actually reached users, and it is *not* on the `targetClasses` list — which is
@@ -75,7 +44,7 @@ recorded in git history and `crossrepostatus.md`, not here.
 
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
-- **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.
+- **`@VisibleForTesting` audit.** Nothing is annotated, but the members exist: `provider.LlamaCppJniAiGenerationProvider` has four (`buildChatTemplateKwargs`, `buildInferenceParameters`, `warnOnTruncatedAnswer`, `logPromptCacheReuse`) plus the static `tensorReadLazyMode`/`cacheType`, `document.AiMdDocumentCodec` has `read(List)`/`write`, `prompt.AiPromptPreparationSupport` has `trimSourceAtLineBreak`, and the three mojos have their `build*Configuration()`. Guava is not a dependency, so closing this means either a project-local marker annotation (there is precedent: `support.ConvertToRecord`) or recording that the convention is not adopted here. Decide and act rather than re-auditing.
 
 - **Null-safety refinement.** JSpecify + NullAway are enforced at compile time in strict JSpecify mode in every module (see each module's own `pom.xml`); `@NullMarked` on the package; framework-populated POJOs carry class-level `@SuppressWarnings({"NullAway.Init","initialization.fields.uninitialized"})`. Open follow-up: review remaining unannotated public API surfaces for places where `@Nullable` would be more precise than the implicit non-null default.
 
