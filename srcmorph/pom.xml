@@ -691,6 +691,7 @@ SPDX-License-Identifier: Apache-2.0
                         <param>net.ladenthin.srcmorph.config.SrcMorphConfiguration</param>
                         <param>net.ladenthin.srcmorph.provider.LlamaCppJniConfig</param>
                         <param>net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory</param>
+                        <param>net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider</param>
                         <param>net.ladenthin.srcmorph.engine.EngineSupport</param>
                         <param>net.ladenthin.srcmorph.engine.GenerateResult</param>
                         <param>net.ladenthin.srcmorph.engine.CalibrationReport</param>
