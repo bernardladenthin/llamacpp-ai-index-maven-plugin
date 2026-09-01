@@ -55,33 +55,6 @@ recorded in git history and `crossrepostatus.md`, not here.
   not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
   correctness one.
 
-- **Wire `flashAttn` up for real after `net.ladenthin:llama` 5.2.0 ships.** 1.2.0 *refuses* the knob
-  rather than forwarding it, in two places (`LlamaCppJniAiGenerationProvider.model()` for the direct
-  API path, `EngineSupport.validateFlashAttnIsNotRequested` for the plan phase), because the binding
-  cannot currently spell it: `-fa` takes a mandatory `[on|off|auto]`, `enableFlashAttn()` routes
-  through `setFlag` which stores `null`, and the argv renderer then emits the key with no token after
-  it — so llama.cpp swallows the *next* argv token and the load dies naming a flag the user never set
-  (`error: unknown value for --flash-attn: '--reasoning-format'`, reproduced against the shipped fat
-  jar). No workaround exists downstream: `putScalar` is `protected`.
-
-  When 5.2.0 lands with a value-taking setter: bump `llama.version`, replace both guards with the real
-  call, delete `FLASH_ATTN_UNSUPPORTED_MESSAGE` and the four tests that pin the refusal (two in
-  `EngineSupportTest`, one in `LlamaCppJniAiGenerationProviderTest`, and
-  `LlamaCppJniKnobSweepTest#flashAttn_isRefusedRatherThanSilentlyDropped`), and restore the
-  `flashAttn`/`cacheTypeV` guidance in `srcmorph-maven-plugin/README.md`. Then move `flashAttn` out of
-  `LlamaCppJniKnobSweepTest.NOT_SWEPT` into a real sweep case — that is the step that finally sets the
-  knob against a real model, which the refusal has never done. The sweep's completeness check keeps
-  the bookkeeping honest: it fails if the knob is neither swept nor excluded, so it cannot be left
-  half-migrated.
-
-  **The trap to avoid: bumping `llama.version` alone changes nothing visible.** The guards keep
-  throwing, the knob keeps looking broken, and every gate stays green — so this has to be an explicit
-  line on the bump checklist rather than something a version bump surfaces on its own. The upstream
-  fix is tracked in java-llama.cpp (`ModelParameters` needs `setFlashAttn(on|off|auto)` mirroring the
-  `CacheType` enum pattern, `enableFlashAttn()` deprecated, and
-  `ModelParametersExtendedTest.testToArrayComplexCombination` corrected — it currently pins the broken
-  9-token argv shape as correct).
-
 - **`enable_thinking` is sent unconditionally, including at its own default.**
   `LlamaCppJniAiGenerationProvider.model()` always puts `enable_thinking` into
   `chatTemplateKwargs`, at whatever `chatTemplateEnableThinking` says — and its default is `true`.

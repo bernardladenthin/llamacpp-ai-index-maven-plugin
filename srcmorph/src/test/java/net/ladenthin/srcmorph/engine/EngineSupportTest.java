@@ -268,57 +268,6 @@ public class EngineSupportTest {
         Files.write(file, header.array());
     }
 
-    /**
-     * Builds a lookup whose one definition has both a model path and {@code flashAttn} enabled.
-     *
-     * @param modelPath the definition's model path
-     * @return the lookup
-     */
-    private static AiModelDefinitionSupport supportWithFlashAttn(final String modelPath) {
-        final AiModelDefinition definition = new AiModelDefinition();
-        definition.setKey("routed");
-        definition.setModelPath(modelPath);
-        definition.setFlashAttn(true);
-        return new AiModelDefinitionSupport(Arrays.asList(definition));
-    }
-
-    /**
-     * {@code flashAttn} is documented and settable but cannot work with the pinned binding: it emits
-     * {@code --flash-attn} with no value, llama.cpp swallows the following argv token, and the load dies
-     * naming a flag the user never set. Refusing at plan time means a multi-model run fails before its
-     * first group generates rather than after &mdash; and the message names the real cause instead of
-     * leaving the user with {@code unknown value for --flash-attn: '--reasoning-format'}.
-     */
-    @Test
-    public void validateRoutedModelPaths_flashAttnEnabled_throwsNamingTheCauseBeforeAnyModelLoads() throws IOException {
-        // arrange -- a perfectly valid model, so only flashAttn can be what fails
-        final Path model = modelDir.resolve("real.gguf");
-        writeMinimalGguf(model);
-
-        // act
-        final SrcMorphException thrown = assertThrows(
-                SrcMorphException.class,
-                () -> EngineSupport.validateRoutedModelPaths(
-                        AiGenerationProviderFactory.PROVIDER_LLAMACPP_JNI,
-                        supportWithFlashAttn(model.toString()),
-                        Arrays.asList(routedRule(false, "routed"))));
-
-        // assert
-        assertThat(thrown.getMessage(), containsString("routed"));
-        assertThat(thrown.getMessage(), containsString("flashAttn"));
-        assertThat(thrown.getMessage(), containsString("--flash-attn"));
-    }
-
-    /** The mock provider never touches the binding, so its runs must not be refused. */
-    @Test
-    public void validateRoutedModelPaths_flashAttnEnabledButMockProvider_passes() throws SrcMorphException {
-        // act / assert -- no exception; the guard is scoped to the llamacpp-jni provider
-        EngineSupport.validateRoutedModelPaths(
-                AiGenerationProviderFactory.PROVIDER_MOCK,
-                supportWithFlashAttn("/does/not/exist.gguf"),
-                Arrays.asList(routedRule(false, "routed")));
-    }
-
     @Test
     public void validateRoutedModelPaths_realGgufFile_passes() throws IOException, SrcMorphException {
         // arrange

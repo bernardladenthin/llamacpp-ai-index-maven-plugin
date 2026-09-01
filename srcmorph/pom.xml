@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
              templating is unchanged. The rest of the provider's API surface (LlamaModel,
              InferenceParameters, ModelParameters, ChatResponse/Timings/Pair, ChatResponseParser,
              ReasoningFormat) is untouched by 5.1.0. -->
-        <llama.version>5.1.0</llama.version>
+        <llama.version>5.2.0-SNAPSHOT</llama.version>
         <!-- Native build selector for net.ladenthin:llama. Empty = the main jar (CPU, Ninja default).
              The gpu-cuda / gpu-vulkan profiles set a GPU classifier; or override with
              -Dllama.classifier=cuda13-windows-x86-64. GPU builds need their runtime on PATH

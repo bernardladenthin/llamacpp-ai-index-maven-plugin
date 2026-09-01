@@ -9,6 +9,34 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ---
 
+## [Unreleased]
+
+### Added
+- **`flashAttn` works.** The knob was documented and settable since it was introduced, but could not
+  be forwarded: `--flash-attn` takes a mandatory `on|off|auto` and `net.ladenthin:llama` offered only
+  a bare-flag setter, which emitted the key alone and made llama.cpp's parser consume the following
+  argv token — the load then died naming a flag the user never set. 1.2.0 shipped a refusal at plan
+  time rather than that diagnostic.
+
+  `net.ladenthin:llama` **5.2.0** adds `ModelParameters.setFlashAttn(FlashAttn)`, so the provider now
+  emits `--flash-attn on` when the knob is set. `false` still emits nothing, which leaves llama.cpp's
+  own `auto` default in force — that is the correct behaviour for an unconfigured run, and it is what
+  the knob's javadoc now says.
+
+  **The knob is exercised against a real model for the first time.** `flashAttn` moves out of
+  `LlamaCppJniKnobSweepTest`'s `NOT_SWEPT` list into a real sweep case; until now only the refusal had
+  ever been executed.
+
+### Removed
+- The plan-time and provider-side refusals (`EngineSupport.validateFlashAttnIsNotRequested`,
+  `LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE`) and the three tests that pinned
+  them.
+
+### Changed
+- **`net.ladenthin:llama` 5.1.0 → 5.2.0-SNAPSHOT.** Deliberately a snapshot: the binding change this
+  release depends on is not yet published. Building srcmorph therefore requires that snapshot to be
+  resolvable, and CI stays red until it is — recorded here so nobody mistakes it for a regression.
+
 ## [1.2.0] - 2026-09-01
 
 ### Added
