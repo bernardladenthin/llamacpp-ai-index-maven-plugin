@@ -130,7 +130,7 @@ public class LlamaCppJniKnobSweepTest {
                 knob("cpuMoeLayers", b -> b.cpuMoeLayers(0)),
                 knob("cpuFfnLayers", b -> b.cpuFfnLayers(0)),
                 knob("kvUnifiedPerSlot", b -> b.kvUnifiedPerSlot(SWEEP_CONTEXT_SIZE)),
-                knob("tensorReadLazy", b -> b.tensorReadLazy("on")),
+                knob("lazyMode", b -> b.lazyMode("on")),
                 knob("repeatLastN", b -> b.repeatLastN(64)),
                 // A quantized K cache works on its own; a quantized V cache generally needs Flash
                 // Attention, which the provider currently refuses -- so V is swept at an explicit f16.

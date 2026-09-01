@@ -47,7 +47,7 @@ recorded in git history and `crossrepostatus.md`, not here.
   its fix: the class generates no mutants, so neither the bug nor the tests that now cover it move
   the number. Do not read that stability as reassurance; PIT structurally could not have caught this.
   It is now worth adding, because the class finally has model-free coverage of the parts that matter
-  (`buildInferenceParameters`, `warnOnTruncatedAnswer`, `logPromptCacheReuse`, `tensorReadLazyMode`,
+  (`buildInferenceParameters`, `warnOnTruncatedAnswer`, `logPromptCacheReuse`, `lazyMode`,
   `cacheType`). **Measure before committing to it**: the real-model tests take ~4-16 s each, and PIT
   re-runs every test covering a mutated line, so mutants in `model()` — the long `ModelParameters`
   chain — could make the run far slower than the current few minutes. If it does, the answer is

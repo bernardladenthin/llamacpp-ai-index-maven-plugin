@@ -52,7 +52,7 @@ public final class LlamaCppJniConfigFactory {
                 .cpuMoeLayers(config.getCpuMoeLayers())
                 .cpuFfnLayers(config.getCpuFfnLayers())
                 .kvUnifiedPerSlot(config.getKvUnifiedPerSlot())
-                .tensorReadLazy(config.getTensorReadLazy())
+                .lazyMode(config.getLazyMode())
                 .repeatLastN(config.getRepeatLastN())
                 .cacheTypeK(config.getCacheTypeK())
                 .cacheTypeV(config.getCacheTypeV())

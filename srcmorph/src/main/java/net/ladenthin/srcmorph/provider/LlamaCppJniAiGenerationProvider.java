@@ -13,8 +13,8 @@ import lombok.ToString;
 import net.ladenthin.llama.LlamaModel;
 import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.FlashAttn;
+import net.ladenthin.llama.args.LazyMode;
 import net.ladenthin.llama.args.ReasoningFormat;
-import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.llama.json.ChatResponseParser;
 import net.ladenthin.llama.parameters.InferenceParameters;
 import net.ladenthin.llama.parameters.ModelParameters;
@@ -144,8 +144,8 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             // Read lazy-loadable tensors on demand instead of keeping them resident. Shortens model
             // load time, which matters here because a run loads one model per model group and
             // calibrate preflights every model in turn. Empty leaves the binding/native-build default.
-            if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
-                modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
+            if (!compatibilityHelper.isBlank(config.lazyMode())) {
+                modelParameters.setLazyMode(lazyMode(config.lazyMode()));
             }
             // Flash Attention. Emitted only when asked for: llama.cpp's own default is `auto`, so
             // NOT emitting the option leaves it to decide per backend and model, which is what an
@@ -206,20 +206,20 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * @return the matching mode
      * @throws IllegalArgumentException if no mode declares that CLI string
      */
-    static TensorReadLazyMode tensorReadLazyMode(final String value) {
-        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+    static LazyMode lazyMode(final String value) {
+        for (final LazyMode mode : LazyMode.values()) {
             if (mode.getArgValue().equalsIgnoreCase(value)) {
                 return mode;
             }
         }
-        throw new IllegalArgumentException("Invalid tensorReadLazy value: \"" + value + "\" (expected one of: "
-                + knownTensorReadLazyValues() + ")");
+        throw new IllegalArgumentException(
+                "Invalid lazyMode value: \"" + value + "\" (expected one of: " + knownLazyModeValues() + ")");
     }
 
     /**
      * Resolves a configured {@code --cache-type-k} / {@code --cache-type-v} value to the binding's enum.
      *
-     * <p>Same contract as {@link #tensorReadLazyMode(String)}: matched case-insensitively against the CLI
+     * <p>Same contract as {@link #lazyMode(String)}: matched case-insensitively against the CLI
      * strings the enum itself declares, so a cache type upstream adds is accepted for free, and an
      * unrecognised value is rejected rather than dropped. The knob name is passed in so the message names
      * the element the user actually wrote.</p>
@@ -260,9 +260,9 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      *
      * @return the CLI strings the binding's enum declares, comma-separated in declaration order
      */
-    private static String knownTensorReadLazyValues() {
+    private static String knownLazyModeValues() {
         final StringBuilder known = new StringBuilder();
-        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+        for (final LazyMode mode : LazyMode.values()) {
             if (known.length() > 0) {
                 known.append(", ");
             }

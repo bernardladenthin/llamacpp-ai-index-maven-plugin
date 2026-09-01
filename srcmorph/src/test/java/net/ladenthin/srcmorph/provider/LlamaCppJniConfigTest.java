@@ -130,7 +130,7 @@ public class LlamaCppJniConfigTest {
         assertThat(config.cpuMoeLayers(), is(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS));
         assertThat(config.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
         assertThat(config.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));
-        assertThat(config.tensorReadLazy(), is(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY));
+        assertThat(config.lazyMode(), is(AiGenerationConfig.DEFAULT_LAZY_MODE));
         assertThat(config.repeatLastN(), is(AiGenerationConfig.DEFAULT_REPEAT_LAST_N));
         assertThat(config.cacheTypeK(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_K));
         assertThat(config.cacheTypeV(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_V));
@@ -178,7 +178,7 @@ public class LlamaCppJniConfigTest {
                 .cpuMoeLayers(24)
                 .cpuFfnLayers(16)
                 .kvUnifiedPerSlot(4096)
-                .tensorReadLazy("on")
+                .lazyMode("on")
                 .repeatLastN(128)
                 .cacheTypeK("q8_0")
                 .cacheTypeV("q4_0")
@@ -218,7 +218,7 @@ public class LlamaCppJniConfigTest {
         assertThat(config.cpuMoeLayers(), is(24));
         assertThat(config.cpuFfnLayers(), is(16));
         assertThat(config.kvUnifiedPerSlot(), is(4096));
-        assertThat(config.tensorReadLazy(), is("on"));
+        assertThat(config.lazyMode(), is("on"));
         assertThat(config.repeatLastN(), is(128));
         assertThat(config.cacheTypeK(), is("q8_0"));
         assertThat(config.cacheTypeV(), is("q4_0"));
@@ -248,12 +248,12 @@ public class LlamaCppJniConfigTest {
     public void builder_nullOnAStringSetter_restoresThatKnobsDefault() {
         // arrange -- set them all first, so the null is genuinely undoing something
         final LlamaCppJniConfig config = LlamaCppJniConfig.builder("model.gguf")
-                .tensorReadLazy("on")
+                .lazyMode("on")
                 .cacheTypeK("q8_0")
                 .cacheTypeV("q4_0")
                 .devices("Vulkan1")
                 .reasoningEffort("high")
-                .tensorReadLazy(null)
+                .lazyMode(null)
                 .cacheTypeK(null)
                 .cacheTypeV(null)
                 .devices(null)
@@ -261,7 +261,7 @@ public class LlamaCppJniConfigTest {
                 .build();
 
         // assert
-        assertThat(config.tensorReadLazy(), is(""));
+        assertThat(config.lazyMode(), is(""));
         assertThat(config.cacheTypeK(), is(""));
         assertThat(config.cacheTypeV(), is(""));
         assertThat(config.devices(), is(""));

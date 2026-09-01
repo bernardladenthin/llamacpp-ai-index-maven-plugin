@@ -243,7 +243,7 @@ public class AiGenerationConfig {
      * <p>Deferring tensor reads can shorten model load time, which matters here because a run loads
      * and unloads one model per model group and {@code calibrate} preflights every model in turn.</p>
      */
-    public static final String DEFAULT_TENSOR_READ_LAZY = "";
+    public static final String DEFAULT_LAZY_MODE = "";
 
     /**
      * Default repeat-penalty window ({@code --repeat-last-n}). {@code -1} (default) means "do not set
@@ -396,7 +396,7 @@ public class AiGenerationConfig {
     private int cpuMoeLayers = DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = DEFAULT_KV_UNIFIED_PER_SLOT;
-    private String tensorReadLazy = DEFAULT_TENSOR_READ_LAZY;
+    private String lazyMode = DEFAULT_LAZY_MODE;
     private int repeatLastN = DEFAULT_REPEAT_LAST_N;
     private String cacheTypeK = DEFAULT_CACHE_TYPE_K;
     private String cacheTypeV = DEFAULT_CACHE_TYPE_V;
@@ -812,17 +812,17 @@ public class AiGenerationConfig {
      *
      * @return {@code off}, {@code auto}, {@code on}, or empty to leave the default
      */
-    public String getTensorReadLazy() {
-        return tensorReadLazy;
+    public String getLazyMode() {
+        return lazyMode;
     }
 
     /**
      * Sets the tensor-read laziness ({@code --tensor-read-lazy}).
      *
-     * @param tensorReadLazy {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
+     * @param lazyMode {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
      */
-    public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
-        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : DEFAULT_TENSOR_READ_LAZY;
+    public void setLazyMode(final @Nullable String lazyMode) {
+        this.lazyMode = lazyMode != null ? lazyMode : DEFAULT_LAZY_MODE;
     }
 
     /**

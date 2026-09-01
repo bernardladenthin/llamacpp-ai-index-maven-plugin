@@ -33,6 +33,16 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   them.
 
 ### Changed
+- **`lazyMode` replaces `tensorReadLazy` — breaking.** llama.cpp b10731 renamed `--tensor-read-lazy`
+  to `-lzm` / `--lazy-mode` with no alias, and `net.ladenthin:llama` followed the rename rather than
+  papering over it, so the model-definition field, its `srcmorph.llama.*` surface, the
+  `LlamaCppJniConfig` accessor and the sweep case move with it. Carrying the old name would leave the
+  configuration describing a flag that no longer exists.
+
+  Worth knowing why this is a real hazard and not cosmetics: a **new Java name paired with an old
+  native** produces `Failed to parse model parameters` at load time and nothing earlier catches it.
+  The knob sweep did — it is what surfaced the mismatch here.
+
 - **`net.ladenthin:llama` 5.1.0 → 5.2.0-SNAPSHOT.** Deliberately a snapshot: the binding change this
   release depends on is not yet published. Building srcmorph therefore requires that snapshot to be
   resolvable, and CI stays red until it is — recorded here so nobody mistakes it for a regression.
