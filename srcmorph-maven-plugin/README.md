@@ -442,7 +442,7 @@ below are the shipped values (`AiGenerationConfig.DEFAULT_*`).
 | `lazyMode` | *(empty)* | On-demand reading of lazy-loadable tensors (`--tensor-read-lazy`): `off`, `auto` or `on`; empty leaves the default. Trades resident memory for disk reads and shortens model load time; **requires mmap** |
 | `mainGpu` | `-1` | Primary GPU index (`--main-gpu`); `-1` = leave default. Matters on multi-GPU hosts (e.g. a Vulkan build enumerates every GPU) |
 | `devices` | *(empty)* | Explicit device selection (`--device`), comma-separated backend device names (e.g. `Vulkan1`); takes precedence over `mainGpu` |
-| `chatTemplateEnableThinking` | `true` | Enable the chat template's thinking mode |
+| `chatTemplateEnableThinking` | *(unset)* | Chat-template thinking mode (`enable_thinking` kwarg): `true` or `false` is forwarded verbatim, unset omits the kwarg so the model's own template default applies. Set `false` for Gemma 4 to keep thought tokens out of stored output |
 | `reasoningEffort` | `low` | gpt-oss harmony reasoning effort (`low`/`medium`/`high`); empty omits the kwarg (e.g. for non-gpt-oss models) |
 | `reasoningBudgetTokens` | `-1` | Cap on harmony reasoning tokens (`-1` = unrestricted) |
 | `dryMultiplier` | `0.0` | DRY repetition-penalty multiplier (`0.0` = disabled); the other `dry*` knobs only apply when this is `> 0` |

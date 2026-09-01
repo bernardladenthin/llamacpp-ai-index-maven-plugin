@@ -123,15 +123,24 @@ public class AiGenerationConfig {
     public static final float DEFAULT_REPEAT_PENALTY = 1.0f;
 
     /**
-     * Default setting for whether the model's chat-template thinking mode is enabled.
+     * Default setting for the model's chat-template thinking mode: {@code null}, meaning
+     * <em>unset</em>.
      *
-     * <p>When enabled, the model uses its own chat-template default for chain-of-thought
-     * reasoning.  When disabled, {@link net.ladenthin.llama.parameters.ModelParameters#setChatTemplateKwargs}
-     * is called with {@code {"enable_thinking": "false"}} to suppress the thinking block at the
-     * Jinja template level — set to {@code false} for Gemma 4 definitions to prevent
-     * {@code <|channel>thought} tokens from leaking into stored output.</p>
+     * <p>The value is a tri-state on purpose. While it was a plain {@code boolean} defaulting to
+     * {@code true}, every run put {@code enable_thinking} into
+     * {@link net.ladenthin.llama.parameters.ModelParameters#setChatTemplateKwargs} &#x2014; including
+     * runs whose chat template has never heard of the kwarg, which llama.cpp's Jinja layer has been
+     * moving from "silently ignored" toward "warned about". There was no way to switch that noise
+     * off except by setting the knob to {@code false}, which means something else entirely.</p>
+     *
+     * <p>"Send it only when it differs from the template's default" is not implementable here:
+     * srcmorph would have to parse and evaluate the template to know that default, which is exactly
+     * the work it delegates to the binding. So the rule is "send it only when the user actually set
+     * it": {@code null} omits the kwarg and the model's own chat-template default applies, while
+     * {@code true} and {@code false} are both forwarded verbatim. Set {@code false} for Gemma 4
+     * definitions to keep {@code <|channel>thought} tokens out of stored output.</p>
      */
-    public static final boolean DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING = true;
+    public static final @Nullable Boolean DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING = null;
 
     /**
      * Default for whether llama.cpp prompt caching ({@code cache_prompt}) is enabled.
@@ -387,7 +396,7 @@ public class AiGenerationConfig {
     private float minP = DEFAULT_MIN_P;
     private float topNSigma = DEFAULT_TOP_N_SIGMA;
     private float repeatPenalty = DEFAULT_REPEAT_PENALTY;
-    private boolean chatTemplateEnableThinking = DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
+    private @Nullable Boolean chatTemplateEnableThinking = DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
     private boolean cachePrompt = DEFAULT_CACHE_PROMPT;
     private boolean swaFull = DEFAULT_SWA_FULL;
     private int cacheReuse = DEFAULT_CACHE_REUSE;
@@ -655,20 +664,26 @@ public class AiGenerationConfig {
     }
 
     /**
-     * Returns whether the model's chat-template thinking mode is enabled.
+     * Returns the configured chat-template thinking mode, or {@code null} when it was never set.
      *
-     * @return {@code true} if chat-template thinking mode is enabled
+     * @return {@code true} or {@code false} when the knob was set, {@code null} when it is unset
+     *         &#x2014; in which case the {@code enable_thinking} kwarg is not sent at all and the
+     *         model's own chat-template default applies
+     * @see #DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING
      */
-    public boolean isChatTemplateEnableThinking() {
+    public @Nullable Boolean getChatTemplateEnableThinking() {
         return chatTemplateEnableThinking;
     }
 
     /**
-     * Sets whether the model's chat-template thinking mode is enabled.
+     * Sets the model's chat-template thinking mode.
      *
-     * @param chatTemplateEnableThinking {@code true} to enable chat-template thinking mode
+     * @param chatTemplateEnableThinking {@code true} or {@code false} to forward
+     *        {@code enable_thinking} to the chat template, {@code null} to omit the kwarg entirely
+     *        and leave the template's own default in place
+     * @see #DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING
      */
-    public void setChatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+    public void setChatTemplateEnableThinking(final @Nullable Boolean chatTemplateEnableThinking) {
         this.chatTemplateEnableThinking = chatTemplateEnableThinking;
     }
 

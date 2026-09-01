@@ -15,6 +15,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Map;
 import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.LazyMode;
 import net.ladenthin.llama.value.ChatChoice;
@@ -43,6 +44,12 @@ public class LlamaCppJniAiGenerationProviderTest {
 
     /** JSON key of the repeat-penalty window, quoted for the same reason. */
     private static final String PARAM_REPEAT_LAST_N = "\"repeat_last_n\"";
+
+    /** Chat-template kwarg key for Qwen-style thinking, as the provider spells it. */
+    private static final String KWARG_ENABLE_THINKING = "enable_thinking";
+
+    /** Chat-template kwarg key for the gpt-oss reasoning-effort level. */
+    private static final String KWARG_REASONING_EFFORT = "reasoning_effort";
 
     private static final AiMdHeader HEADER = new AiMdHeader(
             "Test.java",
@@ -395,6 +402,105 @@ public class LlamaCppJniAiGenerationProviderTest {
             detachAppender(appender);
         }
     }
+
+    // <editor-fold defaultstate="collapsed" desc="buildChatTemplateKwargs: opt-in kwargs">
+
+    /**
+     * The point of the tri-state. While {@code chatTemplateEnableThinking} was a plain
+     * {@code boolean} defaulting to {@code true}, every run handed {@code enable_thinking} to the
+     * chat template -- including templates that have never heard of it, which llama.cpp's Jinja
+     * layer has been moving from "silently ignored" toward "warned about". Unset must now mean
+     * "say nothing", so the template's own default applies.
+     *
+     * <p>The sibling kwarg is deliberately not asserted away here: {@code reasoningEffort} does
+     * default to {@code "low"} and is therefore still sent by a default run, but unlike
+     * {@code enable_thinking} it has an escape that means exactly "unset" -- the empty string -- so a
+     * non-gpt-oss user can switch it off without picking a value that says something else. That is a
+     * documented choice, not the same defect; the next test pins that escape.</p>
+     */
+    @Test
+    public void buildChatTemplateKwargs_defaultConfig_doesNotSendEnableThinking() {
+        // arrange
+        final LlamaCppJniConfig defaults =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").build();
+
+        // act
+        final Map<String, String> kwargs = providerWith(defaults).buildChatTemplateKwargs();
+
+        // assert
+        assertThat(kwargs.containsKey(KWARG_ENABLE_THINKING), is(false));
+    }
+
+    /** The other half of "unset means unset": a blank reasoning effort omits its kwarg too. */
+    @Test
+    public void buildChatTemplateKwargs_blankReasoningEffort_sendsNoKwargAtAll() {
+        // arrange
+        final LlamaCppJniConfig blank = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .reasoningEffort("")
+                .build();
+
+        // act
+        final Map<String, String> kwargs = providerWith(blank).buildChatTemplateKwargs();
+
+        // assert
+        assertThat(kwargs.isEmpty(), is(true));
+    }
+
+    /**
+     * {@code true} is a real configured value, not a second spelling of "unset". A guard written as
+     * "send it only when false" would swallow it, so this pins the boundary from the other side --
+     * the same shape as the {@code 0}-versus-{@code -1} penalty-window pair above.
+     */
+    @Test
+    public void buildChatTemplateKwargs_thinkingSetToTrue_isStillSent() {
+        // arrange
+        final LlamaCppJniConfig enabled = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .chatTemplateEnableThinking(Boolean.TRUE)
+                .build();
+
+        // act
+        final Map<String, String> kwargs = providerWith(enabled).buildChatTemplateKwargs();
+
+        // assert
+        assertThat(kwargs.get(KWARG_ENABLE_THINKING), is("true"));
+    }
+
+    /** The Gemma-4 case the knob exists for: suppress the thinking block at the Jinja level. */
+    @Test
+    public void buildChatTemplateKwargs_thinkingSetToFalse_isSentAsFalse() {
+        // arrange
+        final LlamaCppJniConfig disabled = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .chatTemplateEnableThinking(Boolean.FALSE)
+                .build();
+
+        // act
+        final Map<String, String> kwargs = providerWith(disabled).buildChatTemplateKwargs();
+
+        // assert
+        assertThat(kwargs.get(KWARG_ENABLE_THINKING), is("false"));
+    }
+
+    /**
+     * The second kwarg was already opt-in (blank omits it); pinned here so the extraction of
+     * {@code buildChatTemplateKwargs} out of {@code model()} cannot drop it unnoticed.
+     */
+    @Test
+    public void buildChatTemplateKwargs_reasoningEffortConfigured_isSentAlongside() {
+        // arrange
+        final LlamaCppJniConfig configured = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .reasoningEffort("high")
+                .chatTemplateEnableThinking(Boolean.FALSE)
+                .build();
+
+        // act
+        final Map<String, String> kwargs = providerWith(configured).buildChatTemplateKwargs();
+
+        // assert
+        assertThat(kwargs.get(KWARG_REASONING_EFFORT), is("high"));
+        assertThat(kwargs.get(KWARG_ENABLE_THINKING), is("false"));
+    }
+
+    // </editor-fold>
 
     // </editor-fold>
 }

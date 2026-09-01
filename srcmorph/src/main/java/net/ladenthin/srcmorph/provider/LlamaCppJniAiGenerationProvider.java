@@ -90,18 +90,43 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         this.promptSupport = Objects.requireNonNull(promptSupport, "promptSupport");
     }
 
+    /**
+     * Builds the chat-template kwargs passed to
+     * {@link net.ladenthin.llama.parameters.ModelParameters#setChatTemplateKwargs}.
+     *
+     * <p>Both kwargs are opt-in: an entry is written only when the user actually configured it, so a
+     * chat template that has never heard of the kwarg is not handed it. That matters because
+     * llama.cpp's Jinja layer has been moving unknown kwargs from "silently ignored" toward "warned
+     * about" -- while {@code enable_thinking} was a plain {@code boolean} defaulting to {@code true},
+     * every run sent it, and the only way to stop the noise was to set the knob to {@code false},
+     * which means something else entirely.</p>
+     *
+     * <p>Package-private so it can be pinned without loading a GGUF; {@link #model()} is the only
+     * production caller.</p>
+     *
+     * @return the kwargs to send; empty when neither knob is configured
+     */
+    Map<String, String> buildChatTemplateKwargs() {
+        final Map<String, String> chatTemplateKwargs =
+                new HashMap<>(compatibilityHelper.hashMapCapacityFor(CHAT_TEMPLATE_KWARG_COUNT));
+        // Qwen-style thinking. Unset (null) omits the kwarg so the model's own template default applies.
+        final Boolean enableThinking = config.chatTemplateEnableThinking();
+        if (enableThinking != null) {
+            chatTemplateKwargs.put(ENABLE_THINKING_KWARG, String.valueOf(enableThinking.booleanValue()));
+        }
+        // gpt-oss honors reasoning_effort; non-gpt-oss chat templates ignore it. An empty
+        // configured value omits the kwarg so the model's own template default applies.
+        if (!compatibilityHelper.isBlank(config.reasoningEffort())) {
+            chatTemplateKwargs.put(REASONING_EFFORT_KWARG, config.reasoningEffort());
+        }
+        return chatTemplateKwargs;
+    }
+
     /** Loads the GGUF model on first use and caches it for subsequent calls. */
     private LlamaModel model() {
         LlamaModel current = model;
         if (current == null) {
-            final Map<String, String> chatTemplateKwargs =
-                    new HashMap<>(compatibilityHelper.hashMapCapacityFor(CHAT_TEMPLATE_KWARG_COUNT));
-            chatTemplateKwargs.put(ENABLE_THINKING_KWARG, String.valueOf(config.chatTemplateEnableThinking()));
-            // gpt-oss honors reasoning_effort; non-gpt-oss chat templates ignore it. An empty
-            // configured value omits the kwarg so the model's own template default applies.
-            if (!compatibilityHelper.isBlank(config.reasoningEffort())) {
-                chatTemplateKwargs.put(REASONING_EFFORT_KWARG, config.reasoningEffort());
-            }
+            final Map<String, String> chatTemplateKwargs = buildChatTemplateKwargs();
             final ModelParameters modelParameters = new ModelParameters()
                     .setModel(config.modelPath())
                     .setCtxSize(config.contextSize())

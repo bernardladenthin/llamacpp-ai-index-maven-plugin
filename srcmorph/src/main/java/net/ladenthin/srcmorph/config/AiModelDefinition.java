@@ -51,7 +51,8 @@ public class AiModelDefinition {
     private float minP = AiGenerationConfig.DEFAULT_MIN_P;
     private float topNSigma = AiGenerationConfig.DEFAULT_TOP_N_SIGMA;
     private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
-    private boolean chatTemplateEnableThinking = AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
+    private @Nullable Boolean chatTemplateEnableThinking =
+            AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
     private boolean cachePrompt = AiGenerationConfig.DEFAULT_CACHE_PROMPT;
     private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
     private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
@@ -324,24 +325,26 @@ public class AiModelDefinition {
     }
 
     /**
-     * Returns whether the model's chat-template thinking mode is enabled.
+     * Returns this definition's chat-template thinking mode, or {@code null} when it was never set.
      *
-     * @return {@code true} to keep thinking enabled via the model's chat-template default;
+     * @return {@code true} or {@code false} when the knob was set, {@code null} when it is unset
+     *         &#x2014; the kwarg is then not sent and the model's own chat-template default applies;
      *         defaults to {@link AiGenerationConfig#DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING}
      */
-    public boolean isChatTemplateEnableThinking() {
+    public @Nullable Boolean getChatTemplateEnableThinking() {
         return chatTemplateEnableThinking;
     }
 
     /**
-     * Sets whether the model's chat-template thinking mode is enabled.
+     * Sets this definition's chat-template thinking mode.
      *
      * @param chatTemplateEnableThinking {@code false} passes
      *        {@code enable_thinking=false} to
      *        {@link net.ladenthin.llama.parameters.ModelParameters#setChatTemplateKwargs} to suppress
-     *        chain-of-thought reasoning at the Jinja template level
+     *        chain-of-thought reasoning at the Jinja template level, {@code true} passes it as
+     *        {@code true}, and {@code null} omits the kwarg entirely
      */
-    public void setChatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+    public void setChatTemplateEnableThinking(final @Nullable Boolean chatTemplateEnableThinking) {
         this.chatTemplateEnableThinking = chatTemplateEnableThinking;
     }
 

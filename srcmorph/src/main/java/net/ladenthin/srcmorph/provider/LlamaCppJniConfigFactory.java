@@ -43,7 +43,7 @@ public final class LlamaCppJniConfigFactory {
                 .minP(config.getMinP())
                 .topNSigma(config.getTopNSigma())
                 .repeatPenalty(config.getRepeatPenalty())
-                .chatTemplateEnableThinking(config.isChatTemplateEnableThinking())
+                .chatTemplateEnableThinking(config.getChatTemplateEnableThinking())
                 .cachePrompt(config.isCachePrompt())
                 .swaFull(config.isSwaFull())
                 .cacheReuse(config.getCacheReuse())

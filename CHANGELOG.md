@@ -43,9 +43,38 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   native** produces `Failed to parse model parameters` at load time and nothing earlier catches it.
   The knob sweep did — it is what surfaced the mismatch here.
 
-- **`net.ladenthin:llama` 5.1.0 → 5.2.0-SNAPSHOT.** Deliberately a snapshot: the binding change this
-  release depends on is not yet published. Building srcmorph therefore requires that snapshot to be
-  resolvable, and CI stays red until it is — recorded here so nobody mistakes it for a regression.
+- **`net.ladenthin:llama` 5.1.0 → 5.2.0.** Deliberately the *release* version, not `5.2.0-SNAPSHOT`:
+  this repo declares no `<repositories>` element (the `distributionManagement/snapshotRepository` is
+  deploy-only), so the Central snapshot channel is not resolvable here at all — and a `-SNAPSHOT`
+  dependency on `main` would block every srcmorph release, since Central rejects one. The build
+  therefore stays red until `net.ladenthin:llama:5.2.0` is published and goes green with no further
+  edit the moment it is — recorded here so nobody mistakes it for a regression.
+
+- **BREAKING: `chatTemplateEnableThinking` is a tri-state; the `enable_thinking` kwarg is only sent
+  when it was actually set.** It used to be a plain `boolean` defaulting to `true`, so every run put
+  `enable_thinking` into the chat-template kwargs -- including runs whose chat template has never
+  heard of the kwarg, which llama.cpp's Jinja layer has been moving from "silently ignored" toward
+  "warned about". The only way to stop that noise was to set the knob to `false`, which means
+  something else entirely.
+
+  The obvious phrasing -- "send it only when it differs from the template's default" -- is not
+  implementable: srcmorph would have to parse and evaluate the template to know that default, which
+  is exactly the work it delegates to the binding. So the rule is "send it only when the user
+  actually set it".
+
+  `AiGenerationConfig`, `AiModelDefinition` and `LlamaCppJniConfig` (and its builder) now carry
+  `@Nullable Boolean` instead of `boolean`, `DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING` is `null`
+  (unset) instead of `true`, and the two `isChatTemplateEnableThinking()` getters were renamed to
+  `getChatTemplateEnableThinking()` to match the wrapper type. `true` and `false` are both still
+  forwarded verbatim -- unset is the only value that omits the kwarg. A configuration that never
+  mentioned the knob keeps working and simply stops sending it; one that set it explicitly is
+  unaffected.
+
+  Guarded by four model-free tests over the extracted `buildChatTemplateKwargs()` -- including the
+  `true` case, so a future "send it only when false" shortcut fails rather than silently swallowing
+  a configured value.
+
+---
 
 ## [1.2.0] - 2026-09-01
 

@@ -55,24 +55,6 @@ recorded in git history and `crossrepostatus.md`, not here.
   not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
   correctness one.
 
-- **`enable_thinking` is sent unconditionally, including at its own default.**
-  `LlamaCppJniAiGenerationProvider.model()` always puts `enable_thinking` into
-  `chatTemplateKwargs`, at whatever `chatTemplateEnableThinking` says — and its default is `true`.
-  A model whose chat template does not know the kwarg gets it anyway; llama.cpp's Jinja layer has
-  been moving such unknown kwargs from "ignored" toward "warned about", so a default run emits noise
-  that the user did not ask for and cannot switch off without setting the knob to a value that means
-  something else.
-
-  The obvious phrasing of the fix -- "send it only when it differs from the template's default" --
-  is **not implementable**: srcmorph cannot know a template's default without parsing and evaluating
-  the template, which is exactly the work it delegates to the binding. The implementable fix is
-  "send it only when the user actually set it", and that needs the config field to become a tri-state
-  (`Boolean` rather than `boolean`, `null` = unset), which changes `AiGenerationConfig`,
-  `AiModelDefinition`, `LlamaCppJniConfig` and its builder, plus the plugin's `@Parameter`. That is a
-  public-API change, so it belongs in a minor release with the deprecation story written out, not in
-  a patch. **Was announced during the 1.2.0 audit cycle and never landed** -- recorded here rather
-  than left as a claim in a chat log.
-
 - **`srcmorph:calibrate` reports only through the log.** `CalibrateEngine` builds a
   `CalibrationReport` and `CalibrateMojo` prints it as `INFO` lines. There is no machine-readable
   output, so the numbers a calibration run produces (prefill / decode throughput, chars per token per
