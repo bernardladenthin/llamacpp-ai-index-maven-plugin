@@ -118,7 +118,7 @@ public final class AiModelDefinitionSupport {
         config.setTopNSigma(definition.getTopNSigma());
         config.setRepeatPenalty(definition.getRepeatPenalty());
         config.setStopStrings(definition.getStopStrings());
-        config.setChatTemplateEnableThinking(definition.isChatTemplateEnableThinking());
+        config.setChatTemplateEnableThinking(definition.getChatTemplateEnableThinking());
         config.setCachePrompt(definition.isCachePrompt());
         config.setSwaFull(definition.isSwaFull());
         config.setCacheReuse(definition.getCacheReuse());

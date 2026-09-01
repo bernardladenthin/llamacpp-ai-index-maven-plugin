@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import net.ladenthin.srcmorph.config.AiGenerationConfig;
 import net.ladenthin.srcmorph.support.ConvertToRecord;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Immutable configuration for the llama.cpp JNI provider.
@@ -37,7 +38,7 @@ public final class LlamaCppJniConfig {
     private final float minP;
     private final float topNSigma;
     private final float repeatPenalty;
-    private final boolean chatTemplateEnableThinking;
+    private final @Nullable Boolean chatTemplateEnableThinking;
     private final boolean cachePrompt;
     private final boolean swaFull;
     private final int cacheReuse;
@@ -224,11 +225,14 @@ public final class LlamaCppJniConfig {
     }
 
     /**
-     * Returns whether chat-template thinking mode is enabled.
+     * Returns the chat-template thinking mode, or {@code null} when it was never set.
      *
-     * @return {@code true} when chat-template thinking mode is enabled
+     * @return {@code true} or {@code false} when the knob was set, {@code null} when it is unset
+     *         &#x2014; the provider then omits the {@code enable_thinking} kwarg entirely and the
+     *         model's own chat-template default applies
+     * @see AiGenerationConfig#DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING
      */
-    public boolean chatTemplateEnableThinking() {
+    public @Nullable Boolean chatTemplateEnableThinking() {
         return chatTemplateEnableThinking;
     }
 
@@ -489,7 +493,8 @@ public final class LlamaCppJniConfig {
         private float minP = AiGenerationConfig.DEFAULT_MIN_P;
         private float topNSigma = AiGenerationConfig.DEFAULT_TOP_N_SIGMA;
         private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
-        private boolean chatTemplateEnableThinking = AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
+        private @Nullable Boolean chatTemplateEnableThinking =
+                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
         private boolean cachePrompt = AiGenerationConfig.DEFAULT_CACHE_PROMPT;
         private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
         private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
@@ -621,12 +626,13 @@ public final class LlamaCppJniConfig {
         }
 
         /**
-         * Sets whether chat-template thinking mode is enabled.
+         * Sets the chat-template thinking mode.
          *
-         * @param chatTemplateEnableThinking whether chat-template thinking mode is enabled
+         * @param chatTemplateEnableThinking {@code true} or {@code false} to forward
+         *        {@code enable_thinking} to the chat template, {@code null} to omit the kwarg
          * @return this builder
          */
-        public Builder chatTemplateEnableThinking(final boolean chatTemplateEnableThinking) {
+        public Builder chatTemplateEnableThinking(final @Nullable Boolean chatTemplateEnableThinking) {
             this.chatTemplateEnableThinking = chatTemplateEnableThinking;
             return this;
         }
