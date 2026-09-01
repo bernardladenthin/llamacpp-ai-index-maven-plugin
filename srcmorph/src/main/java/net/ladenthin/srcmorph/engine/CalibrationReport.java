@@ -102,7 +102,9 @@ public final class CalibrationReport {
             appendJsonNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
             appendJsonNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
             appendJsonNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
-            out.append("      \"cachedPromptTokens\": ").append(m.cachedPromptTokens()).append('\n');
+            out.append("      \"cachedPromptTokens\": ")
+                    .append(m.cachedPromptTokens())
+                    .append('\n');
             out.append("    }");
             out.append(i + 1 < measurements.size() ? ",\n" : "\n");
         }
@@ -133,7 +135,9 @@ public final class CalibrationReport {
             appendYamlNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
             appendYamlNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
             appendYamlNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
-            out.append("    cachedPromptTokens: ").append(m.cachedPromptTokens()).append('\n');
+            out.append("    cachedPromptTokens: ")
+                    .append(m.cachedPromptTokens())
+                    .append('\n');
         }
         return out.toString();
     }

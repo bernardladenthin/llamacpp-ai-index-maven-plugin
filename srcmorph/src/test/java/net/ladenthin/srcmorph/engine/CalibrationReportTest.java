@@ -140,7 +140,8 @@ public class CalibrationReportTest {
     /** An empty run must still produce a parseable document, not a dangling array. */
     @Test
     public void renderJson_noModels_isAnEmptyArray() {
-        assertThat(new CalibrationReport(Collections.emptyList()).renderJson(), is(equalTo("{\n  \"models\": []\n}\n")));
+        assertThat(
+                new CalibrationReport(Collections.emptyList()).renderJson(), is(equalTo("{\n  \"models\": []\n}\n")));
     }
 
     @Test
