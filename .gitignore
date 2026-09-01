@@ -47,3 +47,15 @@ srcmorph-maven-plugin/src/siteQwenBRUTAL/
 # Generated AI-index output from the self-index run (keep the tracked placeholder)
 /srcmorph-maven-plugin/src/site/ai/*
 !/srcmorph-maven-plugin/src/site/ai/empty.md
+# Scratch git worktrees created by tooling that runs agents in an isolated copy of the
+# repository (.claude/worktrees/<run-id>/). Each is a full checkout of this repo living
+# inside it, so a plain `git add -A` during such a run would stage a second copy of the
+# whole tree. They are removed when the run ends; the ignore is what stops the window in
+# between being a footgun. Only worktrees/ is ignored -- anything else under .claude/
+# (skills, settings) stays visible on purpose.
+.claude/worktrees/
+
+# The plugin integration test's fixture writes here only when <outputDirectory> stops binding --
+# it is the mojos' own default. The test asserts the tree stays empty and clears it between runs;
+# the ignore is so a failed run cannot leave untracked debris behind.
+.github/plugin-it/src/site/

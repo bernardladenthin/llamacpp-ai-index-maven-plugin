@@ -314,7 +314,14 @@ jobs:
         # Reactor-wide (no -pl): runs every module's tests. The `jcstress` profile is only
         # declared in srcmorph-maven-plugin/pom.xml, so it activates there and is a
         # silent no-op for srcmorph/srcmorph-cli (neither declares a profile with that id).
-        run: mvn -e --batch-mode --no-transfer-progress -P jcstress verify
+        #
+        # requireNativeLlama turns the model-backed tests' capability check from a skip into a
+        # failure. Skipping is right on a developer machine with an unsupported OS/arch; here it
+        # would mean a vanished native library or an unchecked-out model quietly restores a green
+        # build with zero real inference — the exact shape that let a dead provider ship twice.
+        run: >-
+          mvn -e --batch-mode --no-transfer-progress -P jcstress
+          -Dnet.ladenthin.srcmorph.requireNativeLlama=true verify
       - uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
@@ -472,6 +479,66 @@ jobs:
             smoke-err.log
           if-no-files-found: warn
 
+  # ---------------------------------------------------------------------------
+  # Plugin integration test -- the only job that runs srcmorph-maven-plugin AS A PLUGIN.
+  #
+  # Every other check on that module calls Java methods directly (PluginArchitectureTest,
+  # MojoPhaseSkipTest, MojoConfigurationMappingTest, PIT at 62/62), so nothing covers what only
+  # Maven does: plexus binding of the <configuration> XML onto the @Parameter fields, goal-prefix
+  # resolution, the srcmorph.* property strings, lifecycle-phase binding, and the descriptor
+  # maven-plugin-plugin generates. A renamed @Parameter property shipped green before this job.
+  #
+  # needs: startgate, not build -- it compiles what it needs itself and consumes no uploaded
+  # artifact, so hanging it off build would only serialize it behind a compile it repeats anyway.
+  # ---------------------------------------------------------------------------
+  plugin-it:
+    name: Plugin integration test
+    needs: startgate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+      # -pl srcmorph-maven-plugin -am resolves to exactly parent + srcmorph + the plugin;
+      # srcmorph-cli is a leaf (CliArchitectureTest#cliIsLeaf), so its unconditionally
+      # package-bound ~80 MB assembly never runs here. install (not package) because the fixture
+      # resolves the plugin from the local repository. The skips drop work code-style and test
+      # already do -- keeping them would roughly double the job for no extra signal.
+      # Every assertion in this job is about Maven semantics (plexus binding, prefix resolution,
+      # -D vs <configuration> precedence), so the log has to record which Maven produced the result.
+      - name: Record the Maven version
+        run: mvn -v
+      - name: Install the plugin into the local repository
+        run: >
+          mvn -B --no-transfer-progress
+          -pl srcmorph-maven-plugin -am
+          -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true
+          -Dspotbugs.skip=true -Dspotless.check.skip=true -Denforcer.skip=true -Djacoco.skip=true
+          install
+      # Same form the publish jobs in this workflow already use; a hand-rolled sed over pom.xml
+      # would be a second, weaker way of answering a question Maven answers exactly.
+      - name: Resolve the reactor version
+        id: version
+        run: |
+          set -euo pipefail
+          v=$(mvn -B -q -N -DforceStdout help:evaluate -Dexpression=project.version | tail -n1)
+          [ -n "$v" ] || { echo "::error::could not resolve the reactor version"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Run the plugin integration test
+        run: .github/plugin-it.sh '${{ steps.version.outputs.version }}'
+      - name: Upload integration-test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-it-logs
+          path: |
+            .github/plugin-it/target/logs/
+            .github/plugin-it/target/ai/
+          if-no-files-found: warn
+
   report:
     name: Report
     needs: [test]
@@ -489,7 +556,11 @@ jobs:
       - uses: actions/download-artifact@v8
         with: { name: jacoco-report, path: srcmorph/target/site/jacoco/ }
         continue-on-error: true
+      # Submits the dependency graph to GitHub. Informational: it says nothing about whether the
+      # artifacts are correct, but it sits in the `report` job, which the release path needs -- so
+      # without this flag a third-party action having a bad day can block a publish.
       - uses: advanced-security/maven-dependency-submission-action@v5
+        continue-on-error: true
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
@@ -526,7 +597,7 @@ jobs:
 
   publish-snapshot:
     name: Publish Snapshot to Central
-    needs: [check-snapshot, code-style, smoke-fatjar]
+    needs: [check-snapshot, code-style, smoke-fatjar, plugin-it]
     if: needs.check-snapshot.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central
@@ -588,7 +659,7 @@ jobs:
       # GPU jar runs only on its own OS/arch/backend, while the default (no classifier) bundles the
       # multi-platform CPU natives and runs anywhere. Signing uses the key setup-java already
       # imported (armored detached .asc, same shape Central produces).
-      - name: Build & sign classifier fat jars (GitHub-only assets, never Central)
+      - name: Build, sign & verify classifier fat jars (GitHub-only assets, never Central)
         if: ${{ !cancelled() }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -618,6 +689,15 @@ jobs:
           # (.github/sign-fatjars.sh, byte-identical with java-llama.cpp) — a .asc per fat jar.
           cp srcmorph-cli/target/srcmorph-cli-*-jar-with-dependencies*.jar signed-snapshot-assets/
           bash .github/sign-fatjars.sh signed-snapshot-assets
+          # Structural check of what the loop just produced. The smoke-fatjar job LAUNCHES the
+          # default jar; the sixteen GPU jars cannot be covered that way (a GitHub runner has no
+          # such device, and the only command that would load the native library is a real
+          # generation), so this asserts instead that each jar is the artifact its name claims --
+          # one jar per classifier, a native for the OS/arch the name promises, and a native set
+          # that DIFFERS from the default jar's. That last one is the point: if -Dllama.classifier=
+          # ever stops being wired through, the loop silently ships sixteen copies of the CPU build
+          # under GPU names and nothing else in this pipeline notices.
+          bash .github/verify-classifier-fatjars.sh signed-snapshot-assets "${CLASSIFIERS[@]}"
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -639,6 +719,34 @@ jobs:
         with:
           name: signed-snapshot-assets
           path: snapshot-assets/
+      - name: Report unsigned assets (does not block the upload)
+        # Deliberately NON-blocking, and deliberately BEFORE the upload. Both attach jobs run even
+        # when their publish job failed, because a Central publish-poll timeout must not cost the
+        # GitHub assets: if Central is unreachable these are the ONLY way to get the artifacts at
+        # all. Refusing to attach on a signing failure would defeat exactly that. So annotate here,
+        # upload regardless, and fail the job afterwards. Assets always land; an unsigned release is
+        # still loudly red rather than quietly wrong.
+        # See workspace/policies/fat-jar-release-assets.md, "Attach first, then go red".
+        id: signatures
+        run: |
+          set -uo pipefail
+          dir="snapshot-assets"
+          jars=$(find "$dir" -maxdepth 1 -name '*.jar' | sort)
+          if [ -z "$jars" ]; then
+            echo "::error::no jars in $dir -- the collection step produced nothing"
+            echo "missing=-1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=0
+          for jar in $jars; do
+            if [ ! -e "$jar.asc" ]; then
+              echo "::error::unsigned: $(basename "$jar") has no detached .asc"
+              missing=$((missing + 1))
+            fi
+          done
+          echo "missing=$missing" >> "$GITHUB_OUTPUT"
+          [ "$missing" -eq 0 ] && echo "all $(echo "$jars" | wc -l) jar(s) signed"
+          exit 0
       - name: Update snapshot pre-release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -652,10 +760,16 @@ jobs:
           gh release upload snapshot snapshot-assets/* \
             --repo ${{ github.repository }} \
             --clobber
+      - name: Fail if anything was attached unsigned
+        # After the upload on purpose: the assets must exist even when the signature does not.
+        if: ${{ always() && steps.signatures.outputs.missing != '0' }}
+        run: |
+          echo "::error::${{ steps.signatures.outputs.missing }} asset(s) attached without a signature (-1 means none were collected at all)"
+          exit 1
 
   publish-release:
     name: Publish Release to Central
-    needs: [check-tag, code-style, smoke-fatjar]
+    needs: [check-tag, code-style, smoke-fatjar, plugin-it]
     if: needs.check-tag.result == 'success' && inputs.publish_to_central
     runs-on: ubuntu-latest
     environment: maven-central
@@ -710,7 +824,7 @@ jobs:
       # GPU jar runs only on its own OS/arch/backend, while the default (no classifier) bundles the
       # multi-platform CPU natives and runs anywhere. Signing uses the key setup-java already
       # imported (armored detached .asc, same shape Central produces).
-      - name: Build & sign classifier fat jars (GitHub-only assets, never Central)
+      - name: Build, sign & verify classifier fat jars (GitHub-only assets, never Central)
         if: ${{ !cancelled() }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -740,6 +854,15 @@ jobs:
           # (.github/sign-fatjars.sh, byte-identical with java-llama.cpp) — a .asc per fat jar.
           cp srcmorph-cli/target/srcmorph-cli-*-jar-with-dependencies*.jar signed-release-assets/
           bash .github/sign-fatjars.sh signed-release-assets
+          # Structural check of what the loop just produced. The smoke-fatjar job LAUNCHES the
+          # default jar; the sixteen GPU jars cannot be covered that way (a GitHub runner has no
+          # such device, and the only command that would load the native library is a real
+          # generation), so this asserts instead that each jar is the artifact its name claims --
+          # one jar per classifier, a native for the OS/arch the name promises, and a native set
+          # that DIFFERS from the default jar's. That last one is the point: if -Dllama.classifier=
+          # ever stops being wired through, the loop silently ships sixteen copies of the CPU build
+          # under GPU names and nothing else in this pipeline notices.
+          bash .github/verify-classifier-fatjars.sh signed-release-assets "${CLASSIFIERS[@]}"
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -761,7 +884,41 @@ jobs:
         with:
           name: signed-release-assets
           path: release-assets/
+      - name: Report unsigned assets (does not block the upload)
+        # Deliberately NON-blocking, and deliberately BEFORE the upload. Both attach jobs run even
+        # when their publish job failed, because a Central publish-poll timeout must not cost the
+        # GitHub assets: if Central is unreachable these are the ONLY way to get the artifacts at
+        # all. Refusing to attach on a signing failure would defeat exactly that. So annotate here,
+        # upload regardless, and fail the job afterwards. Assets always land; an unsigned release is
+        # still loudly red rather than quietly wrong.
+        # See workspace/policies/fat-jar-release-assets.md, "Attach first, then go red".
+        id: signatures
+        run: |
+          set -uo pipefail
+          dir="release-assets"
+          jars=$(find "$dir" -maxdepth 1 -name '*.jar' | sort)
+          if [ -z "$jars" ]; then
+            echo "::error::no jars in $dir -- the collection step produced nothing"
+            echo "missing=-1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=0
+          for jar in $jars; do
+            if [ ! -e "$jar.asc" ]; then
+              echo "::error::unsigned: $(basename "$jar") has no detached .asc"
+              missing=$((missing + 1))
+            fi
+          done
+          echo "missing=$missing" >> "$GITHUB_OUTPUT"
+          [ "$missing" -eq 0 ] && echo "all $(echo "$jars" | wc -l) jar(s) signed"
+          exit 0
       - name: Upload release assets
         uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*
+      - name: Fail if anything was attached unsigned
+        # After the upload on purpose: the assets must exist even when the signature does not.
+        if: ${{ always() && steps.signatures.outputs.missing != '0' }}
+        run: |
+          echo "::error::${{ steps.signatures.outputs.missing }} asset(s) attached without a signature (-1 means none were collected at all)"
+          exit 1

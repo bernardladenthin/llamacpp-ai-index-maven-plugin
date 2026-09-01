@@ -23,6 +23,18 @@ SPDX-License-Identifier: Apache-2.0
     <name>srcmorph</name>
     <description>Core library extracted from llamacpp-ai-index-maven-plugin: routing/configuration model, the .ai.md document codec, the file/package/project indexers, prompt templating support, and the AI generation provider abstraction (incl. the llama.cpp JNI binding). Framework-free (no Maven plugin API); the srcmorph-maven-plugin module supplies only the Mojo entry points on top of this library.</description>
 
+    <!--
+        Declared explicitly rather than inherited. The parent sets
+        child.project.url.inherit.append.path="false" on its own url element. That flag demonstrably
+        works for scm (the effective POM shows the un-appended connection) but is silently dropped for
+        the project URL by Maven 3.9.11: the inherited value still came out as
+        https://github.com/bernardladenthin/srcmorph/srcmorph, which does not exist. A published POM
+        pointing at a nonexistent URL is the whole defect, so the real value is declared here, where it
+        is verifiable in the effective POM.
+    -->
+    <url>https://github.com/bernardladenthin/srcmorph</url>
+
+
     <properties>
         <sonar.organization>bernardladenthin</sonar.organization>
         <maven.compiler.release>8</maven.compiler.release>
@@ -609,12 +621,15 @@ SPDX-License-Identifier: Apache-2.0
                           Deliberately NOT gated: GenerateEngine, AggregatePackagesEngine,
                           AggregateProjectEngine, CalibrateEngine. These are the orchestration classes
                           that replaced the mojo execute() bodies - they own AiGenerationProvider
-                          try-with-resources lifecycles, multi-step control flow, and logging, the same
-                          shape the sibling srcmorph-maven-plugin module's own pom.xml comment
-                          says mojos are not PIT-gated for ("Mojos are typically integration-tested via
-                          Maven invoker/executor rather than unit-mutation-tested"). They are instead
-                          covered by ordinary JUnit tests in engine/*Test.java (planOnly/unmatched/
-                          oversize/exception-path coverage) using MockAiGenerationProvider.
+                          try-with-resources lifecycles, multi-step control flow, and logging. They are
+                          instead covered by ordinary JUnit tests in engine/*Test.java (planOnly/
+                          unmatched/oversize/exception-path coverage) using MockAiGenerationProvider.
+
+                          This paragraph used to justify the exclusion by pointing at a comment in the
+                          sibling srcmorph-maven-plugin pom saying mojos are integration-tested rather
+                          than mutation-tested. That comment is gone and its claim no longer holds: the
+                          plugin module gates all five mojo classes at threshold 100. The exclusion here
+                          stands on its own reasoning above, not on the sibling's.
                         -->
                         <param>net.ladenthin.srcmorph.config.AiCalibration</param>
                         <param>net.ladenthin.srcmorph.config.AiCondition</param>

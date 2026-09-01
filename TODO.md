@@ -55,6 +55,69 @@ recorded in git history and `crossrepostatus.md`, not here.
   not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
   correctness one.
 
+- **Wire `flashAttn` up for real after `net.ladenthin:llama` 5.2.0 ships.** 1.2.0 *refuses* the knob
+  rather than forwarding it, in two places (`LlamaCppJniAiGenerationProvider.model()` for the direct
+  API path, `EngineSupport.validateFlashAttnIsNotRequested` for the plan phase), because the binding
+  cannot currently spell it: `-fa` takes a mandatory `[on|off|auto]`, `enableFlashAttn()` routes
+  through `setFlag` which stores `null`, and the argv renderer then emits the key with no token after
+  it — so llama.cpp swallows the *next* argv token and the load dies naming a flag the user never set
+  (`error: unknown value for --flash-attn: '--reasoning-format'`, reproduced against the shipped fat
+  jar). No workaround exists downstream: `putScalar` is `protected`.
+
+  When 5.2.0 lands with a value-taking setter: bump `llama.version`, replace both guards with the real
+  call, delete `FLASH_ATTN_UNSUPPORTED_MESSAGE` and the four tests that pin the refusal (two in
+  `EngineSupportTest`, one in `LlamaCppJniAiGenerationProviderTest`, and
+  `LlamaCppJniKnobSweepTest#flashAttn_isRefusedRatherThanSilentlyDropped`), and restore the
+  `flashAttn`/`cacheTypeV` guidance in `srcmorph-maven-plugin/README.md`. Then move `flashAttn` out of
+  `LlamaCppJniKnobSweepTest.NOT_SWEPT` into a real sweep case — that is the step that finally sets the
+  knob against a real model, which the refusal has never done. The sweep's completeness check keeps
+  the bookkeeping honest: it fails if the knob is neither swept nor excluded, so it cannot be left
+  half-migrated.
+
+  **The trap to avoid: bumping `llama.version` alone changes nothing visible.** The guards keep
+  throwing, the knob keeps looking broken, and every gate stays green — so this has to be an explicit
+  line on the bump checklist rather than something a version bump surfaces on its own. The upstream
+  fix is tracked in java-llama.cpp (`ModelParameters` needs `setFlashAttn(on|off|auto)` mirroring the
+  `CacheType` enum pattern, `enableFlashAttn()` deprecated, and
+  `ModelParametersExtendedTest.testToArrayComplexCombination` corrected — it currently pins the broken
+  9-token argv shape as correct).
+
+- **`enable_thinking` is sent unconditionally, including at its own default.**
+  `LlamaCppJniAiGenerationProvider.model()` always puts `enable_thinking` into
+  `chatTemplateKwargs`, at whatever `chatTemplateEnableThinking` says — and its default is `true`.
+  A model whose chat template does not know the kwarg gets it anyway; llama.cpp's Jinja layer has
+  been moving such unknown kwargs from "ignored" toward "warned about", so a default run emits noise
+  that the user did not ask for and cannot switch off without setting the knob to a value that means
+  something else.
+
+  The obvious phrasing of the fix -- "send it only when it differs from the template's default" --
+  is **not implementable**: srcmorph cannot know a template's default without parsing and evaluating
+  the template, which is exactly the work it delegates to the binding. The implementable fix is
+  "send it only when the user actually set it", and that needs the config field to become a tri-state
+  (`Boolean` rather than `boolean`, `null` = unset), which changes `AiGenerationConfig`,
+  `AiModelDefinition`, `LlamaCppJniConfig` and its builder, plus the plugin's `@Parameter`. That is a
+  public-API change, so it belongs in a minor release with the deprecation story written out, not in
+  a patch. **Was announced during the 1.2.0 audit cycle and never landed** -- recorded here rather
+  than left as a claim in a chat log.
+
+- **`srcmorph:calibrate` reports only through the log.** `CalibrateEngine` builds a
+  `CalibrationReport` and `CalibrateMojo` prints it as `INFO` lines. There is no machine-readable
+  output, so the numbers a calibration run produces (prefill / decode throughput, chars per token per
+  model) cannot be diffed across runs, fed back into `aiDefinitions`, or committed as a baseline --
+  which is most of the point of measuring them. Emitting the same report as JSON and YAML next to
+  the log (the CLI already carries both Jackson mappers, and `SrcMorphConfiguration` round-trips
+  through them) would close it. **Was announced during the 1.2.0 audit cycle and never landed**;
+  it is a feature, not a fix, so it is not a 1.2.0 blocker.
+
+- **The sixteen GPU classifier fat jars are verified structurally, never launched.** Since 1.2.0
+  `.github/verify-classifier-fatjars.sh` asserts each is the artifact its name claims (one jar per
+  classifier, a native for the promised OS/arch, a native set that differs from the default jar's, so
+  a broken `-Dllama.classifier=` cannot silently ship seventeen CPU builds). What it cannot assert is
+  that the jar *works*: a GitHub-hosted runner has no CUDA/ROCm/SYCL/OpenVINO device, and the only
+  command that would load the native library is a real generation. Closing this needs hardware —
+  a self-hosted runner, or a manual pre-release pass on one GPU box per backend. Worth knowing which
+  half is covered before reading the green check as "the CUDA jar runs".
+
 - **jqwik pin policy** — see [`../workspace/policies/jqwik-prompt-injection.md`](../workspace/policies/jqwik-prompt-injection.md). `jqwik.version ≤ 1.9.3` is mandatory (declared in `srcmorph/pom.xml`, the only reactor module with a jqwik test dependency).
 
 - **`@VisibleForTesting` audit.** No usages currently in any module. Walk each module's production tree for package-private/protected methods or fields that exist purely so tests can reach them, and either annotate (`com.google.common.annotations.VisibleForTesting`) or move into the test source tree.

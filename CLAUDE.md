@@ -128,9 +128,15 @@ above), `layeredArchitecture` (`engine` on top → `indexer` → `provider`/`doc
 `jniConfinedToProvider` (only the `provider` package may touch the llama.cpp JNI binding).
 
 **Test suite** (`srcmorph/src/test/java/net/ladenthin/srcmorph/`, package-renamed 1:1 with production):
-~63 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
+~64 test files, incl. jqwik properties, an ArchUnit suite, a Lincheck race test
 (`AtomicCounterLincheckTest`), and the model-backed real tests gated on
-`src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **PIT mutation testing**: `mutationThreshold`
+`src/test/resources/SmolLM2-135M-Instruct-Q3_K_M.gguf`. **`LlamaCppJniKnobSweepTest` drives every
+model knob at a non-default value through a real generation** (one case per knob, ~35 s for all of
+them): a knob is exercised only when the native binding *accepts* the value derived from it, which is
+what the mapping unit tests and the `mock`-provider suite structurally cannot see -- both provider
+defects fixed in 1.2.0 were of exactly that shape. Its reflective completeness check fails when a knob
+is neither swept nor listed in `NOT_SWEPT` with a reason, so a knob added later reds the class until
+somebody decides how it is covered. **PIT mutation testing**: `mutationThreshold`
 100 over an explicit `targetClasses` list in `srcmorph/pom.xml` — currently 52 classes across
 config/document/engine/indexer/prompt/provider/support, all killed at 100%. **All three modules are
 PIT-gated now**: `srcmorph-cli` (16/16) and `srcmorph-maven-plugin` (62/62) carry their own
@@ -215,6 +221,26 @@ themselves.
 - **jcstress** (`jcstress/AiOversizeStrategyRace.java`) and **vmlens**
   (`vmlens/VmlensInterleavingSmokeTest.java`) tests/profiles currently live in this module, not in
   `srcmorph` — they were not relocated during the core extraction.
+- **The plugin is exercised AS A PLUGIN only by the `plugin-it` CI job** (`.github/plugin-it.sh` +
+  the fixture in `.github/plugin-it/`), never by this module's unit tests. That distinction matters
+  when adding a `@Parameter`: `MojoConfigurationMappingTest` and friends set the *field*, so they
+  cannot see the `property` string, the plexus XML binding, the goal prefix or the generated
+  descriptor — a renamed property used to ship green. The IT installs the reactor
+  (`-pl srcmorph-maven-plugin -am`, which provably excludes `srcmorph-cli` and its ~80 MB assembly),
+  then runs the fixture through a real Maven lifecycle with the `mock` provider: no GGUF, no GPU, no
+  network. Its fixture pom mirrors the worked example in this module's `README.md`, so a README that
+  drifts from the working XML fails it. It gates `publish-snapshot` and `publish-release`.
+  Two traps when extending it, both found by falsifying assertions rather than by reading:
+  an explicit value in the fixture's `<configuration>` **beats** a `-D` property, so a
+  property-binding check has to drive a parameter the fixture pom leaves unset; and the fixture must
+  **not** get a `settings.xml` with a `<pluginGroups>` entry — `mvn srcmorph:generate` resolves
+  without one (Maven matches the prefix against the descriptor of the plugin the fixture declares),
+  while adding one opens a second path through repository metadata that maps the prefix by
+  artifactId and thereby **masks a changed `<goalPrefix>` completely**, on a pristine runner as
+  well. The general lesson for a fixture-based test: an element the fixture sets to a value that
+  equals the production default, or a pattern that matches no file that exists, is not covered by
+  the run — it is invisible to it. `<subtrees>`, `<excludes>` and the per-execution overrides all
+  started out that way here.
 - Full goal/parameter reference: `srcmorph-maven-plugin/README.md`.
 
 ### `llamacpp-ai-index-maven-plugin` — the retired relocation stub (no longer in this repo)

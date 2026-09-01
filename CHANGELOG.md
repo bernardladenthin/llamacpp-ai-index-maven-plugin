@@ -9,7 +9,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ---
 
-## [1.2.0] - 2026-08-31
+## [1.2.0] - 2026-09-01
 
 ### Added
 - **The plan phase now checks the configuration against the model itself, still without loading it.**
@@ -150,9 +150,10 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   `srcmorph:calibrate` is what makes these measurable rather than guesswork: it reports prefill and
   decode throughput, and — since this release — the prompt-cache reuse the extra KV room buys.
 
-  Note the cost this exposes: `LlamaCppJniConfig`'s positional constructor is now 37 arguments. It is
+  Note the cost this exposed: `LlamaCppJniConfig`'s positional constructor reached 37 arguments. It was
   covered field-by-field by `LlamaCppJniConfigFactoryTest`, which gives every field a distinct value so a
-  mis-ordered pair fails, but the shape is at its limit and a builder is the obvious next step.
+  mis-ordered pair fails — but the shape was past its limit, and this same release replaces it with a
+  builder (see *Changed* below). The constructor is private now; nothing outside the class can call it.
 
 - **Fail-fast check on a routed model's `<modelPath>`.** A typo previously survived the whole plan
   phase — walk, classify, rendered plan — and only died inside the native loader, which with several
@@ -174,7 +175,96 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   now pinned — a plan-only run with the real provider and a missing model still plans; the same
   configuration without `planOnly` still fails fast.
 
+- **Every model knob is now exercised against the real model, one knob per test case.**
+  `LlamaCppJniKnobSweepTest` sets each of the 34 sweepable `LlamaCppJniConfig` knobs to a non-default
+  value in turn and runs a real generation with the committed 135M model. The failure class it exists
+  for is precisely the one that produced this release's two provider fixes: a knob is not exercised by
+  being *set*, it is exercised by the binding *accepting* the value derived from it, and those two came
+  apart twice — `dryPenaltyLastN` at its own `-1` default (rejected outright, so every generation threw
+  before a token) and `flashAttn` (mapped onto a setter that cannot express what llama.cpp now
+  demands). Neither is visible to a mapping unit test, and neither is visible to the rest of the suite,
+  which runs on the `mock` provider and never loads the native library.
+
+  Per-knob rather than all-at-once on purpose: an all-knobs config catches the same breakage but names
+  no culprit, and one rejected value masks every knob behind it. 36 cases in ~35&nbsp;s. Three knobs
+  are excluded with stated reasons (`modelPath`, `devices`, `flashAttn`), and a reflective completeness
+  check fails the class when a knob is neither swept nor excluded — in **both** directions, plus a
+  count assertion so an empty sweep list cannot satisfy it. A knob added later therefore reds this test
+  until somebody decides how it is covered. Verified by falsification: a deliberately invalid value
+  reds exactly the case carrying it and names the knob.
+
+- **The Maven plugin is now run as a plugin in CI** (`plugin-it` job, `.github/plugin-it.sh`,
+  fixture in `.github/plugin-it/`). Until now every check on `srcmorph-maven-plugin` called Java
+  methods directly -- `PluginArchitectureTest`, `MojoPhaseSkipTest`, `MojoConfigurationMappingTest`,
+  PIT at 62/62 -- so nothing covered the parts only Maven performs: plexus binding of the
+  `<configuration>` XML onto the `@Parameter` fields (the CLI's Jackson binding is a different code
+  path), goal-prefix resolution, the `srcmorph.*` property strings, lifecycle-phase binding, and the
+  descriptor `maven-plugin-plugin` generates. **A renamed `@Parameter` property would have shipped
+  green.**
+
+  Six checks: the full lifecycle with all three goals configured entirely from the fixture's pom XML
+  (the nested `<condition><extensions>` routing tree, both `<subtrees>` entries, `<excludes>`, the
+  per-execution `<configuration>` override, and both readonly `${project.*}` injections); the
+  generated descriptor read out of the packaged jar (goal prefix, the four goal names, and a
+  **two-way diff of all 19 `srcmorph.*` property strings**, so a rename fails and a new property
+  fails until it is listed deliberately); `mvn srcmorph:generate -Dsrcmorph.planOnly=true` via the
+  goal prefix; `-Dsrcmorph.aiVersion=9.9.9` reaching the written document header; all four skip
+  properties including one **off-diagonal** case (`srcmorph.file.skip` must not skip the packages
+  goal -- the diagonal alone cannot catch a copy-pasted property); and the `calibrate` goal, the one
+  goal the lifecycle run does not reach. The fixture uses the default `mock` provider, so no GGUF,
+  no GPU and no network.
+
+  The fixture's `<configuration>` deliberately mirrors the worked example in
+  `srcmorph-maven-plugin/README.md`, so it also fails when the documented XML stops being the XML
+  that works.
+
+  Every assertion was falsified rather than assumed, and that pass rewrote three of them. A first
+  version passed a `settings.xml` whose `<pluginGroups>` entry was believed necessary for
+  `mvn srcmorph:generate` to resolve; it is not (Maven matches the prefix against the descriptor of
+  the plugin the fixture declares), and adding it opened a second resolution path through repository
+  metadata that **masked a changed goal prefix entirely** -- on a pristine runner too, since Central
+  serves that metadata. Removing the file turned that check into a real second guard. Separately,
+  `<subtrees>`, `<excludes>` and all three execution-level `<configuration>` blocks could each be
+  deleted with the test staying green -- the first because the fixture's only value equalled the
+  engine's own fallback, the second because the pattern matched no file that existed, the third
+  because the overrides changed nothing observable. All three are now pinned by a fixture that makes
+  them observable.
+
+- **The classifier fat jars are verified before they are attached** (`.github/verify-classifier-fatjars.sh`).
+  The publish jobs build seventeen fat jars — one per `net.ladenthin:llama` native classifier plus the
+  default — and exactly one of them was ever checked: `smoke-fatjar` launches the default. The sixteen
+  GPU jars still cannot be *launched* meaningfully (a GitHub-hosted runner has no such device, and the
+  only command that loads the native library is a real generation), so the script asserts instead that
+  each is the artifact its name claims: one jar per requested classifier and no unexpected one, a
+  native library present, the native for the OS/arch the name promises, a default jar spanning more
+  than one OS, and — the load-bearing check — a native set that **differs** from the default jar's. If
+  `-Dllama.classifier=` ever stops being wired through, Maven resolves the default artifact and the
+  loop ships sixteen copies of the CPU build under GPU names; nothing else in the pipeline would
+  notice. A classifier shape nobody has mapped fails the script rather than passing unchecked.
+
+- **A release can no longer attach an unsigned asset quietly.** The attach jobs collect
+  `target/*.jar.asc` with `|| true`, so a signing step that produced nothing yielded an attach that
+  looked complete and was not. The check deliberately does **not** gate the upload: both attach jobs
+  run even when the publish job failed, because when Central is unreachable the GitHub assets are the
+  only way to get the build output at all. So it reports before the upload, uploads unconditionally,
+  and fails the job afterwards — the assets always land, an unsigned release is loudly red instead of
+  quietly wrong. The same two steps are now byte-identical in all four sibling repositories.
+
 ### Changed
+- **Two further public constructors gained a parameter, and a mojo parameter was removed.** Neither was
+  listed as breaking when the changes landed; both are, so they are recorded here rather than left for a
+  consumer to discover at compile time.
+
+  `AiGenerationTimings` and `AiCalibrationMeasurement` each went from five parameters to six, both
+  gaining `cachedPromptTokens` — the `cache_n` value this release surfaces. Anyone constructing either
+  directly must add the argument; both are value types a downstream extension could plausibly build.
+
+  `srcmorph.llama.libraryPath` is gone from the plugin (see *Removed*), and Maven does not ignore an
+  unknown `<configuration>` element: a consumer POM still declaring it fails the goal outright rather
+  than warning. That is the intended outcome — a parameter that never worked should not keep looking
+  like it does — but it is a hard break on first invocation, not a silent one. CLI users hit the same
+  wall at parse time, because both JSON and YAML are read with `FAIL_ON_UNKNOWN_PROPERTIES` enabled.
+
 - **`LlamaCppJniConfig` is built through a builder; its positional constructor is private.** Breaking for
   anyone who constructed one directly — deliberately taken in this release rather than later, because the
   class is already breaking here and a second break for the same type is worse than one.
@@ -208,7 +298,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   true, so chat templating and tool calling are unchanged. The rest of the surface this provider uses
   — `LlamaModel`, `InferenceParameters`, `ModelParameters`, `ChatResponse`/`Timings`/`Pair`,
   `ChatResponseParser`, `ReasoningFormat` — is untouched by 5.1.0. Verified by a full reactor
-  `clean test`: 30 + 17 tests, 0 failures, all four modules SUCCESS.
+  `clean test`: 639 / 39 / 32 tests, 0 failures, 0 skipped, all four modules SUCCESS.
 
 - CI actions bumped to latest: `actions/setup-java` v5 → v6.
 
@@ -297,7 +387,7 @@ The release procedure (prompt template and step-by-step instructions) lives in [
   appends the unique `github.run_id` for non-PR runs; PR runs still share a group per ref and
   supersede each other as intended.
 
-- Bumped `jackson.version` 2.22.0 → 2.22.1 (`jackson-databind` / `jackson-dataformat-yaml`,
+- Bumped `jackson.version` 2.22.0 → 2.22.2 (`jackson-databind` / `jackson-dataformat-yaml`,
   pinned in the parent `pom.xml`) to close
   [GHSA-5jmj-h7xm-6q6v](https://github.com/advisories/GHSA-5jmj-h7xm-6q6v) (CVSS 5.3, Medium),
   flagged by OSV-Scanner against `srcmorph/pom.xml` and `srcmorph-cli/pom.xml` after the `main`

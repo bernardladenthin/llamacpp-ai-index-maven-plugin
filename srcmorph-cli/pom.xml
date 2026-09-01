@@ -23,6 +23,18 @@ SPDX-License-Identifier: Apache-2.0
     <name>srcmorph-cli</name>
     <description>Standalone CLI for srcmorph, driven by a single JSON/YAML configuration file (BitcoinAddressFinder cli/Main.java pattern). Wraps the srcmorph core library's engines; ships as a jar-with-dependencies fat jar.</description>
 
+    <!--
+        Declared explicitly rather than inherited. The parent sets
+        child.project.url.inherit.append.path="false" on its own url element. That flag demonstrably
+        works for scm (the effective POM shows the un-appended connection) but is silently dropped for
+        the project URL by Maven 3.9.11: the inherited value still came out as
+        https://github.com/bernardladenthin/srcmorph/srcmorph-cli, which does not exist. A published POM
+        pointing at a nonexistent URL is the whole defect, so the real value is declared here, where it
+        is verifiable in the effective POM.
+    -->
+    <url>https://github.com/bernardladenthin/srcmorph</url>
+
+
     <properties>
         <sonar.organization>bernardladenthin</sonar.organization>
         <maven.compiler.release>8</maven.compiler.release>

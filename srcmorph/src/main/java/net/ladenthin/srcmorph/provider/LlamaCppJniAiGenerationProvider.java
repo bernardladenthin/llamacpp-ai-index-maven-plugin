@@ -46,6 +46,28 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
     /** OpenAI finish reason meaning "the token budget ran out", as opposed to {@code "stop"}. */
     private static final String FINISH_REASON_LENGTH = "length";
 
+    /**
+     * Why {@code flashAttn} is refused outright rather than forwarded.
+     *
+     * <p>Upstream's {@code -fa} takes a mandatory {@code [on|off|auto]} value, but the binding models it
+     * as a bare flag: {@code ModelParameters.enableFlashAttn()} calls {@code setFlag}, which stores a
+     * {@code null} value, and the argv renderer emits the key with no token after it. llama.cpp's parser
+     * then consumes the <em>next</em> argv token as the value, so the model load dies naming an entirely
+     * unrelated flag — verified against the shipped fat jar: {@code error: unknown value for
+     * --flash-attn: '--reasoning-format'}. There is no partial or degraded mode; nothing loads.</p>
+     *
+     * <p>srcmorph cannot spell it correctly through the binding's public API — {@code setFlag}
+     * unconditionally stores {@code null} and {@code putScalar} is {@code protected} — so until the
+     * binding ships a value-taking setter, refusing the knob with a message that names the cause is
+     * strictly better than letting the user hit a parse error about a flag they never set.</p>
+     */
+    public static final String FLASH_ATTN_UNSUPPORTED_MESSAGE =
+            "flashAttn cannot be enabled with net.ladenthin:llama 5.1.0:"
+                    + " the binding emits '--flash-attn' without the [on|off|auto] value llama.cpp requires, so the"
+                    + " model load fails with a parse error naming an unrelated flag. Remove flashAttn from the"
+                    + " model definition (and any cacheTypeV that depends on it) until a binding release exposes a"
+                    + " value-taking setter.";
+
     private final LlamaCppJniConfig config;
 
     // Native llama.cpp model handle — its toString prints native pointer / internal
@@ -146,8 +168,14 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
                 modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
             }
+            // TODO: after net.ladenthin:llama 5.2.0 ships the value-taking Flash Attention setter,
+            // replace this refusal with the real wiring -- modelParameters.setFlashAttn(<on>) -- and
+            // delete FLASH_ATTN_UNSUPPORTED_MESSAGE, EngineSupport.validateFlashAttnIsNotRequested,
+            // and the three tests that pin the refusal (two in EngineSupportTest, one here). Bumping
+            // llama.version alone will NOT surface this: the guard keeps throwing and the knob keeps
+            // looking broken, so the bump checklist has to name it. See TODO.md.
             if (config.flashAttn()) {
-                modelParameters.enableFlashAttn();
+                throw new IllegalArgumentException(FLASH_ATTN_UNSUPPORTED_MESSAGE);
             }
             // KV-cache quantization. Set independently of each other, but note that a quantized V cache
             // generally needs Flash Attention above -- llama.cpp refuses the combination otherwise.

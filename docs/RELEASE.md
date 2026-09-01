@@ -1,7 +1,7 @@
 # Release Process
 
 The maintainer-facing release procedure is **centralized in the workspace repo**:
-[`../workspace/workflows/release-process.md`](../workspace/workflows/release-process.md).
+[`../../workspace/workflows/release-process.md`](../../workspace/workflows/release-process.md).
 
 **This repo-specific supplement applies here** — srcmorph is a 3-module Maven reactor
 (`srcmorph`, `srcmorph-cli`, `srcmorph-maven-plugin`, all released together from one parent pom
@@ -26,8 +26,11 @@ procedure:
    is a `v*` tag **and** the workflow was dispatched with that flag — a plain tag push or a push to
    `main` alone does not publish anything.
 5. **Verify** the release actually reached Central before considering it done: check
-   `https://repo1.maven.org/maven2/net/ladenthin/<artifact>/X.Y.Z/` for each of the three
-   artifacts, and confirm the CI run's "Deploy release" step succeeded (not just "completed").
+   `https://repo1.maven.org/maven2/net/ladenthin/<artifact>/X.Y.Z/` for each of the four artifacts
+   — `srcmorph-parent`, `srcmorph`, `srcmorph-cli`, `srcmorph-maven-plugin`; the parent POM is easy to
+   forget precisely because it carries no code, and a consumer who cannot resolve it cannot resolve any
+   of the other three — and confirm the CI run's "Deploy release" step succeeded (not just
+   "completed").
 6. **Bump `main` forward** to the next `-SNAPSHOT` version (same `versions:set` command) so `main`
    never again sits at a version matching a published release.
 

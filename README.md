@@ -210,7 +210,8 @@ or path.
 
 ## Snapshot builds
 
-Snapshots are published to the Central Snapshots repository on every push to `main`:
+Snapshots are published to the Central Snapshots repository from a manual *Publish* workflow run
+on `main` with `publish_to_central` checked — not automatically on push:
 
 ```
 https://central.sonatype.com/repository/maven-snapshots/net/ladenthin/

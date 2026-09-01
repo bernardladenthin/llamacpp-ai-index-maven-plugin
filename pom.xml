@@ -17,7 +17,14 @@ SPDX-License-Identifier: Apache-2.0
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Reactor parent for srcmorph: a prompt-driven source-tree transformer using local llama.cpp models, and its Maven plugin.</description>
-    <url>https://github.com/bernardladenthin/srcmorph</url>
+    <!--
+        child.project.url.inherit.append.path stops Maven appending each module's artifactId when it
+        inherits these. Without it every published module POM resolves .../srcmorph/srcmorph and
+        .../srcmorph/srcmorph-cli - URLs that do not exist. It affects rendered metadata and SBOM
+        external references rather than resolution, which is why it survived unnoticed through 1.1.1.
+        The same applies to <scm> below, with its own three inherit flags.
+    -->
+    <url child.project.url.inherit.append.path="false">https://github.com/bernardladenthin/srcmorph</url>
 
     <licenses>
         <license>
@@ -34,7 +41,9 @@ SPDX-License-Identifier: Apache-2.0
         </developer>
     </developers>
 
-    <scm>
+    <scm child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false"
+         child.scm.url.inherit.append.path="false">
         <connection>scm:git:https://github.com/bernardladenthin/srcmorph.git</connection>
         <developerConnection>scm:git:https://github.com/bernardladenthin/srcmorph.git</developerConnection>
         <url>https://github.com/bernardladenthin/srcmorph</url>
