@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package net.ladenthin.srcmorph.provider;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -217,7 +218,12 @@ public class LlamaCppJniKnobSweepTest {
         try (LlamaCppJniAiGenerationProvider provider = new LlamaCppJniAiGenerationProvider(config, promptSupport)) {
             final IllegalArgumentException thrown =
                     Assertions.assertThrows(IllegalArgumentException.class, () -> provider.generate(request()));
-            assertThat(thrown.getMessage(), is(LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE));
+            // containsString, not equality: the provider prefixes the model it is refusing for, so a
+            // caller running several models can tell which configuration to change.
+            assertThat(
+                    thrown.getMessage(),
+                    containsString(LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE));
+            assertThat(thrown.getMessage(), containsString(NativeLlamaAvailability.modelPath()));
         }
     }
 
