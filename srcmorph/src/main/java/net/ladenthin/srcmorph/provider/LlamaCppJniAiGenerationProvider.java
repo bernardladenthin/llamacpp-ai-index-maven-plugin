@@ -175,7 +175,14 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             // llama.version alone will NOT surface this: the guard keeps throwing and the knob keeps
             // looking broken, so the bump checklist has to name it. See TODO.md.
             if (config.flashAttn()) {
-                throw new IllegalArgumentException(FLASH_ATTN_UNSUPPORTED_MESSAGE);
+                // The model path is not decoration: this guard fires on the direct-API path, where
+                // there is no aiDefinition key to name (the plan-time guard in EngineSupport prefixes
+                // that one), so without it a caller running several models is told what is wrong but
+                // not which configuration to change. It also keeps the message out of
+                // WEM_WEAK_EXCEPTION_MESSAGING, which SpotBugs raises on a throw whose whole message
+                // is a compile-time constant.
+                throw new IllegalArgumentException(
+                        "model '" + config.modelPath() + "': " + FLASH_ATTN_UNSUPPORTED_MESSAGE);
             }
             // KV-cache quantization. Set independently of each other, but note that a quantized V cache
             // generally needs Flash Attention above -- llama.cpp refuses the combination otherwise.
