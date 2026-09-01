@@ -49,8 +49,20 @@ SPDX-License-Identifier: Apache-2.0
              never had an effect, and upstream llama.cpp defaults use_jinja to true, so chat
              templating is unchanged. The rest of the provider's API surface (LlamaModel,
              InferenceParameters, ModelParameters, ChatResponse/Timings/Pair, ChatResponseParser,
-             ReasoningFormat) is untouched by 5.1.0. -->
-        <llama.version>5.1.0</llama.version>
+             ReasoningFormat) is untouched by 5.1.0.
+             5.2.0 is a BREAKING bump this module needs, not an optional one: the binding removed
+             ModelParameters.enableFlashAttn()/ModelFlag.FLASH_ATTN (--flash-attn takes a mandatory
+             on|off|auto value since llama.cpp b10273, so the valueless flag emitted a broken argv)
+             and renamed setTensorReadLazy/TensorReadLazyMode to setLazyMode/LazyMode (llama.cpp
+             b10731 renamed --tensor-read-lazy to --lazy-mode with no alias). The provider calls
+             both, so it cannot compile against 5.1.0 any more.
+             This deliberately names the RELEASE, not 5.2.0-SNAPSHOT: a snapshot would need a
+             <repositories> entry for the Central snapshot channel (this repo declares none -- the
+             distributionManagement/snapshotRepository below is deploy-only) AND would block every
+             srcmorph release, since Central rejects a release with a -SNAPSHOT dependency. The
+             build therefore stays red until net.ladenthin:llama:5.2.0 is published, and goes green
+             with no further edit the moment it is. -->
+        <llama.version>5.2.0</llama.version>
         <!-- Native build selector for net.ladenthin:llama. Empty = the main jar (CPU, Ninja default).
              The gpu-cuda / gpu-vulkan profiles set a GPU classifier; or override with
              -Dllama.classifier=cuda13-windows-x86-64. GPU builds need their runtime on PATH

@@ -37,7 +37,7 @@
  * file</em>, and irrelevant to <em>running the result</em>. On the module path every llama.cpp-backed
  * path, including the plan-time {@code GgufModelInspector}, failed for want of a readable module.
  * It is deliberately <b>not</b> {@code transitive}: the binding's types appear only in
- * package-private members ({@code tensorReadLazyMode}, {@code cacheType},
+ * package-private members ({@code lazyMode}, {@code cacheType},
  * {@code buildInferenceParameters}), never in an exported signature — {@code LlamaCppJniConfigFactory}
  * returns srcmorph's own {@code LlamaCppJniConfig} — so no consumer needs the module transitively.
  * Should a llama type ever surface in an exported signature, this must become

@@ -18,7 +18,6 @@ import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.provider.AiGenerationProviderFactory;
 import net.ladenthin.srcmorph.provider.GgufModelInfo;
 import net.ladenthin.srcmorph.provider.GgufModelInspector;
-import net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfig;
 import net.ladenthin.srcmorph.provider.LlamaCppJniConfigFactory;
 import org.jspecify.annotations.Nullable;
@@ -198,31 +197,7 @@ final class EngineSupport {
                         + " (checked before any model is loaded; fix the modelPath, or set"
                         + " generationProvider to mock for a model-free run)");
             }
-            validateFlashAttnIsNotRequested(aiDefinitionKey, modelConfig);
             validateAgainstTheModelItself(aiDefinitionKey, modelConfig, Paths.get(modelPath));
-        }
-    }
-
-    /**
-     * Refuses {@code flashAttn} at plan time, before any model is loaded or any file written.
-     *
-     * <p>The knob is documented and settable but cannot work with the pinned binding: {@code -fa} takes a
-     * mandatory {@code [on|off|auto]} value and {@code ModelParameters.enableFlashAttn()} emits the flag
-     * without one, so llama.cpp swallows the following argv token and the load dies naming a flag the
-     * user never set. Refusing here rather than in the provider means a multi-model run fails before its
-     * first group generates, instead of after.</p>
-     *
-     * @param aiDefinitionKey the model definition being validated, for the message
-     * @param modelConfig     its resolved configuration
-     * @throws SrcMorphException when {@code flashAttn} is enabled
-     */
-    private static void validateFlashAttnIsNotRequested(
-            final String aiDefinitionKey, final AiGenerationConfig modelConfig) throws SrcMorphException {
-        // TODO: remove together with the provider-side guard once net.ladenthin:llama 5.2.0 exposes a
-        // value-taking Flash Attention setter -- see the TODO in LlamaCppJniAiGenerationProvider.model().
-        if (modelConfig.isFlashAttn()) {
-            throw new SrcMorphException("aiDefinition '" + aiDefinitionKey + "': "
-                    + LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE);
         }
     }
 

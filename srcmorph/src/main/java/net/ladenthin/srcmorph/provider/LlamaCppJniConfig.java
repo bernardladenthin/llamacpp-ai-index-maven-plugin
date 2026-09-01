@@ -46,7 +46,7 @@ public final class LlamaCppJniConfig {
     private final int cpuMoeLayers;
     private final int cpuFfnLayers;
     private final int kvUnifiedPerSlot;
-    private final String tensorReadLazy;
+    private final String lazyMode;
     private final int repeatLastN;
     private final String cacheTypeK;
     private final String cacheTypeV;
@@ -98,7 +98,7 @@ public final class LlamaCppJniConfig {
         this.cpuMoeLayers = builder.cpuMoeLayers;
         this.cpuFfnLayers = builder.cpuFfnLayers;
         this.kvUnifiedPerSlot = builder.kvUnifiedPerSlot;
-        this.tensorReadLazy = builder.tensorReadLazy;
+        this.lazyMode = builder.lazyMode;
         this.repeatLastN = builder.repeatLastN;
         this.cacheTypeK = builder.cacheTypeK;
         this.cacheTypeV = builder.cacheTypeV;
@@ -309,8 +309,8 @@ public final class LlamaCppJniConfig {
      *
      * @return {@code off}, {@code auto}, {@code on}, or empty to leave the binding/build default
      */
-    public String tensorReadLazy() {
-        return tensorReadLazy;
+    public String lazyMode() {
+        return lazyMode;
     }
 
     /**
@@ -498,7 +498,7 @@ public final class LlamaCppJniConfig {
         private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
         private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
         private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
-        private String tensorReadLazy = AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+        private String lazyMode = AiGenerationConfig.DEFAULT_LAZY_MODE;
         private int repeatLastN = AiGenerationConfig.DEFAULT_REPEAT_LAST_N;
         private String cacheTypeK = AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
         private String cacheTypeV = AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
@@ -722,11 +722,11 @@ public final class LlamaCppJniConfig {
         /**
          * Sets tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default. {@code null} restores the default.
          *
-         * @param tensorReadLazy tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default
+         * @param lazyMode tensor-read laziness ({@code --tensor-read-lazy}); empty = leave default
          * @return this builder
          */
-        public Builder tensorReadLazy(final String tensorReadLazy) {
-            this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+        public Builder lazyMode(final String lazyMode) {
+            this.lazyMode = lazyMode != null ? lazyMode : AiGenerationConfig.DEFAULT_LAZY_MODE;
             return this;
         }
 

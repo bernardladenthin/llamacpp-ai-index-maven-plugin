@@ -127,7 +127,7 @@ public final class AiModelDefinitionSupport {
         config.setCpuMoeLayers(definition.getCpuMoeLayers());
         config.setCpuFfnLayers(definition.getCpuFfnLayers());
         config.setKvUnifiedPerSlot(definition.getKvUnifiedPerSlot());
-        config.setTensorReadLazy(definition.getTensorReadLazy());
+        config.setLazyMode(definition.getLazyMode());
         config.setRepeatLastN(definition.getRepeatLastN());
         config.setCacheTypeK(definition.getCacheTypeK());
         config.setCacheTypeV(definition.getCacheTypeV());

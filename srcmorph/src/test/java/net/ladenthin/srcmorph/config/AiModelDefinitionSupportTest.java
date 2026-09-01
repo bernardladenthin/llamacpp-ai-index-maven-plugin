@@ -57,7 +57,7 @@ public class AiModelDefinitionSupportTest {
         definition.setCpuMoeLayers(24);
         definition.setCpuFfnLayers(16);
         definition.setKvUnifiedPerSlot(4096);
-        definition.setTensorReadLazy("on");
+        definition.setLazyMode("on");
         definition.setRepeatLastN(128);
         definition.setCacheTypeK("q8_0");
         definition.setCacheTypeV("q4_0");
@@ -123,7 +123,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.getCpuMoeLayers(), is(equalTo(24)));
         assertThat(config.getCpuFfnLayers(), is(equalTo(16)));
         assertThat(config.getKvUnifiedPerSlot(), is(equalTo(4096)));
-        assertThat(config.getTensorReadLazy(), is(equalTo("on")));
+        assertThat(config.getLazyMode(), is(equalTo("on")));
         assertThat(config.getRepeatLastN(), is(equalTo(128)));
         assertThat(config.getCacheTypeK(), is(equalTo("q8_0")));
         assertThat(config.getCacheTypeV(), is(equalTo("q4_0")));
@@ -173,7 +173,7 @@ public class AiModelDefinitionSupportTest {
         assertThat(config.getCpuMoeLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS)));
         assertThat(config.getCpuFfnLayers(), is(equalTo(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS)));
         assertThat(config.getKvUnifiedPerSlot(), is(equalTo(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT)));
-        assertThat(config.getTensorReadLazy(), is(equalTo(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY)));
+        assertThat(config.getLazyMode(), is(equalTo(AiGenerationConfig.DEFAULT_LAZY_MODE)));
         assertThat(config.getRepeatLastN(), is(equalTo(AiGenerationConfig.DEFAULT_REPEAT_LAST_N)));
         assertThat(config.getCacheTypeK(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_TYPE_K)));
         assertThat(config.getCacheTypeV(), is(equalTo(AiGenerationConfig.DEFAULT_CACHE_TYPE_V)));

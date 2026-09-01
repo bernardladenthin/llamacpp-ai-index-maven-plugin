@@ -243,7 +243,7 @@ public class AiGenerationConfig {
      * <p>Deferring tensor reads can shorten model load time, which matters here because a run loads
      * and unloads one model per model group and {@code calibrate} preflights every model in turn.</p>
      */
-    public static final String DEFAULT_TENSOR_READ_LAZY = "";
+    public static final String DEFAULT_LAZY_MODE = "";
 
     /**
      * Default repeat-penalty window ({@code --repeat-last-n}). {@code -1} (default) means "do not set
@@ -280,17 +280,18 @@ public class AiGenerationConfig {
     /**
      * Default Flash Attention setting ({@code --flash-attn}).
      *
-     * <p><b>Enabling this is currently refused</b> &mdash; see
-     * {@code LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE}. The binding emits
-     * {@code --flash-attn} without the {@code [on|off|auto]} value llama.cpp requires, so the parser
-     * swallows the following argv token and the model load dies naming an unrelated flag. srcmorph fails
-     * at plan time instead, until a binding release exposes a value-taking setter.</p>
+     * <p>{@code true} emits {@code --flash-attn on}; {@code false} emits nothing at all, which leaves
+     * llama.cpp's own default in force — and that default is {@code auto}, not off ({@code common.h}:
+     * {@code flash_attn_type = LLAMA_FLASH_ATTN_TYPE_AUTO}). An earlier version of this javadoc said
+     * {@code false} "leaves it off, as llama.cpp does"; both halves were wrong. Enabling it lowers
+     * KV-cache memory and is the precondition for quantizing the V cache
+     * ({@link #DEFAULT_CACHE_TYPE_V}).</p>
      *
-     * <p>{@code false} therefore emits nothing at all, which leaves llama.cpp's own default in force —
-     * and that default is {@code auto}, not off ({@code common.h}: {@code flash_attn_type =
-     * LLAMA_FLASH_ATTN_TYPE_AUTO}). An earlier version of this javadoc said {@code false} "leaves it off,
-     * as llama.cpp does"; both halves were wrong. Once the knob works, enabling it lowers KV-cache memory
-     * and is the precondition for quantizing the V cache ({@link #DEFAULT_CACHE_TYPE_V}).</p>
+     * <p>The value matters, and that is why the knob went through a release refusing to be set at all:
+     * {@code --flash-attn} takes a mandatory {@code [on|off|auto]}, and the binding used to offer only a
+     * bare-flag setter, which emitted the key alone and made llama.cpp's parser consume the next argv
+     * token — killing the load while naming a flag the user never set. {@code net.ladenthin:llama}
+     * 5.2.0 added {@code ModelParameters.setFlashAttn(FlashAttn)}, which is what the provider uses.</p>
      */
     public static final boolean DEFAULT_FLASH_ATTN = false;
 
@@ -395,7 +396,7 @@ public class AiGenerationConfig {
     private int cpuMoeLayers = DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = DEFAULT_KV_UNIFIED_PER_SLOT;
-    private String tensorReadLazy = DEFAULT_TENSOR_READ_LAZY;
+    private String lazyMode = DEFAULT_LAZY_MODE;
     private int repeatLastN = DEFAULT_REPEAT_LAST_N;
     private String cacheTypeK = DEFAULT_CACHE_TYPE_K;
     private String cacheTypeV = DEFAULT_CACHE_TYPE_V;
@@ -811,17 +812,17 @@ public class AiGenerationConfig {
      *
      * @return {@code off}, {@code auto}, {@code on}, or empty to leave the default
      */
-    public String getTensorReadLazy() {
-        return tensorReadLazy;
+    public String getLazyMode() {
+        return lazyMode;
     }
 
     /**
      * Sets the tensor-read laziness ({@code --tensor-read-lazy}).
      *
-     * @param tensorReadLazy {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
+     * @param lazyMode {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
      */
-    public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
-        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : DEFAULT_TENSOR_READ_LAZY;
+    public void setLazyMode(final @Nullable String lazyMode) {
+        this.lazyMode = lazyMode != null ? lazyMode : DEFAULT_LAZY_MODE;
     }
 
     /**

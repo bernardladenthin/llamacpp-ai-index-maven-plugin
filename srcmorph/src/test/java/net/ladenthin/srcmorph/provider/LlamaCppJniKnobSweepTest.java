@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package net.ladenthin.srcmorph.provider;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -28,7 +27,6 @@ import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.document.AiMdHeader;
 import net.ladenthin.srcmorph.document.AiMdHeaderCodec;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -42,7 +40,9 @@ import org.junit.jupiter.params.provider.MethodSource;
  * exercised by the native binding <em>accepting</em> the value the provider derives from it. Those
  * two came apart twice: {@code dryPenaltyLastN} was forwarded at its own {@code -1} default and the
  * binding rejects any negative window, so every generation threw before producing a token; and
- * {@code flashAttn} maps onto a setter that cannot express the value llama.cpp now demands. Neither
+ * {@code flashAttn} was mapped onto a bare-flag setter that could not express the mandatory
+ * {@code on|off|auto} value llama.cpp requires, so it emitted an argv that made the parser eat the
+ * following token (fixed by {@code ModelParameters.setFlashAttn}). Neither
  * is visible to a mapping unit test — the mapping was doing exactly what it was written to do — and
  * neither is visible to the rest of the suite, which runs on the {@code mock} provider and never
  * loads the native library. Only a real call finds them.</p>
@@ -97,10 +97,6 @@ public class LlamaCppJniKnobSweepTest {
                 "devices",
                 "backend device names (e.g. \"Vulkan1\") exist only on the machine that enumerates them, "
                         + "so no value is valid on an arbitrary runner");
-        reasons.put(
-                "flashAttn",
-                "cannot currently reach the binding at all -- the provider refuses it, which "
-                        + "flashAttn_isRefusedRatherThanSilentlyDropped() pins instead");
         return Collections.unmodifiableMap(reasons);
     }
 
@@ -123,13 +119,18 @@ public class LlamaCppJniKnobSweepTest {
                 knob("chatTemplateEnableThinking", b -> b.chatTemplateEnableThinking(false)),
                 knob("cachePrompt", b -> b.cachePrompt(false)),
                 knob("swaFull", b -> b.swaFull(false)),
+                // The knob this whole class was written for: it was unreachable until
+                // net.ladenthin:llama grew a value-taking setter, and until then the provider
+                // refused it outright. This case is the first time it is actually set against a
+                // real model rather than merely pinned as refused.
+                knob("flashAttn", b -> b.flashAttn(true)),
                 knob("cacheReuse", b -> b.cacheReuse(128)),
                 knob("gpuLayers", b -> b.gpuLayers(0)),
                 knob("seed", b -> b.seed(42)),
                 knob("cpuMoeLayers", b -> b.cpuMoeLayers(0)),
                 knob("cpuFfnLayers", b -> b.cpuFfnLayers(0)),
                 knob("kvUnifiedPerSlot", b -> b.kvUnifiedPerSlot(SWEEP_CONTEXT_SIZE)),
-                knob("tensorReadLazy", b -> b.tensorReadLazy("on")),
+                knob("lazyMode", b -> b.lazyMode("on")),
                 knob("repeatLastN", b -> b.repeatLastN(64)),
                 // A quantized K cache works on its own; a quantized V cache generally needs Flash
                 // Attention, which the provider currently refuses -- so V is swept at an explicit f16.
@@ -198,33 +199,6 @@ public class LlamaCppJniKnobSweepTest {
         assertThat("knob " + knobName + " produced no response", body, is(notNullValue()));
         assertThat(
                 "knob " + knobName + " produced an empty response", body.trim().isEmpty(), is(false));
-    }
-
-    /**
-     * The one knob the provider refuses outright, pinned here so the sweep's coverage stays honest.
-     *
-     * <p>{@code ModelParameters.enableFlashAttn()} is a bare flag, while llama.cpp's
-     * {@code --flash-attn} has taken a mandatory {@code on|off|auto} value since b10273 — a valueless
-     * emission swallows the following argument. Refusing is the only correct behaviour until the
-     * binding grows a value-taking setter; see the TODO on {@code LlamaCppJniAiGenerationProvider} and
-     * {@code TODO.md}. When that lands, this test flips into a sweep case above.</p>
-     */
-    @Test
-    public void flashAttn_isRefusedRatherThanSilentlyDropped() {
-        NativeLlamaAvailability.assumeAvailable();
-        final LlamaCppJniConfig config = baseline().flashAttn(true).build();
-        final AiPromptSupport promptSupport = new AiPromptSupport(CommonTestFixtures.createFilePromptDefinitions());
-
-        try (LlamaCppJniAiGenerationProvider provider = new LlamaCppJniAiGenerationProvider(config, promptSupport)) {
-            final IllegalArgumentException thrown =
-                    Assertions.assertThrows(IllegalArgumentException.class, () -> provider.generate(request()));
-            // containsString, not equality: the provider prefixes the model it is refusing for, so a
-            // caller running several models can tell which configuration to change.
-            assertThat(
-                    thrown.getMessage(),
-                    containsString(LlamaCppJniAiGenerationProvider.FLASH_ATTN_UNSUPPORTED_MESSAGE));
-            assertThat(thrown.getMessage(), containsString(NativeLlamaAvailability.modelPath()));
-        }
     }
 
     /**

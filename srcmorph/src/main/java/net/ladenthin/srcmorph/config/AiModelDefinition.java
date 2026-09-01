@@ -60,7 +60,7 @@ public class AiModelDefinition {
     private int cpuMoeLayers = AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS;
     private int cpuFfnLayers = AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS;
     private int kvUnifiedPerSlot = AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT;
-    private String tensorReadLazy = AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+    private String lazyMode = AiGenerationConfig.DEFAULT_LAZY_MODE;
     private int repeatLastN = AiGenerationConfig.DEFAULT_REPEAT_LAST_N;
     private String cacheTypeK = AiGenerationConfig.DEFAULT_CACHE_TYPE_K;
     private String cacheTypeV = AiGenerationConfig.DEFAULT_CACHE_TYPE_V;
@@ -496,17 +496,17 @@ public class AiModelDefinition {
      *
      * @return {@code off}, {@code auto}, {@code on}, or empty to leave the default
      */
-    public String getTensorReadLazy() {
-        return tensorReadLazy;
+    public String getLazyMode() {
+        return lazyMode;
     }
 
     /**
      * Sets the tensor-read laziness ({@code --tensor-read-lazy}) for this model.
      *
-     * @param tensorReadLazy {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
+     * @param lazyMode {@code off}, {@code auto}, {@code on}, or empty/{@code null} to leave the default
      */
-    public void setTensorReadLazy(final @Nullable String tensorReadLazy) {
-        this.tensorReadLazy = tensorReadLazy != null ? tensorReadLazy : AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY;
+    public void setLazyMode(final @Nullable String lazyMode) {
+        this.lazyMode = lazyMode != null ? lazyMode : AiGenerationConfig.DEFAULT_LAZY_MODE;
     }
 
     /**

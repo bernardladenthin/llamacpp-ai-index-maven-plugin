@@ -16,7 +16,7 @@ import ch.qos.logback.core.read.ListAppender;
 import java.nio.file.Paths;
 import java.util.Collections;
 import net.ladenthin.llama.args.CacheType;
-import net.ladenthin.llama.args.TensorReadLazyMode;
+import net.ladenthin.llama.args.LazyMode;
 import net.ladenthin.llama.value.ChatChoice;
 import net.ladenthin.llama.value.ChatMessage;
 import net.ladenthin.llama.value.ChatResponse;
@@ -127,24 +127,24 @@ public class LlamaCppJniAiGenerationProviderTest {
     // </editor-fold>
 
     @Test
-    public void tensorReadLazyMode_mapsEveryDeclaredCliString() {
+    public void lazyMode_mapsEveryDeclaredCliString() {
         // Every mode the binding declares must resolve; a new upstream mode is then covered for free.
-        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
-            assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode(mode.getArgValue()), is(mode));
+        for (final LazyMode mode : LazyMode.values()) {
+            assertThat(LlamaCppJniAiGenerationProvider.lazyMode(mode.getArgValue()), is(mode));
         }
     }
 
     @Test
-    public void tensorReadLazyMode_isCaseInsensitive() {
-        assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode("ON"), is(TensorReadLazyMode.ON));
-        assertThat(LlamaCppJniAiGenerationProvider.tensorReadLazyMode("Auto"), is(TensorReadLazyMode.AUTO));
+    public void lazyMode_isCaseInsensitive() {
+        assertThat(LlamaCppJniAiGenerationProvider.lazyMode("ON"), is(LazyMode.ON));
+        assertThat(LlamaCppJniAiGenerationProvider.lazyMode("Auto"), is(LazyMode.AUTO));
     }
 
     @Test
-    public void tensorReadLazyMode_rejectsUnknownValueAndNamesTheAcceptedOnes() {
+    public void lazyMode_rejectsUnknownValueAndNamesTheAcceptedOnes() {
         // A typo must fail loud rather than be dropped, and the message must name what is accepted.
         final IllegalArgumentException thrown = Assertions.assertThrows(
-                IllegalArgumentException.class, () -> LlamaCppJniAiGenerationProvider.tensorReadLazyMode("lazy"));
+                IllegalArgumentException.class, () -> LlamaCppJniAiGenerationProvider.lazyMode("lazy"));
         assertThat(thrown.getMessage(), containsString("lazy"));
         assertThat(thrown.getMessage(), containsString("off, auto, on"));
     }

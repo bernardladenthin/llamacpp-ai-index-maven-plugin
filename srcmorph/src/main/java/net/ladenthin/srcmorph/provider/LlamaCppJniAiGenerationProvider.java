@@ -12,8 +12,9 @@ import java.util.Objects;
 import lombok.ToString;
 import net.ladenthin.llama.LlamaModel;
 import net.ladenthin.llama.args.CacheType;
+import net.ladenthin.llama.args.FlashAttn;
+import net.ladenthin.llama.args.LazyMode;
 import net.ladenthin.llama.args.ReasoningFormat;
-import net.ladenthin.llama.args.TensorReadLazyMode;
 import net.ladenthin.llama.json.ChatResponseParser;
 import net.ladenthin.llama.parameters.InferenceParameters;
 import net.ladenthin.llama.parameters.ModelParameters;
@@ -45,28 +46,6 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
 
     /** OpenAI finish reason meaning "the token budget ran out", as opposed to {@code "stop"}. */
     private static final String FINISH_REASON_LENGTH = "length";
-
-    /**
-     * Why {@code flashAttn} is refused outright rather than forwarded.
-     *
-     * <p>Upstream's {@code -fa} takes a mandatory {@code [on|off|auto]} value, but the binding models it
-     * as a bare flag: {@code ModelParameters.enableFlashAttn()} calls {@code setFlag}, which stores a
-     * {@code null} value, and the argv renderer emits the key with no token after it. llama.cpp's parser
-     * then consumes the <em>next</em> argv token as the value, so the model load dies naming an entirely
-     * unrelated flag — verified against the shipped fat jar: {@code error: unknown value for
-     * --flash-attn: '--reasoning-format'}. There is no partial or degraded mode; nothing loads.</p>
-     *
-     * <p>srcmorph cannot spell it correctly through the binding's public API — {@code setFlag}
-     * unconditionally stores {@code null} and {@code putScalar} is {@code protected} — so until the
-     * binding ships a value-taking setter, refusing the knob with a message that names the cause is
-     * strictly better than letting the user hit a parse error about a flag they never set.</p>
-     */
-    public static final String FLASH_ATTN_UNSUPPORTED_MESSAGE =
-            "flashAttn cannot be enabled with net.ladenthin:llama 5.1.0:"
-                    + " the binding emits '--flash-attn' without the [on|off|auto] value llama.cpp requires, so the"
-                    + " model load fails with a parse error naming an unrelated flag. Remove flashAttn from the"
-                    + " model definition (and any cacheTypeV that depends on it) until a binding release exposes a"
-                    + " value-taking setter.";
 
     private final LlamaCppJniConfig config;
 
@@ -165,24 +144,16 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             // Read lazy-loadable tensors on demand instead of keeping them resident. Shortens model
             // load time, which matters here because a run loads one model per model group and
             // calibrate preflights every model in turn. Empty leaves the binding/native-build default.
-            if (!compatibilityHelper.isBlank(config.tensorReadLazy())) {
-                modelParameters.setTensorReadLazy(tensorReadLazyMode(config.tensorReadLazy()));
+            if (!compatibilityHelper.isBlank(config.lazyMode())) {
+                modelParameters.setLazyMode(lazyMode(config.lazyMode()));
             }
-            // TODO: after net.ladenthin:llama 5.2.0 ships the value-taking Flash Attention setter,
-            // replace this refusal with the real wiring -- modelParameters.setFlashAttn(<on>) -- and
-            // delete FLASH_ATTN_UNSUPPORTED_MESSAGE, EngineSupport.validateFlashAttnIsNotRequested,
-            // and the three tests that pin the refusal (two in EngineSupportTest, one here). Bumping
-            // llama.version alone will NOT surface this: the guard keeps throwing and the knob keeps
-            // looking broken, so the bump checklist has to name it. See TODO.md.
+            // Flash Attention. Emitted only when asked for: llama.cpp's own default is `auto`, so
+            // NOT emitting the option leaves it to decide per backend and model, which is what an
+            // unconfigured run should get. `--flash-attn` takes a mandatory on|off|auto value, which
+            // is why this goes through the enum setter -- the bare-flag setter emits the key alone
+            // and llama.cpp then swallows the following argv token.
             if (config.flashAttn()) {
-                // The model path is not decoration: this guard fires on the direct-API path, where
-                // there is no aiDefinition key to name (the plan-time guard in EngineSupport prefixes
-                // that one), so without it a caller running several models is told what is wrong but
-                // not which configuration to change. It also keeps the message out of
-                // WEM_WEAK_EXCEPTION_MESSAGING, which SpotBugs raises on a throw whose whole message
-                // is a compile-time constant.
-                throw new IllegalArgumentException(
-                        "model '" + config.modelPath() + "': " + FLASH_ATTN_UNSUPPORTED_MESSAGE);
+                modelParameters.setFlashAttn(FlashAttn.ON);
             }
             // KV-cache quantization. Set independently of each other, but note that a quantized V cache
             // generally needs Flash Attention above -- llama.cpp refuses the combination otherwise.
@@ -235,20 +206,20 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * @return the matching mode
      * @throws IllegalArgumentException if no mode declares that CLI string
      */
-    static TensorReadLazyMode tensorReadLazyMode(final String value) {
-        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+    static LazyMode lazyMode(final String value) {
+        for (final LazyMode mode : LazyMode.values()) {
             if (mode.getArgValue().equalsIgnoreCase(value)) {
                 return mode;
             }
         }
-        throw new IllegalArgumentException("Invalid tensorReadLazy value: \"" + value + "\" (expected one of: "
-                + knownTensorReadLazyValues() + ")");
+        throw new IllegalArgumentException(
+                "Invalid lazyMode value: \"" + value + "\" (expected one of: " + knownLazyModeValues() + ")");
     }
 
     /**
      * Resolves a configured {@code --cache-type-k} / {@code --cache-type-v} value to the binding's enum.
      *
-     * <p>Same contract as {@link #tensorReadLazyMode(String)}: matched case-insensitively against the CLI
+     * <p>Same contract as {@link #lazyMode(String)}: matched case-insensitively against the CLI
      * strings the enum itself declares, so a cache type upstream adds is accepted for free, and an
      * unrecognised value is rejected rather than dropped. The knob name is passed in so the message names
      * the element the user actually wrote.</p>
@@ -289,9 +260,9 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      *
      * @return the CLI strings the binding's enum declares, comma-separated in declaration order
      */
-    private static String knownTensorReadLazyValues() {
+    private static String knownLazyModeValues() {
         final StringBuilder known = new StringBuilder();
-        for (final TensorReadLazyMode mode : TensorReadLazyMode.values()) {
+        for (final LazyMode mode : LazyMode.values()) {
             if (known.length() > 0) {
                 known.append(", ");
             }

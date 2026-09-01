@@ -439,7 +439,7 @@ below are the shipped values (`AiGenerationConfig.DEFAULT_*`).
 | `batchSize` | `-1` | Logical maximum batch size (`--batch-size`); `-1` = leave default. A prefill-throughput knob, and prefill is what dominates an indexing run: every file is one large prompt with a short answer. Must be positive when set |
 | `ubatchSize` | `-1` | Physical maximum batch size (`--ubatch-size`); `-1` = leave default. Bounds how much of a logical batch reaches the backend at once, so it trades prefill speed against peak memory. Must be positive when set |
 | `threadsBatch` | `-1` | Threads for batch/prompt processing (`--threads-batch`); `-1` = reuse `threads`. Prefill parallelises differently from decode, so the optimum often is not the decode thread count — on a machine with efficiency cores, more threads help prompt processing while hurting generation. Must be positive when set |
-| `tensorReadLazy` | *(empty)* | On-demand reading of lazy-loadable tensors (`--tensor-read-lazy`): `off`, `auto` or `on`; empty leaves the default. Trades resident memory for disk reads and shortens model load time; **requires mmap** |
+| `lazyMode` | *(empty)* | On-demand reading of lazy-loadable tensors (`--tensor-read-lazy`): `off`, `auto` or `on`; empty leaves the default. Trades resident memory for disk reads and shortens model load time; **requires mmap** |
 | `mainGpu` | `-1` | Primary GPU index (`--main-gpu`); `-1` = leave default. Matters on multi-GPU hosts (e.g. a Vulkan build enumerates every GPU) |
 | `devices` | *(empty)* | Explicit device selection (`--device`), comma-separated backend device names (e.g. `Vulkan1`); takes precedence over `mainGpu` |
 | `chatTemplateEnableThinking` | `true` | Enable the chat template's thinking mode |

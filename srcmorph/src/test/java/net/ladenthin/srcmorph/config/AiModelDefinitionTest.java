@@ -174,22 +174,22 @@ public class AiModelDefinitionTest {
     }
 
     @Test
-    public void tensorReadLazyDefaultsEmptyAndRoundTrips() {
+    public void lazyModeDefaultsEmptyAndRoundTrips() {
         AiModelDefinition c = new AiModelDefinition();
         // Default "" (leave binding/build default) kills the null/non-empty return mutants on the getter.
-        assertThat(c.getTensorReadLazy(), is(""));
-        c.setTensorReadLazy("on");
+        assertThat(c.getLazyMode(), is(""));
+        c.setLazyMode("on");
         // Round-tripped value kills the empty-return getter and removed-assignment setter mutants.
-        assertThat(c.getTensorReadLazy(), is("on"));
+        assertThat(c.getLazyMode(), is("on"));
     }
 
     @Test
-    public void setTensorReadLazyNullResetsToEmpty() {
+    public void setLazyModeNullResetsToEmpty() {
         AiModelDefinition c = new AiModelDefinition();
-        c.setTensorReadLazy("auto");
-        c.setTensorReadLazy(null);
+        c.setLazyMode("auto");
+        c.setLazyMode(null);
         // null arg resets to "" — kills the negate mutant on the setter ternary (which would store null).
-        assertThat(c.getTensorReadLazy(), is(""));
+        assertThat(c.getLazyMode(), is(""));
     }
 
     @Test

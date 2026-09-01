@@ -39,7 +39,7 @@ public class LlamaCppJniConfigFactoryTest {
         config.setCpuMoeLayers(24);
         config.setCpuFfnLayers(16);
         config.setKvUnifiedPerSlot(4096);
-        config.setTensorReadLazy("on");
+        config.setLazyMode("on");
         config.setRepeatLastN(128);
         config.setCacheTypeK("q8_0");
         config.setCacheTypeV("q4_0");
@@ -83,7 +83,7 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.cpuMoeLayers(), is(24));
         assertThat(result.cpuFfnLayers(), is(16));
         assertThat(result.kvUnifiedPerSlot(), is(4096));
-        assertThat(result.tensorReadLazy(), is("on"));
+        assertThat(result.lazyMode(), is("on"));
         assertThat(result.repeatLastN(), is(128));
         assertThat(result.cacheTypeK(), is("q8_0"));
         assertThat(result.cacheTypeV(), is("q4_0"));
@@ -152,7 +152,7 @@ public class LlamaCppJniConfigFactoryTest {
         assertThat(result.cpuMoeLayers(), is(AiGenerationConfig.DEFAULT_CPU_MOE_LAYERS));
         assertThat(result.cpuFfnLayers(), is(AiGenerationConfig.DEFAULT_CPU_FFN_LAYERS));
         assertThat(result.kvUnifiedPerSlot(), is(AiGenerationConfig.DEFAULT_KV_UNIFIED_PER_SLOT));
-        assertThat(result.tensorReadLazy(), is(AiGenerationConfig.DEFAULT_TENSOR_READ_LAZY));
+        assertThat(result.lazyMode(), is(AiGenerationConfig.DEFAULT_LAZY_MODE));
         assertThat(result.repeatLastN(), is(AiGenerationConfig.DEFAULT_REPEAT_LAST_N));
         assertThat(result.cacheTypeK(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_K));
         assertThat(result.cacheTypeV(), is(AiGenerationConfig.DEFAULT_CACHE_TYPE_V));
