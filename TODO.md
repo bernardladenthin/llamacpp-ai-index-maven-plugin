@@ -24,15 +24,6 @@ everything below is genuinely still open.
   not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
   correctness one.
 
-- **`srcmorph:calibrate` reports only through the log.** `CalibrateEngine` builds a
-  `CalibrationReport` and `CalibrateMojo` prints it as `INFO` lines. There is no machine-readable
-  output, so the numbers a calibration run produces (prefill / decode throughput, chars per token per
-  model) cannot be diffed across runs, fed back into `aiDefinitions`, or committed as a baseline --
-  which is most of the point of measuring them. Emitting the same report as JSON and YAML next to
-  the log (the CLI already carries both Jackson mappers, and `SrcMorphConfiguration` round-trips
-  through them) would close it. **Was announced during the 1.2.0 audit cycle and never landed**;
-  it is a feature, not a fix, so it is not a 1.2.0 blocker.
-
 - **The sixteen GPU classifier fat jars are verified structurally, never launched.** Since 1.2.0
   `.github/verify-classifier-fatjars.sh` asserts each is the artifact its name claims (one jar per
   classifier, a native for the promised OS/arch, a native set that differs from the default jar's, so

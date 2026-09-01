@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,6 +20,7 @@ import net.ladenthin.srcmorph.config.AiModelDefinition;
 import net.ladenthin.srcmorph.config.SrcMorphConfiguration;
 import net.ladenthin.srcmorph.prompt.AiPromptDefinition;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Covers each concrete goal's <em>own</em> {@code @Parameter} mapping.
@@ -34,6 +36,10 @@ import org.junit.jupiter.api.Test;
  * than cancelling out, mirroring the core's {@code fromGenerationConfig_threadsEveryFieldThrough}.</p>
  */
 public class MojoConfigurationMappingTest {
+
+    /** Per-test output directory, so a goal that writes files cannot pollute the checkout. */
+    @TempDir
+    Path outputDirectory;
 
     // <editor-fold defaultstate="collapsed" desc="fixture">
 
@@ -199,6 +205,10 @@ public class MojoConfigurationMappingTest {
         final CalibrateMojo mojo = new CalibrateMojo();
         fillSharedParameters(mojo);
         wireMockModelAndRule(mojo);
+        // execute() writes the machine-readable report into outputDirectory; fillSharedParameters
+        // points that at the relative path "out-dir", so without this the goal leaves two files
+        // behind in the checkout on every run.
+        mojo.outputDirectory = outputDirectory.toFile();
         final CapturingLog log = new CapturingLog();
         mojo.setLog(log);
 

@@ -480,6 +480,22 @@ src/site/ai/
                 ├── AnotherClass.java.ai.md
                 └── package.ai.md
 ```
+
+The `calibrate` goal writes two more files into the same `outputDirectory`:
+
+```
+src/site/ai/
+├── srcmorph-calibration.json
+└── srcmorph-calibration.yaml
+```
+
+Both carry one entry per measured model — `modelKey`, `loadSeconds`,
+`prefillTokensPerSecond`, `decodeTokensPerSecond`, `charsPerToken`,
+`midPrefillTokensPerSecond`, `cachedPromptTokens` — so a calibration run can be diffed
+across machines or committed as a baseline, instead of existing only as console output.
+The three figures that also appear in the paste-ready `<calibration>` block are formatted
+identically, so the two can never disagree about what was measured.
+
 ## Design Principles
 - Deterministic metadata (hash-based change detection)
 - Separation of concerns (header = metadata, body = summary)

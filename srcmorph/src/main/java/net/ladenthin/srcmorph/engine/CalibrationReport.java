@@ -58,6 +58,155 @@ public final class CalibrationReport {
     }
 
     /**
+     * File name of the machine-readable JSON report, written by {@link CalibrateEngine#execute()}
+     * into the configured output directory.
+     */
+    public static final String JSON_FILE_NAME = "srcmorph-calibration.json";
+
+    /** File name of the machine-readable YAML report, written alongside {@link #JSON_FILE_NAME}. */
+    public static final String YAML_FILE_NAME = "srcmorph-calibration.yaml";
+
+    /** Format of the two throughput figures; identical to the one {@link #renderXml()} pastes. */
+    private static final String FORMAT_TOKENS_PER_SECOND = "%.1f";
+
+    /** Format of the chars-per-token figure; identical to the one {@link #renderXml()} pastes. */
+    private static final String FORMAT_CHARS_PER_TOKEN = "%.2f";
+
+    /** Format of the load duration, which has no counterpart in the XML block. */
+    private static final String FORMAT_LOAD_SECONDS = "%.3f";
+
+    /**
+     * Renders the report as JSON.
+     *
+     * <p>Hand-rolled rather than delegated to Jackson on purpose: this module is framework-free and
+     * carries no JSON dependency (only {@code srcmorph-cli} does), and {@link #renderXml()} sets the
+     * same precedent. The document is small and fully determined by six numbers and a key.</p>
+     *
+     * <p>The three figures that also appear in the {@code <calibration>} block are formatted
+     * identically, so the JSON and the paste-ready XML can never disagree about what was measured.</p>
+     *
+     * @return the JSON document; a {@code models} array that is empty when no model was measured
+     */
+    public String renderJson() {
+        if (measurements.isEmpty()) {
+            return "{\n  \"models\": []\n}\n";
+        }
+        final StringBuilder out = new StringBuilder("{\n  \"models\": [\n");
+        for (int i = 0; i < measurements.size(); i++) {
+            final ModelMeasurement entry = measurements.get(i);
+            final AiCalibrationMeasurement m = entry.measurement();
+            out.append("    {\n");
+            out.append("      \"modelKey\": ").append(quote(entry.modelKey())).append(",\n");
+            appendJsonNumber(out, "loadSeconds", FORMAT_LOAD_SECONDS, m.loadSeconds());
+            appendJsonNumber(out, "prefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond());
+            appendJsonNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
+            appendJsonNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
+            appendJsonNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
+            out.append("      \"cachedPromptTokens\": ").append(m.cachedPromptTokens()).append('\n');
+            out.append("    }");
+            out.append(i + 1 < measurements.size() ? ",\n" : "\n");
+        }
+        out.append("  ]\n}\n");
+        return out.toString();
+    }
+
+    /**
+     * Renders the report as YAML, carrying exactly the same keys, order and number formatting as
+     * {@link #renderJson()}.
+     *
+     * <p>Every scalar is emitted double-quoted or numeric, which keeps the output inside the subset of
+     * YAML that needs no emitter to get right &#x2014; no block scalars, no anchors, no indentation
+     * subtleties beyond a fixed two-level indent.</p>
+     *
+     * @return the YAML document; {@code models: []} when no model was measured
+     */
+    public String renderYaml() {
+        if (measurements.isEmpty()) {
+            return "models: []\n";
+        }
+        final StringBuilder out = new StringBuilder("models:\n");
+        for (final ModelMeasurement entry : measurements) {
+            final AiCalibrationMeasurement m = entry.measurement();
+            out.append("  - modelKey: ").append(quote(entry.modelKey())).append('\n');
+            appendYamlNumber(out, "loadSeconds", FORMAT_LOAD_SECONDS, m.loadSeconds());
+            appendYamlNumber(out, "prefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond());
+            appendYamlNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
+            appendYamlNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
+            appendYamlNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
+            out.append("    cachedPromptTokens: ").append(m.cachedPromptTokens()).append('\n');
+        }
+        return out.toString();
+    }
+
+    /**
+     * Appends one {@code "key": number,} line to the JSON buffer.
+     *
+     * @param out    the buffer
+     * @param key    the JSON key
+     * @param format the {@link String#format} pattern for the value
+     * @param value  the value
+     */
+    private static void appendJsonNumber(
+            final StringBuilder out, final String key, final String format, final double value) {
+        out.append("      \"")
+                .append(key)
+                .append("\": ")
+                .append(String.format(Locale.ROOT, format, value))
+                .append(",\n");
+    }
+
+    /**
+     * Appends one {@code key: number} line to the YAML buffer.
+     *
+     * @param out    the buffer
+     * @param key    the YAML key
+     * @param format the {@link String#format} pattern for the value
+     * @param value  the value
+     */
+    private static void appendYamlNumber(
+            final StringBuilder out, final String key, final String format, final double value) {
+        out.append("    ")
+                .append(key)
+                .append(": ")
+                .append(String.format(Locale.ROOT, format, value))
+                .append('\n');
+    }
+
+    /**
+     * Renders a string as a double-quoted scalar that is valid in both JSON and YAML.
+     *
+     * <p>A model key comes from user configuration, so it can carry a quote, a backslash or a control
+     * character; without escaping, one such key would produce a file neither parser accepts.</p>
+     *
+     * @param value the string
+     * @return the quoted, escaped scalar
+     */
+    private static String quote(final String value) {
+        final StringBuilder out = new StringBuilder(value.length() + 2);
+        out.append('"');
+        for (int i = 0; i < value.length(); i++) {
+            final char c = value.charAt(i);
+            if (c == '"') {
+                out.append("\\\"");
+            } else if (c == '\\') {
+                out.append("\\\\");
+            } else if (c == '\n') {
+                out.append("\\n");
+            } else if (c == '\r') {
+                out.append("\\r");
+            } else if (c == '\t') {
+                out.append("\\t");
+            } else if (c < ' ') {
+                out.append(String.format(Locale.ROOT, "\\u%04x", (int) c));
+            } else {
+                out.append(c);
+            }
+        }
+        out.append('"');
+        return out.toString();
+    }
+
+    /**
      * Appends a copy-pasteable {@code <calibration>} block (with a comment naming the model) to the buffer.
      *
      * @param out      the buffer
