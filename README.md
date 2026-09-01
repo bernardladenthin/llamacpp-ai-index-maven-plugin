@@ -217,7 +217,7 @@ on `main` with `publish_to_central` checked — not automatically on push:
 https://central.sonatype.com/repository/maven-snapshots/net/ladenthin/
 ```
 
-Current reactor version: `1.2.0`. Last released version: `1.1.1`.
+Current reactor version: `1.3.0-SNAPSHOT`. Last released version: `1.2.0`.
 
 ## A Note on History
 

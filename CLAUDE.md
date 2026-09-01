@@ -20,11 +20,11 @@ coordinates, package, goal prefix, and every `@Parameter` property changed in th
 write `aiIndex.*` properties, the `ai-index` goal prefix, or the
 `net.ladenthin.maven.llamacpp.aiindex` package in new documentation or code; use `srcmorph.*`,
 `srcmorph`, and `net.ladenthin.maven.srcmorph.mojo` instead (see the plugin module's own section
-below). The `1.1.1` reactor release was published to Maven Central. **`main` currently sits at the plain
-release version `1.2.0`, not a `-SNAPSHOT`** — step 1 of `docs/RELEASE.md` (bump to the release
-version) is already done and the `v1.2.0` tag has not been cut yet. Step 6 moves `main` on to the
-next `-SNAPSHOT` *after* the release, so a `-SNAPSHOT` on `main` is the normal state only between
-releases, not right now.
+below). The `1.2.0` reactor release was published to Maven Central from the `v1.2.0` tag, and `main`
+has since been moved on to `1.3.0-SNAPSHOT` (step 6 of `docs/RELEASE.md`). **A `-SNAPSHOT` on `main`
+is the normal state between releases** — `main` sits at a plain release version only in the short
+window between the release bump and the tag, which is exactly why that step exists: `main` must
+never again carry a version matching something already published.
 
 **A fourth module existed temporarily**: a tiny relocation-stub POM
 (`net.ladenthin:llamacpp-ai-index-maven-plugin`, pinned at `1.0.4`, only a
@@ -40,8 +40,8 @@ keep carrying it (and its `versions:set` exclusion footgun) in active developmen
 - **Java:** target bytecode 1.8 (production code), Java 21 test sources, built with JDK 21
 - **License:** Apache 2.0
 - **Author:** Bernard Ladenthin (Copyright 2026)
-- **Reactor version:** `1.2.0` (single shared version across `srcmorph`, `srcmorph-cli`,
-  and `srcmorph-maven-plugin`). Last released version: `1.1.1`.
+- **Reactor version:** `1.3.0-SNAPSHOT` (single shared version across `srcmorph`, `srcmorph-cli`,
+  and `srcmorph-maven-plugin`). Last released version: `1.2.0`.
 
 ---
 
@@ -302,7 +302,7 @@ mvn -pl srcmorph-maven-plugin srcmorph:generate -P srcmorph-selftest
 
 ```bash
 mvn -pl srcmorph-cli package
-java -jar srcmorph-cli/target/srcmorph-cli-1.2.0-jar-with-dependencies.jar examples/config_All.json
+java -jar srcmorph-cli/target/srcmorph-cli-1.3.0-SNAPSHOT-jar-with-dependencies.jar examples/config_All.json
 ```
 
 See `examples/` (repo root) for ready-to-run `config_*.json`/`.yaml` + paired `run_*.sh`/`.bat`
