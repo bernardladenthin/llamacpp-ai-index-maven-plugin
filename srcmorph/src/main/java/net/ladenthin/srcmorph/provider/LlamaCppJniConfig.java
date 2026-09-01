@@ -493,8 +493,7 @@ public final class LlamaCppJniConfig {
         private float minP = AiGenerationConfig.DEFAULT_MIN_P;
         private float topNSigma = AiGenerationConfig.DEFAULT_TOP_N_SIGMA;
         private float repeatPenalty = AiGenerationConfig.DEFAULT_REPEAT_PENALTY;
-        private @Nullable Boolean chatTemplateEnableThinking =
-                AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
+        private @Nullable Boolean chatTemplateEnableThinking = AiGenerationConfig.DEFAULT_CHAT_TEMPLATE_ENABLE_THINKING;
         private boolean cachePrompt = AiGenerationConfig.DEFAULT_CACHE_PROMPT;
         private boolean swaFull = AiGenerationConfig.DEFAULT_SWA_FULL;
         private int cacheReuse = AiGenerationConfig.DEFAULT_CACHE_REUSE;
