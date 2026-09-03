@@ -423,22 +423,26 @@ SPDX-License-Identifier: Apache-2.0
     </Match>
 
     <!--
-        IMPROPER_UNICODE on LlamaCppJniAiGenerationProvider.tensorReadLazyMode. Identical shape and
+        IMPROPER_UNICODE on LlamaCppJniAiGenerationProvider.lazyMode. Identical shape and
         rationale to the AiOversizeStrategy.fromConfig suppression directly above: the method resolves a
-        configured &lt;tensorReadLazy&gt; value against a fixed, closed set of ASCII tokens (off/auto/on)
-        that the binding's own TensorReadLazyMode enum declares, authored by the operator in POM XML or a
+        configured &lt;lazyMode&gt; value against a fixed, closed set of ASCII tokens (off/auto/on)
+        that the binding's own LazyMode enum declares, authored by the operator in POM XML or a
         CLI JSON/YAML config - not user or locale text. Matching that token case-insensitively is the
         intended, safe behaviour. Scoped to the one resolution method.
+
+        NOTE the method name is matched literally, so a rename silently voids this entry and reds the
+        build - which is exactly what happened when tensorReadLazyMode became lazyMode. Rename the
+        method, rename it here, same commit.
     -->
     <Match>
         <Class name="net.ladenthin.srcmorph.provider.LlamaCppJniAiGenerationProvider"/>
-        <Method name="tensorReadLazyMode"/>
+        <Method name="lazyMode"/>
         <Bug pattern="IMPROPER_UNICODE"/>
     </Match>
 
     <!--
         IMPROPER_UNICODE on LlamaCppJniAiGenerationProvider.cacheType. Same shape and rationale as the
-        tensorReadLazyMode suppression directly above: the method resolves a configured
+        lazyMode suppression directly above: the method resolves a configured
         &lt;cacheTypeK&gt;/&lt;cacheTypeV&gt; value against the fixed, closed set of ASCII tokens the
         binding's own CacheType enum declares (f32/f16/bf16/q8_0/q4_0/q4_1/iq4_nl/q5_0/q5_1), authored by
         the operator in POM XML or a CLI JSON/YAML config - not user or locale text. Matching that token

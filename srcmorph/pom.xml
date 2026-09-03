@@ -113,6 +113,11 @@ SPDX-License-Identifier: Apache-2.0
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
         </dependency>
+        <!--
+            Compile-only: nothing in this module imports these annotations, they exist for the
+            Checker Framework processor. Scope `provided` is inherited from the parent's
+            dependencyManagement and is what keeps them out of the fat jar; see the comment there.
+        -->
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker-qual</artifactId>
@@ -122,6 +127,30 @@ SPDX-License-Identifier: Apache-2.0
             <artifactId>llama</artifactId>
             <version>${llama.version}</version>
             <classifier>${llama.classifier}</classifier>
+            <exclusions>
+                <!--
+                    net.ladenthin:llama declares slf4j-simple at runtime scope for its OWN fat jar,
+                    and runtime scope is transitive, so without this it becomes a second SLF4J binding
+                    everywhere downstream. That is wrong in all three consumers: this module is a
+                    library and must leave the binding choice to its caller, the Maven plugin already
+                    gets one from Maven's maven-slf4j-provider (two providers means SLF4J picks one
+                    arbitrarily and half the plugin's log lines can vanish), and srcmorph-cli declares
+                    slf4j-simple itself, which wins over any transitive copy anyway.
+
+                    It also keeps the test classpath single-binding. logback-classic is test-scoped
+                    here for the ListAppender capture in AiFieldGenerationSupportTest,
+                    LlamaCppJniAiGenerationProviderTest, EngineSupportTest and GenerateEngineTest;
+                    with a second provider present those 57 tests die with "class
+                    org.slf4j.simple.SimpleLogger cannot be cast to class
+                    ch.qos.logback.classic.Logger". A Surefire classpathDependencyExcludes would fix
+                    only Surefire: PIT builds its own classpath and ignores it, so the mutation gate
+                    would still fail on a green suite. Excluding at the source fixes both.
+                -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!--

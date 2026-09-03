@@ -137,6 +137,11 @@ SPDX-License-Identifier: Apache-2.0
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
         </dependency>
+        <!--
+            Compile-only: nothing in this module imports these annotations, they exist for the
+            Checker Framework processor. Scope `provided` is inherited from the parent's
+            dependencyManagement and is what keeps them out of the fat jar; see the comment there.
+        -->
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker-qual</artifactId>

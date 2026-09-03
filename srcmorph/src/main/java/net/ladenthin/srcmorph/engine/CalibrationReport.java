@@ -23,6 +23,24 @@ import net.ladenthin.srcmorph.indexer.AiCalibrationMeasurement;
 @EqualsAndHashCode
 public final class CalibrationReport {
 
+    /**
+     * File name of the machine-readable JSON report, written by {@link CalibrateEngine#execute()}
+     * into the configured output directory.
+     */
+    public static final String JSON_FILE_NAME = "srcmorph-calibration.json";
+
+    /** File name of the machine-readable YAML report, written alongside {@link #JSON_FILE_NAME}. */
+    public static final String YAML_FILE_NAME = "srcmorph-calibration.yaml";
+
+    /** Format of the two throughput figures; identical to the one {@link #renderXml()} pastes. */
+    private static final String FORMAT_TOKENS_PER_SECOND = "%.1f";
+
+    /** Format of the chars-per-token figure; identical to the one {@link #renderXml()} pastes. */
+    private static final String FORMAT_CHARS_PER_TOKEN = "%.2f";
+
+    /** Format of the load duration, which has no counterpart in the XML block. */
+    private static final String FORMAT_LOAD_SECONDS = "%.3f";
+
     private final List<ModelMeasurement> measurements;
 
     /**
@@ -58,24 +76,6 @@ public final class CalibrationReport {
     }
 
     /**
-     * File name of the machine-readable JSON report, written by {@link CalibrateEngine#execute()}
-     * into the configured output directory.
-     */
-    public static final String JSON_FILE_NAME = "srcmorph-calibration.json";
-
-    /** File name of the machine-readable YAML report, written alongside {@link #JSON_FILE_NAME}. */
-    public static final String YAML_FILE_NAME = "srcmorph-calibration.yaml";
-
-    /** Format of the two throughput figures; identical to the one {@link #renderXml()} pastes. */
-    private static final String FORMAT_TOKENS_PER_SECOND = "%.1f";
-
-    /** Format of the chars-per-token figure; identical to the one {@link #renderXml()} pastes. */
-    private static final String FORMAT_CHARS_PER_TOKEN = "%.2f";
-
-    /** Format of the load duration, which has no counterpart in the XML block. */
-    private static final String FORMAT_LOAD_SECONDS = "%.3f";
-
-    /**
      * Renders the report as JSON.
      *
      * <p>Hand-rolled rather than delegated to Jackson on purpose: this module is framework-free and
@@ -97,11 +97,21 @@ public final class CalibrationReport {
             final AiCalibrationMeasurement m = entry.measurement();
             out.append("    {\n");
             out.append("      \"modelKey\": ").append(quote(entry.modelKey())).append(",\n");
-            appendJsonNumber(out, "loadSeconds", FORMAT_LOAD_SECONDS, m.loadSeconds());
-            appendJsonNumber(out, "prefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond());
-            appendJsonNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
-            appendJsonNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
-            appendJsonNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
+            appendJsonNumber(out, "loadSeconds", String.format(Locale.ROOT, FORMAT_LOAD_SECONDS, m.loadSeconds()));
+            appendJsonNumber(
+                    out,
+                    "prefillTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond()));
+            appendJsonNumber(
+                    out,
+                    "decodeTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond()));
+            appendJsonNumber(
+                    out, "charsPerToken", String.format(Locale.ROOT, FORMAT_CHARS_PER_TOKEN, m.charsPerToken()));
+            appendJsonNumber(
+                    out,
+                    "midPrefillTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond()));
             out.append("      \"cachedPromptTokens\": ")
                     .append(m.cachedPromptTokens())
                     .append('\n');
@@ -130,11 +140,21 @@ public final class CalibrationReport {
         for (final ModelMeasurement entry : measurements) {
             final AiCalibrationMeasurement m = entry.measurement();
             out.append("  - modelKey: ").append(quote(entry.modelKey())).append('\n');
-            appendYamlNumber(out, "loadSeconds", FORMAT_LOAD_SECONDS, m.loadSeconds());
-            appendYamlNumber(out, "prefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond());
-            appendYamlNumber(out, "decodeTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond());
-            appendYamlNumber(out, "charsPerToken", FORMAT_CHARS_PER_TOKEN, m.charsPerToken());
-            appendYamlNumber(out, "midPrefillTokensPerSecond", FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond());
+            appendYamlNumber(out, "loadSeconds", String.format(Locale.ROOT, FORMAT_LOAD_SECONDS, m.loadSeconds()));
+            appendYamlNumber(
+                    out,
+                    "prefillTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.prefillTokensPerSecond()));
+            appendYamlNumber(
+                    out,
+                    "decodeTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.decodeTokensPerSecond()));
+            appendYamlNumber(
+                    out, "charsPerToken", String.format(Locale.ROOT, FORMAT_CHARS_PER_TOKEN, m.charsPerToken()));
+            appendYamlNumber(
+                    out,
+                    "midPrefillTokensPerSecond",
+                    String.format(Locale.ROOT, FORMAT_TOKENS_PER_SECOND, m.midPrefillTokensPerSecond()));
             out.append("    cachedPromptTokens: ")
                     .append(m.cachedPromptTokens())
                     .append('\n');
@@ -145,35 +165,31 @@ public final class CalibrationReport {
     /**
      * Appends one {@code "key": number,} line to the JSON buffer.
      *
+     * <p>The value arrives already rendered rather than as a value plus a {@link String#format}
+     * pattern: a pattern that reaches {@code String.format} through a parameter is no longer a
+     * compile-time constant, which SpotBugs reports as {@code FORMAT_STRING_MANIPULATION}. Formatting
+     * at the call site keeps every pattern a literal constant.</p>
+     *
      * @param out    the buffer
      * @param key    the JSON key
-     * @param format the {@link String#format} pattern for the value
-     * @param value  the value
+     * @param value  the already-formatted value
      */
-    private static void appendJsonNumber(
-            final StringBuilder out, final String key, final String format, final double value) {
-        out.append("      \"")
-                .append(key)
-                .append("\": ")
-                .append(String.format(Locale.ROOT, format, value))
-                .append(",\n");
+    private static void appendJsonNumber(final StringBuilder out, final String key, final String value) {
+        out.append("      \"").append(key).append("\": ").append(value).append(",\n");
     }
 
     /**
      * Appends one {@code key: number} line to the YAML buffer.
      *
+     * <p>Takes the already-rendered value for the same reason as
+     * {@link #appendJsonNumber(StringBuilder, String, String)}.</p>
+     *
      * @param out    the buffer
      * @param key    the YAML key
-     * @param format the {@link String#format} pattern for the value
-     * @param value  the value
+     * @param value  the already-formatted value
      */
-    private static void appendYamlNumber(
-            final StringBuilder out, final String key, final String format, final double value) {
-        out.append("    ")
-                .append(key)
-                .append(": ")
-                .append(String.format(Locale.ROOT, format, value))
-                .append('\n');
+    private static void appendYamlNumber(final StringBuilder out, final String key, final String value) {
+        out.append("    ").append(key).append(": ").append(value).append('\n');
     }
 
     /**
@@ -186,9 +202,10 @@ public final class CalibrationReport {
      * @return the quoted, escaped scalar
      */
     private static String quote(final String value) {
-        final StringBuilder out = new StringBuilder(value.length() + 2);
+        final int length = value.length();
+        final StringBuilder out = new StringBuilder(length + 2);
         out.append('"');
-        for (int i = 0; i < value.length(); i++) {
+        for (int i = 0; i < length; i++) {
             final char c = value.charAt(i);
             if (c == '"') {
                 out.append("\\\"");

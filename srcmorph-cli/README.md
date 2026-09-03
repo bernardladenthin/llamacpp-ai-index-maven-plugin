@@ -14,7 +14,7 @@ java -jar srcmorph-cli-<version>-jar-with-dependencies.jar <path-to-config.json-
 ```
 
 The fat jar (`srcmorph-cli-<version>-jar-with-dependencies.jar`, built by `mvn package`) bundles every
-dependency, including a logback binding, so it runs standalone.
+dependency, including an SLF4J binding (`slf4j-simple`), so it runs standalone.
 
 **Download:** the pre-built fat jars are attached to each
 [GitHub Release](https://github.com/bernardladenthin/srcmorph/releases) (with a `.asc` GPG signature),
@@ -35,7 +35,7 @@ model loads or file is written.
 
 See [`../examples/`](../examples/) for a complete, ready-to-run set of `config_*.json`/`.yaml` files
 (all using the `mock` provider, so they run with no GGUF model on disk) plus paired
-`run_*.sh`/`run_*.bat` launcher scripts and an example `logbackConfiguration.xml`.
+`run_*.sh`/`run_*.bat` launcher scripts and an example `simplelogger.properties`.
 
 ## Config-file reference
 

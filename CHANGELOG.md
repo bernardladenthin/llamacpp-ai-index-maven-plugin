@@ -11,6 +11,38 @@ The release procedure (prompt template and step-by-step instructions) lives in [
 
 ## [Unreleased]
 
+### Changed
+- **The CLI fat jar now ships `slf4j-simple` instead of logback, and no `checker-qual` at all.**
+  Production code here targets Java 8, but every logback release from 1.4.0 on is Java 11 bytecode:
+  SLF4J's `ServiceLoader` finds `LogbackServiceProvider` at startup, so a Java 8 JVM died with
+  `UnsupportedClassVersionError` before a single line was logged. The Java 8 logback line (1.3.x) is
+  end-of-life and its CVEs are fixed only in 1.5.x/1.6.x with no backport, so downgrading was not an
+  option either. `slf4j-simple` is six classes from the same release train as `slf4j-api`, with no
+  configuration or socket layer for a CVE to live in.
+
+  `checker-qual` moved to `provided` scope. Its annotations are major 55 from 4.0.0 on and
+  `@Retention(RUNTIME)`, so anything reflecting over an annotated element — Jackson, which binds the
+  CLI's whole configuration — loads them. `provided` keeps 4.2.2 on the compile classpath, where the
+  Checker Framework processor needs it, while shipping none of it: `jar-with-dependencies` filters on
+  scope, which is also why `<optional>true</optional>` alone would not have been enough.
+
+  Consequences for users: `examples/logbackConfiguration.xml` is replaced by
+  `examples/simplelogger.properties`; the fat jar carries its own defaults (INFO, stdout, timestamps)
+  which any `-Dorg.slf4j.simpleLogger.*` system property or a classpath `simplelogger.properties`
+  overrides. The published `srcmorph` and `srcmorph-cli` **library** jars are unchanged in this
+  respect — they impose no binding and carry no logging configuration; a binding is an application
+  concern and the fat jar is the application. `net.ladenthin:llama`'s own binding is now excluded
+  transitively, so embedding `srcmorph` no longer forces one on the caller and the Maven plugin no
+  longer ends up with two providers alongside Maven's `maven-slf4j-provider`.
+
+### Added
+- **CI gates every built jar on the Java 8 class-file floor.** `release 8` governs only the code we
+  compile; a dependency built for a newer Java lands in the jar untouched and surfaces as
+  `UnsupportedClassVersionError` on a consumer's JVM. The new `.github/verify-bytecode-version.sh`
+  (kept byte-identical across the four sibling repos) runs in the `smoke-fatjar` job with
+  `--max-major 52` and fails on any class above it, skipping only `module-info.class` and
+  `META-INF/versions/**`, which a classpath JVM never loads.
+
 ### Added
 - **`srcmorph:calibrate` now writes a machine-readable report.** The goal built a `CalibrationReport`
   and printed it as `INFO` lines, and that was the only output — so the numbers a calibration run
