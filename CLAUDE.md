@@ -65,7 +65,7 @@ llamacpp-ai-index-maven-plugin/            (repo root; reactor parent)
 │       └── configuration/                  CConfiguration + CCommand (BAF public-field style)
 ├── srcmorph-maven-plugin/                   Maven plugin  net.ladenthin:srcmorph-maven-plugin, goalPrefix srcmorph
 │   └── src/main/java/net/ladenthin/maven/srcmorph/mojo/   (4 goal mojos + the abstract AbstractAiIndexMojo base; renamed package/properties)
-├── examples/                               config_*.json/.yaml + run_*.sh/.bat + logbackConfiguration.xml
+├── examples/                               config_*.json/.yaml + run_*.sh/.bat + simplelogger.properties
 ├── docs/                                   RELEASE.md + the ai-index model-benchmark writeups
 └── .github/workflows/                      CI adapted to the 3-module reactor
 ```
@@ -103,7 +103,7 @@ Framework-free: **no dependency on `org.apache.maven..`** anywhere (enforced by
   `org.slf4j.Logger` (a private static final field per class), not a Maven `Log` — this is what makes
   the module Maven-free; Maven's own `maven-slf4j-provider` (ships since Maven ≥ 3.1) makes these lines
   surface as ordinary `[INFO]`/`[WARN]` output inside a plugin execution with zero glue, and the CLI
-  ships a logback binding for the same log lines outside Maven.
+  ships an SLF4J binding for the same log lines outside Maven.
 - **`document/`** — the `.ai.md` model + codecs (`AiMdDocument`, `AiMdHeader`, `AiMdDocumentCodec`,
   `AiMdHeaderCodec`, `AiMdHeaderSupport`, `AiMdChildEntryLineFormatter`, `AiMdLeadExtractor`,
   `AiGenerationRequest`/`AiGenerationResult`).
@@ -166,10 +166,13 @@ CLI driven by a single JSON or YAML configuration file:
 - The fat jar (`srcmorph-cli-<version>-jar-with-dependencies.jar`, main class
   `net.ladenthin.srcmorph.cli.Main`) is bound **unconditionally** to the `package` phase (a deliberate
   divergence from BAF's `-P assembly` opt-in — for this module the fat jar IS the deliverable).
-- Ships its own logback binding (`ch.qos.logback:logback-classic`, runtime scope) — unlike the library
+- Ships its own SLF4J binding (`org.slf4j:slf4j-simple`, runtime scope) — unlike the library
   (consumer picks any SLF4J binding) and the plugin (gets one for free from Maven's own
   `maven-slf4j-provider`), a standalone `java -jar` process needs to bring its own or every log line is
-  silently dropped.
+  silently dropped. It is **not** logback: see "Java 8 bytecode floor" below. Fat-jar defaults live in
+  `srcmorph-cli/src/main/assembly-resources/simplelogger.properties`, added by the custom assembly
+  descriptor `srcmorph-cli/src/assembly/fat-jar.xml` (the predefined `jar-with-dependencies` ref
+  verbatim plus that one file) so they never reach the published `srcmorph-cli` jar.
 - **Architecture rules** (`CliArchitectureTest`): `cliIsLeaf` (nothing else in the reactor may depend on
   this module — it is the leaf-most consumer), `noPublicMutableFields` (with the `configuration`
   package carve-out), `noSystemExit`, `mavenFree` (must never depend on the Maven Plugin API — that
@@ -394,9 +397,10 @@ assume it has already been updated.
 
 | Dependency | Version | Used by |
 |---|---|---|
-| `net.ladenthin:llama` | 5.1.0 | `srcmorph` (`provider` package only) — llama.cpp JNI binding |
+| `net.ladenthin:llama` | 5.2.0 | `srcmorph` (`provider` package only) — llama.cpp JNI binding; its own SLF4J binding is excluded transitively (see "Java 8 bytecode floor") |
 | `org.slf4j:slf4j-api` | 2.0.18 (converged in the parent) | `srcmorph`, `srcmorph-cli`, the plugin |
-| `ch.qos.logback:logback-classic` | 1.6.3 (converged in the parent) | `srcmorph-cli` (runtime binding) |
+| `org.slf4j:slf4j-simple` | 2.0.18 (converged in the parent) | `srcmorph-cli` (runtime binding) |
+| `ch.qos.logback:logback-classic` | 1.6.3 (converged in the parent) | `srcmorph` (**test scope only** — `ListAppender` capture) |
 | `com.fasterxml.jackson.core:jackson-databind` | pinned in parent | `srcmorph-cli` (JSON config) |
 | `com.fasterxml.jackson.dataformat:jackson-dataformat-yaml` | pinned in parent | `srcmorph-cli` (YAML config) |
 | `org.apache.maven:maven-plugin-api` | 3.9.16 | `srcmorph-maven-plugin` (provided) |
@@ -451,6 +455,48 @@ See [`../workspace/workflows/pull-request-workflow.md`](../workspace/workflows/p
    existing consumer mid-migration; the rename to `srcmorph-maven-plugin` is a deliberately isolated,
    later step (see `TODO.md`).
 
+## Java 8 bytecode floor — what may ship
+
+Production code in all three modules targets **Java 8** (`release 8`), so **every class a
+consumer's JVM can load must be class-file major 52 or lower**. Two entries exist only for that,
+and both are easy to undo by accident:
+
+- **`slf4j-simple`, not logback, is `srcmorph-cli`'s shipped SLF4J binding.** Every logback release
+  from 1.4.0 on is Java 11 bytecode, so `LogbackServiceProvider` cannot load on Java 8 — SLF4J's
+  `ServiceLoader` finds it at startup and the JVM throws `UnsupportedClassVersionError` before a
+  single log line is written. The Java 8 line (1.3.x) is end-of-life and every logback CVE disclosed
+  since has been fixed only in 1.5.x/1.6.x with no backport, so it is not an option either.
+  `slf4j-simple` is six classes from the same release train as `slf4j-api`, with no configuration or
+  socket layer for a CVE to live in. logback stays, but **test scope only**, for
+  `AiFieldGenerationSupportTest`'s `ListAppender`.
+- **`checker-qual` is `provided` scope, not a pinned old version.** It is major 55 from 4.0.0 on and
+  its annotations are `@Retention(RUNTIME)`, so anything reflecting over an annotated element (Jackson
+  does — the CLI binds its whole configuration with it) loads them. **Pinning the shipped copy to the
+  last Java 8 line (3.55.1) does not work**: the Nullness Checker resolves its own qualifiers through
+  javac's symbol table, i.e. the *compile classpath*, so a 3.x checker-qual under the 4.x processor
+  fails every build with `Could not load type:
+  org.checkerframework.framework.qual.DoesNotUnrefineReceiver`. Processor and qualifiers must share a
+  major version. `provided` satisfies both: 4.2.2 where the checker needs it, and excluded from
+  consumers' graph **and** from the fat jar (`jar-with-dependencies` takes scope `runtime`).
+  `<optional>true</optional>` alone would not have been enough — that descriptor filters on scope
+  only. Safe because no source in this reactor imports `org.checkerframework`.
+
+**The gate: `.github/verify-bytecode-version.sh`.** Kept **byte-identical** across
+java-llama.cpp / BitcoinAddressFinder / streambuffer / srcmorph (checksum table in
+`workspace/crossrepostatus.md`). It opens every `.class` in every jar it is given and fails on any
+whose class-file major version exceeds `--max-major`:
+
+```bash
+.github/verify-bytecode-version.sh --max-major 52 [--allow '<jar>:<entry>']... <jar-or-dir>...
+```
+
+Paths may be jars or directories (searched recursively for `*.jar`), so one invocation covers a
+whole artifact set. `module-info.class` and `META-INF/versions/**` are skipped unconditionally —
+a classpath JVM never loads either, which is why a `release 9` `module-info` is fine. `--allow`
+is a repeatable glob matched against `<jar-basename>:<entry-path>` for anything else that must be
+tolerated. Exit codes: 0 clean, 1 violations, **2 nothing to scan** (an empty input is a failure,
+never a pass). Wired into the `smoke-fatjar` job at `--max-major 52`.
+
 ## Javadoc Conventions
 
 See [`../workspace/policies/javadoc-conventions.md`](../workspace/policies/javadoc-conventions.md).
@@ -487,7 +533,7 @@ See [`../workspace/policies/ci-test-diagnostics.md`](../workspace/policies/ci-te
 See [`../workspace/policies/pit-mutation-testing.md`](../workspace/policies/pit-mutation-testing.md).
 Run PIT with the lifecycle prefix. Reactor-wide (what CI does):
 `mvn test-compile org.pitest:pitest-maven:mutationCoverage`; or scoped to one module with
-`-f srcmorph/pom.xml`. All three modules gate at `mutationThreshold` 100 — `srcmorph` (775 mutations),
+`-f srcmorph/pom.xml`. All three modules gate at `mutationThreshold` 100 — `srcmorph` (807 mutations),
 `srcmorph-maven-plugin` (62, the five mojo classes) and `srcmorph-cli` (16). The CLI's
 `Main.main(String[])` is the one documented exclusion: it is the process entry point, and the
 `smoke-fatjar` release-gating job already runs the real `java -jar` artifact and asserts

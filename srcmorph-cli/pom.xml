@@ -81,6 +81,11 @@ SPDX-License-Identifier: Apache-2.0
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
         </dependency>
+        <!--
+            Compile-only: nothing in this module imports these annotations, they exist for the
+            Checker Framework processor. Scope `provided` is inherited from the parent's
+            dependencyManagement and is what keeps them out of the fat jar; see the comment there.
+        -->
         <dependency>
             <groupId>org.checkerframework</groupId>
             <artifactId>checker-qual</artifactId>
@@ -112,11 +117,16 @@ SPDX-License-Identifier: Apache-2.0
             The CLI's own SLF4J binding: unlike the library (srcmorph) and the Maven plugin (which
             gets a binding from Maven's own maven-slf4j-provider), the CLI is a standalone `java -jar`
             process and must ship a binding itself or every log line is silently dropped. Runtime
-            scope: no compile-time API of logback is used here.
+            scope: no compile-time API of the binding is used here.
+
+            slf4j-simple, not logback: logback 1.4.0+ is Java 11 bytecode and the production code
+            here targets Java 8 — see the rationale on the pin in the parent's dependencyManagement.
+            Defaults ship in src/main/assembly-resources/simplelogger.properties (fat jar only);
+            override at runtime with -Dorg.slf4j.simpleLogger.* or a classpath simplelogger.properties.
         -->
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
             <scope>runtime</scope>
         </dependency>
 
@@ -513,9 +523,15 @@ SPDX-License-Identifier: Apache-2.0
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
+                    <!--
+                        src/assembly/fat-jar.xml, not the predefined jar-with-dependencies ref: it is
+                        that descriptor verbatim plus one fileSet adding simplelogger.properties, which
+                        must not live in src/main/resources (it would ship in the published jar and
+                        hijack an embedder's own slf4j-simple config). See the comments in that file.
+                    -->
+                    <descriptors>
+                        <descriptor>src/assembly/fat-jar.xml</descriptor>
+                    </descriptors>
                     <archive>
                         <manifest>
                             <mainClass>net.ladenthin.srcmorph.cli.Main</mainClass>
