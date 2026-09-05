@@ -533,11 +533,35 @@ See [`../workspace/policies/ci-test-diagnostics.md`](../workspace/policies/ci-te
 See [`../workspace/policies/pit-mutation-testing.md`](../workspace/policies/pit-mutation-testing.md).
 Run PIT with the lifecycle prefix. Reactor-wide (what CI does):
 `mvn test-compile org.pitest:pitest-maven:mutationCoverage`; or scoped to one module with
-`-f srcmorph/pom.xml`. All three modules gate at `mutationThreshold` 100 — `srcmorph` (807 mutations),
+`-f srcmorph/pom.xml`. All three modules gate at `mutationThreshold` 100 — `srcmorph` (830 mutations),
 `srcmorph-maven-plugin` (62, the five mojo classes) and `srcmorph-cli` (16). The CLI's
 `Main.main(String[])` is the one documented exclusion: it is the process entry point, and the
 `smoke-fatjar` release-gating job already runs the real `java -jar` artifact and asserts
 `Main#run end.` in its output, which is an end-to-end check a unit mutant cannot reach.
+
+**`LlamaCppJniAiGenerationProvider` is split so the gate can reach it, and the split is load-bearing.**
+Everything the provider does that does not touch the native handle lives in
+`provider.LlamaCppJniProviderSupport`, which is on the gate; the provider itself is not. That is not
+tidiness. PIT re-runs every test covering a mutated line, and while the pure logic sat next to
+`model()` the only way to gate any of it was to gate `model()` too -- a ~100-line `ModelParameters`
+chain whose sole exerciser is `LlamaCppJniKnobSweepTest`, 36 cases that each load a GGUF (22.9 s).
+Excluding those tests instead does not work: `model()`'s mutants would then have no coverage, and a
+`NO_COVERAGE` mutant fails a threshold-100 gate exactly like a survivor. **Keep the boundary at
+"touches the native handle"** -- moving a pure method back into the provider silently drops it off
+the gate, and moving an impure one into the support class reds it.
+
+The extension paid for itself immediately: the class contributed 23 mutations and **five survived**,
+all real gaps (the two `known*Values` separator boundaries, both `seed` guards, and the
+`drySequenceBreakers` branch). None could have been seen before, because a class that generates no
+mutants cannot move the number -- which is exactly why the gate read a stable 775/775 straight
+through the 1.1.0-era `dry_penalty_last_n` regression and through its fix.
+
+Cost, measured on one machine rather than estimated: 11:34 min at 807 mutations before, **12:14 min
+at 830 after** -- about 40 s for 23 mutations. `excludedTestClasses` was considered and is **not**
+used: it would remove a test class from mutant matching for *every* target class, not just this one,
+and the measurement says it is not needed. (The intermediate 15:57 min reading was inflated by the
+five survivors: PIT exhausts every covering test for a mutant that never dies, while a killed one
+stops at the first failure.)
 
 **Two classes are permanently off the gate, and this is worth not re-litigating.** Both have
 survivors that are *equivalent mutants*, unkillable through the public API rather than merely

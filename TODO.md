@@ -10,20 +10,6 @@ everything below is genuinely still open.
 
 ## Open
 
-- **Put `provider.LlamaCppJniAiGenerationProvider` on the PIT gate.** It is the one production class
-  where a defect has actually reached users, and it is *not* on the `targetClasses` list — which is
-  why the gate stayed at 775/775 through the 1.1.0-era `dry_penalty_last_n` regression and through
-  its fix: the class generates no mutants, so neither the bug nor the tests that now cover it move
-  the number. Do not read that stability as reassurance; PIT structurally could not have caught this.
-  It is now worth adding, because the class finally has model-free coverage of the parts that matter
-  (`buildInferenceParameters`, `warnOnTruncatedAnswer`, `logPromptCacheReuse`, `lazyMode`,
-  `cacheType`). **Measure before committing to it**: the real-model tests take ~4-16 s each, and PIT
-  re-runs every test covering a mutated line, so mutants in `model()` — the long `ModelParameters`
-  chain — could make the run far slower than the current few minutes. If it does, the answer is
-  probably `excludedTestClasses` for the real-model tests plus mutants restricted to the pure paths,
-  not dropping the idea. Deliberately out of scope for 1.2.0: it is a build-time question, not a
-  correctness one.
-
 - **The sixteen GPU classifier fat jars are verified structurally, never launched.** Since 1.2.0
   `.github/verify-classifier-fatjars.sh` asserts each is the artifact its name claims (one jar per
   classifier, a native for the promised OS/arch, a native set that differs from the default jar's, so
