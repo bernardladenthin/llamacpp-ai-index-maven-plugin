@@ -4,30 +4,20 @@
 package net.ladenthin.srcmorph.provider;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.ToString;
 import net.ladenthin.llama.LlamaModel;
-import net.ladenthin.llama.args.CacheType;
 import net.ladenthin.llama.args.FlashAttn;
-import net.ladenthin.llama.args.LazyMode;
 import net.ladenthin.llama.args.ReasoningFormat;
 import net.ladenthin.llama.json.ChatResponseParser;
-import net.ladenthin.llama.parameters.InferenceParameters;
 import net.ladenthin.llama.parameters.ModelParameters;
 import net.ladenthin.llama.value.ChatResponse;
-import net.ladenthin.llama.value.Pair;
 import net.ladenthin.llama.value.Timings;
-import net.ladenthin.llama.value.Usage;
 import net.ladenthin.srcmorph.document.AiGenerationRequest;
 import net.ladenthin.srcmorph.prompt.AiPromptSupport;
 import net.ladenthin.srcmorph.support.Java8CompatibilityHelper;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link AiGenerationProvider} implementation backed by the {@code net.ladenthin:llama}
@@ -42,11 +32,6 @@ import org.slf4j.LoggerFactory;
 @ToString
 public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvider, AutoCloseable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LlamaCppJniAiGenerationProvider.class);
-
-    /** OpenAI finish reason meaning "the token budget ran out", as opposed to {@code "stop"}. */
-    private static final String FINISH_REASON_LENGTH = "length";
-
     private final LlamaCppJniConfig config;
 
     // Native llama.cpp model handle — its toString prints native pointer / internal
@@ -58,26 +43,18 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
     private @Nullable LlamaModel model;
 
     private final AiPromptSupport promptSupport;
+
+    /**
+     * Everything this provider does that does not touch the native handle. Split out so the
+     * mutation gate can reach it: see {@link LlamaCppJniProviderSupport}'s own javadoc for why
+     * the boundary runs where it does.
+     */
+    @ToString.Exclude
+    private final LlamaCppJniProviderSupport support;
+
     private final AiCompletionParser completionParser = new AiCompletionParser();
     private final ChatResponseParser chatResponseParser = new ChatResponseParser();
     private final Java8CompatibilityHelper compatibilityHelper = new Java8CompatibilityHelper();
-
-    /**
-     * Fixed llama.cpp server slot every request is pinned to. The model is loaded once and reused
-     * for all files; pinning each request to the same slot lets the prompt cache
-     * ({@code cache_prompt}) reuse the shared prompt-template prefix's KV across files instead of
-     * re-prefilling it for every file. Reuse is exact, so generated output is unchanged.
-     */
-    private static final int REUSE_SLOT_ID = 0;
-
-    /** Chat-template kwarg controlling Qwen-style thinking (ignored by non-Qwen templates). */
-    private static final String ENABLE_THINKING_KWARG = "enable_thinking";
-
-    /** Chat-template kwarg for the gpt-oss reasoning-effort level (ignored by non-gpt-oss templates). */
-    private static final String REASONING_EFFORT_KWARG = "reasoning_effort";
-
-    /** Number of chat-template kwargs put into the map (used for presizing). */
-    private static final int CHAT_TEMPLATE_KWARG_COUNT = 2;
 
     /**
      * Creates a new {@link LlamaCppJniAiGenerationProvider}; the GGUF model is loaded lazily on the first generate(...) call.
@@ -88,45 +65,14 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
     public LlamaCppJniAiGenerationProvider(final LlamaCppJniConfig config, final AiPromptSupport promptSupport) {
         this.config = Objects.requireNonNull(config, "config");
         this.promptSupport = Objects.requireNonNull(promptSupport, "promptSupport");
-    }
-
-    /**
-     * Builds the chat-template kwargs passed to
-     * {@link net.ladenthin.llama.parameters.ModelParameters#setChatTemplateKwargs}.
-     *
-     * <p>Both kwargs are opt-in: an entry is written only when the user actually configured it, so a
-     * chat template that has never heard of the kwarg is not handed it. That matters because
-     * llama.cpp's Jinja layer has been moving unknown kwargs from "silently ignored" toward "warned
-     * about" -- while {@code enable_thinking} was a plain {@code boolean} defaulting to {@code true},
-     * every run sent it, and the only way to stop the noise was to set the knob to {@code false},
-     * which means something else entirely.</p>
-     *
-     * <p>Package-private so it can be pinned without loading a GGUF; {@link #model()} is the only
-     * production caller.</p>
-     *
-     * @return the kwargs to send; empty when neither knob is configured
-     */
-    Map<String, String> buildChatTemplateKwargs() {
-        final Map<String, String> chatTemplateKwargs =
-                new HashMap<>(compatibilityHelper.hashMapCapacityFor(CHAT_TEMPLATE_KWARG_COUNT));
-        // Qwen-style thinking. Unset (null) omits the kwarg so the model's own template default applies.
-        final Boolean enableThinking = config.chatTemplateEnableThinking();
-        if (enableThinking != null) {
-            chatTemplateKwargs.put(ENABLE_THINKING_KWARG, String.valueOf(enableThinking.booleanValue()));
-        }
-        // gpt-oss honors reasoning_effort; non-gpt-oss chat templates ignore it. An empty
-        // configured value omits the kwarg so the model's own template default applies.
-        if (!compatibilityHelper.isBlank(config.reasoningEffort())) {
-            chatTemplateKwargs.put(REASONING_EFFORT_KWARG, config.reasoningEffort());
-        }
-        return chatTemplateKwargs;
+        this.support = new LlamaCppJniProviderSupport(this.config, this.promptSupport);
     }
 
     /** Loads the GGUF model on first use and caches it for subsequent calls. */
     private LlamaModel model() {
         LlamaModel current = model;
         if (current == null) {
-            final Map<String, String> chatTemplateKwargs = buildChatTemplateKwargs();
+            final Map<String, String> chatTemplateKwargs = support.buildChatTemplateKwargs();
             final ModelParameters modelParameters = new ModelParameters()
                     .setModel(config.modelPath())
                     .setCtxSize(config.contextSize())
@@ -170,7 +116,7 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             // load time, which matters here because a run loads one model per model group and
             // calibrate preflights every model in turn. Empty leaves the binding/native-build default.
             if (!compatibilityHelper.isBlank(config.lazyMode())) {
-                modelParameters.setLazyMode(lazyMode(config.lazyMode()));
+                modelParameters.setLazyMode(LlamaCppJniProviderSupport.lazyMode(config.lazyMode()));
             }
             // Flash Attention. Emitted only when asked for: llama.cpp's own default is `auto`, so
             // NOT emitting the option leaves it to decide per backend and model, which is what an
@@ -183,10 +129,10 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
             // KV-cache quantization. Set independently of each other, but note that a quantized V cache
             // generally needs Flash Attention above -- llama.cpp refuses the combination otherwise.
             if (!compatibilityHelper.isBlank(config.cacheTypeK())) {
-                modelParameters.setCacheTypeK(cacheType("cacheTypeK", config.cacheTypeK()));
+                modelParameters.setCacheTypeK(LlamaCppJniProviderSupport.cacheType("cacheTypeK", config.cacheTypeK()));
             }
             if (!compatibilityHelper.isBlank(config.cacheTypeV())) {
-                modelParameters.setCacheTypeV(cacheType("cacheTypeV", config.cacheTypeV()));
+                modelParameters.setCacheTypeV(LlamaCppJniProviderSupport.cacheType("cacheTypeV", config.cacheTypeV()));
             }
             // Prefill sizing. The binding's own default for both is 0, which llama.cpp reads as
             // "decide for me", so 0 is not a meaningful user value and the guard is > 0.
@@ -216,91 +162,11 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
         return current;
     }
 
-    /**
-     * Resolves a configured {@code --tensor-read-lazy} value to the binding's enum.
-     *
-     * <p>Matched case-insensitively against the CLI strings the enum itself declares
-     * ({@code off}, {@code auto}, {@code on}), so this never drifts from the binding. An
-     * unrecognised value is rejected rather than silently ignored: it is always a configuration
-     * typo, and dropping it would hand the user a run that quietly did not do what was asked.</p>
-     *
-     * <p>Package-private rather than private so it can be unit-tested without loading a model: it is
-     * otherwise reachable only from the lazy {@code model()} path, which needs a real GGUF.</p>
-     *
-     * @param value the configured value; must not be blank (callers guard on that)
-     * @return the matching mode
-     * @throws IllegalArgumentException if no mode declares that CLI string
-     */
-    static LazyMode lazyMode(final String value) {
-        for (final LazyMode mode : LazyMode.values()) {
-            if (mode.getArgValue().equalsIgnoreCase(value)) {
-                return mode;
-            }
-        }
-        throw new IllegalArgumentException(
-                "Invalid lazyMode value: \"" + value + "\" (expected one of: " + knownLazyModeValues() + ")");
-    }
-
-    /**
-     * Resolves a configured {@code --cache-type-k} / {@code --cache-type-v} value to the binding's enum.
-     *
-     * <p>Same contract as {@link #lazyMode(String)}: matched case-insensitively against the CLI
-     * strings the enum itself declares, so a cache type upstream adds is accepted for free, and an
-     * unrecognised value is rejected rather than dropped. The knob name is passed in so the message names
-     * the element the user actually wrote.</p>
-     *
-     * @param knobName the configuration element name, for the error message
-     * @param value    the configured value; must not be blank (callers guard on that)
-     * @return the matching cache type
-     * @throws IllegalArgumentException if no cache type declares that CLI string
-     */
-    static CacheType cacheType(final String knobName, final String value) {
-        for (final CacheType type : CacheType.values()) {
-            if (type.getArgValue().equalsIgnoreCase(value)) {
-                return type;
-            }
-        }
-        throw new IllegalArgumentException(
-                "Invalid " + knobName + " value: \"" + value + "\" (expected one of: " + knownCacheTypeValues() + ")");
-    }
-
-    /**
-     * Renders the accepted KV-cache types for an error message.
-     *
-     * @return the CLI strings the binding's enum declares, comma-separated in declaration order
-     */
-    private static String knownCacheTypeValues() {
-        final StringBuilder known = new StringBuilder();
-        for (final CacheType type : CacheType.values()) {
-            if (known.length() > 0) {
-                known.append(", ");
-            }
-            known.append(type.getArgValue());
-        }
-        return known.toString();
-    }
-
-    /**
-     * Renders the accepted {@code --tensor-read-lazy} values for an error message.
-     *
-     * @return the CLI strings the binding's enum declares, comma-separated in declaration order
-     */
-    private static String knownLazyModeValues() {
-        final StringBuilder known = new StringBuilder();
-        for (final LazyMode mode : LazyMode.values()) {
-            if (known.length() > 0) {
-                known.append(", ");
-            }
-            known.append(mode.getArgValue());
-        }
-        return known.toString();
-    }
-
     @Override
     public String generate(final AiGenerationRequest request) throws IOException {
         final ChatResponse response = chatResponse(request);
-        warnOnTruncatedAnswer(request, response);
-        logPromptCacheReuse(request, response);
+        support.warnOnTruncatedAnswer(request, response);
+        support.logPromptCacheReuse(request, response);
         return completionParser.parseCompletion(response.getFirstContent());
     }
 
@@ -316,73 +182,7 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
      * @return the parsed response
      */
     private ChatResponse chatResponse(final AiGenerationRequest request) {
-        return chatResponseParser.parseResponse(model().chatComplete(buildInferenceParameters(request)));
-    }
-
-    /**
-     * Warns when the model stopped because it ran out of output budget rather than because it was done.
-     *
-     * <p>{@code maxOutputTokens} defaults to 128. A summary that hits that ceiling is cut off mid-sentence
-     * and written to the {@code .ai.md} exactly like a complete one &mdash; the run stays green and the
-     * index silently degrades. The signal was already in the response this provider parses; it was simply
-     * discarded along with the rest of it.</p>
-     *
-     * <p><b>Compared against the literal {@code "length"}, deliberately not against
-     * {@code net.ladenthin.llama.value.StopReason}.</b> Those are two different vocabularies:
-     * {@code getFinishReason()} is OpenAI's ({@code stop} / {@code length} / {@code tool_calls}), while
-     * {@code StopReason} maps llama.cpp's own {@code stop_type} ({@code eos} / {@code word} /
-     * {@code limit}). {@code StopReason.fromStopType("length")} returns {@code NONE} &mdash; a silent
-     * wrong answer, not a compile error.</p>
-     *
-     * <p>Package-private so the {@code "length"}-versus-{@code "stop"} decision can be driven from a
-     * hand-built {@link ChatResponse}, with no model: the trap this method documents is a silent one,
-     * so it needs a test that runs on every platform rather than only where a GGUF is present.</p>
-     *
-     * @param request  the request, for the file name in the message
-     * @param response the parsed response
-     */
-    void warnOnTruncatedAnswer(final AiGenerationRequest request, final ChatResponse response) {
-        if (response.getChoices().isEmpty()) {
-            return;
-        }
-        if (!FINISH_REASON_LENGTH.equals(response.getChoices().get(0).getFinishReason())) {
-            return;
-        }
-        LOGGER.warn(
-                "Generated text for {} was cut off at the {}-token output budget, not finished by the model."
-                        + " The .ai.md will end mid-thought; raise maxOutputTokens for this model, or shorten"
-                        + " the prompt.",
-                request.sourceFile(),
-                config.maxOutputTokens());
-    }
-
-    /**
-     * Logs, per generation, how much of the prompt the KV cache served.
-     *
-     * <p>{@code srcmorph:calibrate} reports this for its own probe runs, but an indexing run &mdash; the
-     * one that actually pays {@code swaFull}'s KV-memory surcharge, file after file &mdash; had no
-     * visibility at all. At {@code DEBUG} because it is one line per file.</p>
-     *
-     * <p>Package-private for the same reason as {@link #warnOnTruncatedAnswer}: a hand-built
-     * {@link ChatResponse} is enough to drive it.</p>
-     *
-     * @param request  the request, for the file name
-     * @param response the parsed response
-     */
-    void logPromptCacheReuse(final AiGenerationRequest request, final ChatResponse response) {
-        if (!LOGGER.isDebugEnabled()) {
-            return;
-        }
-        // No null guard: ChatResponse.getUsage() is declared non-null, and SpotBugs flags a check on it
-        // as dead code (RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE). Unlike getTimings(), which the
-        // timings path does have to guard.
-        final Usage usage = response.getUsage();
-        LOGGER.debug(
-                "{}: {} of {} prompt token(s) served from the KV cache, {} generated",
-                request.sourceFile(),
-                usage.getCachedTokens(),
-                usage.getPromptTokens(),
-                usage.getCompletionTokens());
+        return chatResponseParser.parseResponse(model().chatComplete(support.buildInferenceParameters(request)));
     }
 
     // Narrows away the interface's checked IOException: the chat path (chatComplete + parse) throws only
@@ -410,88 +210,6 @@ public final class LlamaCppJniAiGenerationProvider implements AiGenerationProvid
                 timings.getPromptPerSecond(),
                 (int) timings.getPredictedN(),
                 timings.getPredictedPerSecond());
-    }
-
-    /**
-     * Builds the immutable {@link InferenceParameters} for the given request from the resolved config.
-     *
-     * <p>Package-private rather than private so the sentinel guards below can be tested without a
-     * model: the method touches no llama state (the model is loaded lazily, on the first generate),
-     * so a test can build a provider over a nonexistent path and inspect what would be sent. Given
-     * that an unguarded negative window silently killed the provider for two releases, that guard
-     * needs a test which does not depend on a GGUF being present.</p>
-     *
-     * @param request the generation request
-     * @return the inference parameters
-     */
-    InferenceParameters buildInferenceParameters(final AiGenerationRequest request) {
-        // Static instructions go in the SYSTEM message (byte-identical across files, so its KV
-        // prefix is reused by cache_prompt); the variable file name + source go in the USER message.
-        final String systemPrompt = promptSupport.systemPrompt(request.promptKey());
-        final String userMessage = promptSupport.userMessage(request.sourceFile(), request.sourceText());
-
-        final List<Pair<String, String>> messages = new ArrayList<>();
-        messages.add(new Pair<>("user", userMessage));
-
-        // InferenceParameters uses immutable withers: each with* returns a new instance, so the
-        // whole request is built as a single chain.
-        final InferenceParameters baseParameters = new InferenceParameters("")
-                .withMessages(systemPrompt, messages)
-                .withTemperature(config.temperature())
-                .withNPredict(config.maxOutputTokens())
-                .withTopP(config.topP())
-                .withTopK(config.topK())
-                .withMinP(config.minP())
-                .withTopNSigma(config.topNSigma())
-                .withRepeatPenalty(config.repeatPenalty())
-                // Cap harmony analysis (reasoning) tokens so a runaway chain-of-thought cannot
-                // starve the final answer; -1 (default) = unrestricted, so behaviour is unchanged.
-                .withReasoningBudgetTokens(config.reasoningBudgetTokens())
-                // DRY (Don't Repeat Yourself) repetition suppression; multiplier 0.0 (default) = off,
-                // so the base/allowed-length knobs have no effect unless opted in. The DRY penalty
-                // WINDOW is deliberately not in this chain -- see penaltyScopedParameters below.
-                .withDryMultiplier(config.dryMultiplier())
-                .withDryBase(config.dryBase())
-                .withDryAllowedLength(config.dryAllowedLength())
-                .withStopStrings(config.stopStrings().toArray(new String[0]))
-                // Keep the shared prompt-template prefix warm in the KV cache and reuse it across
-                // files (pinned to one slot); only the differing source is re-prefilled.
-                // Reuse is exact -> output unchanged.
-                .withCachePrompt(config.cachePrompt())
-                .withSlotId(REUSE_SLOT_ID);
-
-        // Pin the RNG seed only when explicitly configured (>= 0). Upstream's default is a random seed
-        // per request, so an unconfigured run keeps exactly the behaviour it had; a configured one makes
-        // the generated body stable for a given machine and configuration, which is what turns a
-        // re-index into a reviewable diff. Not bit-reproducibility -- see AiGenerationConfig.DEFAULT_SEED.
-        final InferenceParameters seededParameters =
-                config.seed() >= 0 ? baseParameters.withSeed(config.seed()) : baseParameters;
-
-        // The two penalty windows -- the one the repeat penalty acts on, and DRY's own -- are forwarded
-        // only when configured (>= 0), so an unconfigured run keeps llama.cpp's own window; 0 is
-        // meaningful (disables the penalty), which is why the guard is >= 0 rather than > 0.
-        //
-        // The guard is not an optimisation, it is the only thing keeping the provider alive. The binding
-        // REJECTS a negative window outright (IllegalArgumentException, because llama.cpp b10273 dropped
-        // "-1 = context size"), and both defaults are -1. An unguarded forward therefore kills EVERY
-        // generation before a token is produced, whatever the rest of the configuration says. That is
-        // not hypothetical: dryPenaltyLastN was forwarded unguarded and did exactly that in 1.1.0 and
-        // 1.1.1. It survived because "DRY is off by default, so the window cannot matter" is true of the
-        // window's *effect* and false of the setter's *validation* -- the wither rejects the value
-        // whether or not DRY is active. Keep both guards, and add one for any future knob whose sentinel
-        // is negative.
-        final InferenceParameters repeatScopedParameters =
-                config.repeatLastN() >= 0 ? seededParameters.withRepeatLastN(config.repeatLastN()) : seededParameters;
-        final InferenceParameters penaltyScopedParameters = config.dryPenaltyLastN() >= 0
-                ? repeatScopedParameters.withDryPenaltyLastN(config.dryPenaltyLastN())
-                : repeatScopedParameters;
-
-        // Only override the DRY sequence breakers when explicitly configured; an empty list keeps
-        // the binding/model default set instead of clearing it.
-        return config.drySequenceBreakers().isEmpty()
-                ? penaltyScopedParameters
-                : penaltyScopedParameters.withDrySequenceBreakers(
-                        config.drySequenceBreakers().toArray(new String[0]));
     }
 
     @Override
