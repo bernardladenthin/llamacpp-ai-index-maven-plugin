@@ -49,6 +49,12 @@ public class LlamaCppJniProviderSupportTest {
     /** JSON key of the repeat-penalty window, quoted for the same reason. */
     private static final String PARAM_REPEAT_LAST_N = "\"repeat_last_n\"";
 
+    /** JSON key of the RNG seed, quoted for the same reason. */
+    private static final String PARAM_SEED = "\"seed\"";
+
+    /** JSON key of the DRY sequence breakers, quoted for the same reason. */
+    private static final String PARAM_DRY_SEQUENCE_BREAKERS = "\"dry_sequence_breakers\"";
+
     /** Chat-template kwarg key for Qwen-style thinking, as the provider spells it. */
     private static final String KWARG_ENABLE_THINKING = "enable_thinking";
 
@@ -90,6 +96,10 @@ public class LlamaCppJniProviderSupportTest {
                 IllegalArgumentException.class, () -> LlamaCppJniProviderSupport.lazyMode("lazy"));
         assertThat(thrown.getMessage(), containsString("lazy"));
         assertThat(thrown.getMessage(), containsString("off, auto, on"));
+        // Anchored to the "expected one of: " prefix on purpose: the renderer emits its separator
+        // only from the second value on, and a guard written as >= 0 instead of > 0 would prepend a
+        // stray ", " that a containsString on the middle of the list cannot see.
+        assertThat(thrown.getMessage(), containsString("expected one of: off"));
     }
 
     @Test
@@ -115,6 +125,8 @@ public class LlamaCppJniProviderSupportTest {
         assertThat(thrown.getMessage(), containsString("cacheTypeV"));
         assertThat(thrown.getMessage(), containsString("q3_k"));
         assertThat(thrown.getMessage(), containsString("f32, f16, bf16, q8_0"));
+        // Same anchor as lazyMode above, for the same separator boundary.
+        assertThat(thrown.getMessage(), containsString("expected one of: f32"));
     }
 
     // <editor-fold defaultstate="collapsed" desc="buildInferenceParameters: negative-sentinel guards">
@@ -202,6 +214,83 @@ public class LlamaCppJniProviderSupportTest {
         // assert -- distinct values, so a transposition of the two guards fails rather than cancelling out
         assertThat(json, containsString(PARAM_DRY_PENALTY_LAST_N + ": 64"));
         assertThat(json, containsString(PARAM_REPEAT_LAST_N + ": 128"));
+    }
+
+    /**
+     * The seed sentinel is {@link net.ladenthin.srcmorph.config.AiGenerationConfig#DEFAULT_SEED} (-1),
+     * meaning "random per request". Forwarding it would pin every run to seed -1 and silently destroy
+     * the randomness upstream provides, so an unconfigured run must send nothing at all.
+     */
+    @Test
+    public void buildInferenceParameters_defaultConfig_sendsNoSeed() {
+        // arrange
+        final LlamaCppJniConfig defaults =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").build();
+
+        // act
+        final String json = providerWith(defaults)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, not(containsString(PARAM_SEED)));
+    }
+
+    /**
+     * {@code 0} is a legitimate seed, not a second sentinel, so the guard has to be {@code >= 0}. Pins
+     * that boundary from the other side, exactly as the penalty windows do above -- a guard written as
+     * {@code > 0} would silently drop a run the user pinned to seed 0.
+     */
+    @Test
+    public void buildInferenceParameters_zeroSeed_isStillSent() {
+        // arrange
+        final LlamaCppJniConfig zeroSeed =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").seed(0).build();
+
+        // act
+        final String json = providerWith(zeroSeed)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, containsString(PARAM_SEED + ": 0"));
+    }
+
+    /**
+     * An empty breaker list means "keep the binding's own default set", not "clear it". Sending an empty
+     * array would replace a sensible default with nothing, which is a behaviour change rather than a
+     * no-op -- hence the guard, and hence this test.
+     */
+    @Test
+    public void buildInferenceParameters_defaultConfig_sendsNoDrySequenceBreakers() {
+        // arrange
+        final LlamaCppJniConfig defaults =
+                LlamaCppJniConfig.builder("/does/not/exist.gguf").build();
+
+        // act
+        final String json = providerWith(defaults)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, not(containsString(PARAM_DRY_SEQUENCE_BREAKERS)));
+    }
+
+    /** A configured breaker list reaches the request. */
+    @Test
+    public void buildInferenceParameters_configuredDrySequenceBreakers_arePassedThrough() {
+        // arrange
+        final LlamaCppJniConfig configured = LlamaCppJniConfig.builder("/does/not/exist.gguf")
+                .drySequenceBreakers(Collections.singletonList("\\n"))
+                .build();
+
+        // act
+        final String json = providerWith(configured)
+                .buildInferenceParameters(request("class A {}"))
+                .toString();
+
+        // assert
+        assertThat(json, containsString(PARAM_DRY_SEQUENCE_BREAKERS));
     }
 
     // </editor-fold>
