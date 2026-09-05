@@ -122,7 +122,7 @@ SPDX-License-Identifier: Apache-2.0
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.18</version>
+                <version>2.0.19</version>
             </dependency>
             <!--
                 The SLF4J binding shipped inside srcmorph-cli's fat jar. It is slf4j-simple, not
@@ -140,7 +140,7 @@ SPDX-License-Identifier: Apache-2.0
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
-                <version>2.0.18</version>
+                <version>2.0.19</version>
             </dependency>
             <!--
                 Pin logback-classic for the TEST scope only: AiFieldGenerationSupportTest attaches a
@@ -198,7 +198,7 @@ SPDX-License-Identifier: Apache-2.0
                 org.checkerframework.framework.qual.DoesNotUnrefineReceiver". Processor and
                 qualifiers must share a major version.
 
-                Scope `provided` satisfies both constraints at once: 4.2.2 on the compile classpath
+                Scope `provided` satisfies both constraints at once: 4.2.3 on the compile classpath
                 where the checker needs it, and excluded from consumers' transitive graph AND from
                 the fat jar (jar-with-dependencies takes scope runtime), so no checker-qual class of
                 any version reaches a consumer's JVM. <optional>true</optional> alone would not have
@@ -212,7 +212,7 @@ SPDX-License-Identifier: Apache-2.0
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>4.2.2</version>
+                <version>4.2.3</version>
                 <scope>provided</scope>
             </dependency>
         </dependencies>
